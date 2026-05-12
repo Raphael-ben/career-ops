@@ -83,34 +83,245 @@ Built by someone who used it to evaluate 740+ job offers, generate 100+ tailored
 # 1. Clone and install
 git clone https://github.com/santifer/career-ops.git
 cd career-ops && npm install
-npx playwright install chromium   # Required for PDF generation
+npx playwright install chromium   # Required for HTML→PDF generation
 
-# 2. Check setup
-npm run doctor                     # Validates all prerequisites
+# 2. Install Python dependencies (for JobSpy scanner)
+pip install -r requirements.txt
 
-# 3. Configure
-cp config/profile.example.yml config/profile.yml  # Edit with your details
-cp templates/portals.example.yml portals.yml       # Customize companies
+# 3. Open Claude Code and let it guide you
+claude   # Opens onboarding if config/profile.yml or cv.md is missing
 
-# 4. Add your CV
-# Create cv.md in the project root with your CV in markdown
-
-# 5. Personalize with Claude
-claude   # Open Claude Code in this directory
-
-# Then ask Claude to adapt the system to you:
-# "Change the archetypes to backend engineering roles"
-# "Translate the modes to English"
-# "Add these 5 companies to portals.yml"
-# "Update my profile with this CV I'm pasting"
-
-# 6. Start using
-# Paste a job URL or run /career-ops
+# 4. Start using
+# Paste a job URL or run /jobhunter
 ```
 
 > **The system is designed to be customized by Claude itself.** Modes, archetypes, scoring weights, negotiation scripts -- just ask Claude to change them. It reads the same files it uses, so it knows exactly what to edit.
 
-See [docs/SETUP.md](docs/SETUP.md) for the full setup guide.
+---
+
+## Setup Guide
+
+> **First launch automatically starts onboarding.** When Claude Code opens in this directory, it checks for required files and walks you through setup if any are missing. This section documents what happens and what each file does.
+
+### Prerequisites
+
+| Requirement | Purpose | Install |
+|-------------|---------|---------|
+| [Claude Code](https://claude.ai/code) | AI agent runtime | Download from claude.ai |
+| Node.js 18+ | Scripts (PDF, scanner, tracker) | `brew install node` or nodejs.org |
+| Python 3.10+ | JobSpy board scraper | `brew install python` or python.org |
+| `pdflatex` | LaTeX→PDF compilation | `brew install --cask mactex` (macOS) |
+| Playwright Chromium | HTML→PDF generation | `npx playwright install chromium` |
+
+> You only need **one** of pdflatex or Playwright depending on your template format (see Template Setup below). Both is fine too.
+
+---
+
+### Step 1 — Profile (single source of truth)
+
+**File: `config/profile.yml`**
+
+This is the single source of truth for **all** `/jobhunter` commands. Fill it once — every mode (evaluate, scan, pdf, humanize, batch) reads it. It is gitignored and never committed.
+
+```bash
+cp config/profile.example.yml config/profile.yml
+# Then edit with your details (or let Claude fill it from your CV)
+```
+
+Key sections:
+
+```yaml
+candidate:
+  full_name: "Your Name"
+  email: "you@email.com"
+  phone: "+1 555 000 0000"
+  location: "City, Country"
+
+target_roles:
+  primary:
+    - "Head of Strategy"
+    - "Business Development Director"
+  market: "Switzerland (Zürich, Remote/DACH)"
+
+narrative:
+  headline: "One-line professional summary"
+  superpowers:
+    - "Your top differentiator"
+    - "Second differentiator"
+
+compensation:
+  target_range: "CHF 120K–160K base"
+  currency: "CHF"
+
+cv:
+  output_format: "latex"          # "latex" (default) or "html"
+  photo: "photo.jpg"              # relative to career-ops root, gitignored
+  template_cv: "templates/cv-template.tex"
+  template_cl: "templates/cover-letter-template.tex"
+
+jobspy:
+  search_terms:
+    - "Business Development Manager Switzerland"
+    - "Head of Strategy Switzerland"
+  location: "Switzerland"
+  results_wanted: 30
+  hours_old: 72
+```
+
+> The `jobspy.search_terms` should mirror your `portals.yml` `title_filter.positive` entries — same intent, different scraping mechanism. This ensures the Level 4 JobSpy scan and Levels 1–3 portal scan produce consistent, deduplicated results.
+
+---
+
+### Step 2 — CV
+
+**File: `cv.md`** (project root, gitignored)
+
+The canonical markdown CV that all modes read. If missing, Claude will ask you to:
+1. Paste your CV — it converts to clean markdown
+2. Paste your LinkedIn URL — it extracts key info
+3. Describe your experience — it drafts for you
+
+Standard sections: Professional Summary, Work Experience (most recent first), Education, Skills, and optionally Projects, Certifications, Languages.
+
+---
+
+### Step 3 — Research configuration
+
+**File: `portals.yml`** (project root, gitignored)
+
+Configures what the scanner looks for across all 4 levels (Playwright, ATS APIs, WebSearch, JobSpy).
+
+```bash
+cp templates/portals.example.yml portals.yml
+# Then customize location_filter, title_filter, and tracked_companies
+```
+
+Key sections to customize:
+
+```yaml
+location_filter:
+  positive: ["Zürich", "Switzerland", "DACH", "Remote"]
+  negative: ["London", "Paris"]   # exclude if not relevant
+
+title_filter:
+  positive: ["Head of Strategy", "Business Development", "Corporate Development"]
+  negative: ["Junior", "Intern", "Graduate"]   # filter out seniority mismatches
+
+tracked_companies:
+  - name: "Rolex"
+    careers_url: "https://jobs.rolex.com/"
+    ats: "workday"
+  - name: "ABB"
+    careers_url: "https://careers.abb/global/en"
+    ats: "taleo"
+```
+
+> Keep `jobspy.search_terms` in `profile.yml` aligned with `title_filter.positive` here for consistent results across all scan levels.
+
+---
+
+### Step 4 — Template Setup
+
+The template is what gets filled with your profile data at generation time. It defines layout, fonts, and structure — **never hard-code personal data** in the template.
+
+#### Option A — LaTeX template (`.tex`) — Recommended for European/Swiss market
+
+Best for: precise formatting, academic-style CVs, offline PDF generation.
+
+```bash
+# 1. Verify pdflatex is installed
+which pdflatex || brew install --cask mactex
+
+# 2. Place your .tex files in templates/
+#    templates/cv-template-yourname.tex
+#    templates/cover-letter-template-yourname.tex
+
+# 3. Set in config/profile.yml:
+cv:
+  output_format: "latex"
+  template_cv: "templates/cv-template-yourname.tex"
+  template_cl: "templates/cover-letter-template-yourname.tex"
+```
+
+The writer agent fills LaTeX placeholders (`\CLName`, `\CLCompanyName`, `\CLPosition`, etc.) and compiles to PDF via `generate-latex-rb.mjs`.
+
+**LaTeX template placeholders** — your template must define these commands:
+
+| Placeholder | Value |
+|-------------|-------|
+| `\CLName` | Candidate full name |
+| `\CLEmail` | Email |
+| `\CLPhone` | Phone |
+| `\CLAddress` | Address |
+| `\CLCompanyName` | Target company name |
+| `\CLPosition` | Target role title |
+| `\CLDate` | Letter date |
+| `\CLBodyA` | Cover letter paragraph 1 |
+| `\CLBodyB` | Cover letter paragraph 2 |
+| `\CLBodyC` | Cover letter paragraph 3 |
+
+#### Option B — HTML template (`.html`) — Best for ATS optimization
+
+Best for: modern design, ATS keyword injection, Playwright PDF generation.
+
+```bash
+# 1. Install Playwright
+npx playwright install chromium
+
+# 2. Place your template in templates/
+#    templates/cv-template.html
+
+# 3. Set in config/profile.yml:
+cv:
+  output_format: "html"
+  template_cv: "templates/cv-template.html"
+```
+
+PDF generated via `generate-pdf.mjs`. The HTML template uses `{{PLACEHOLDER}}` syntax for dynamic data injection.
+
+#### Profile photo
+
+Place your photo in the career-ops root (e.g., `photo.jpg` or `CV-photo.jpg`). Set `cv.photo` in `profile.yml`. Both the photo and all generated PDFs are gitignored.
+
+---
+
+### Step 5 — First scan
+
+Once setup is complete:
+
+```bash
+# Dry-run to verify JobSpy config reads correctly
+python3 jobspy_scan.py --dry-run --config config/profile.yml
+
+# Run a full scan across all 4 levels
+/jobhunter scan
+```
+
+The scan populates `data/pipeline.md` with new job URLs. Then:
+
+```bash
+/jobhunter pipeline   # Evaluate all pending URLs
+/jobhunter tracker    # View your application status
+```
+
+---
+
+### What's gitignored (never committed)
+
+| File/folder | Contains |
+|-------------|----------|
+| `cv.md` | Your personal CV |
+| `config/profile.yml` | Your profile, targets, comp |
+| `portals.yml` | Your research config |
+| `config/profile_bank.json` | Extended profile bank |
+| `data/` | Pipeline, applications, scan history |
+| `output/` | Generated CVs and cover letters |
+| `reports/` | Evaluation reports |
+| `interview-prep/` | Interview prep notes |
+| `*.pdf` | All compiled PDFs |
+| `photo.jpg`, `CV-*.jpg` | Profile photos |
+
+Everything else (modes, scripts, templates, batch config) is system layer — safe to commit and share.
 
 ## Gemini CLI Integration
 
@@ -131,11 +342,11 @@ cd career-ops
 gemini
 
 # 4. Use slash commands just like Claude Code
-/career-ops "Senior AI Engineer at Anthropic..."
-/career-ops-evaluate --file ./jds/openai.txt
-/career-ops-scan
-/career-ops-pdf
-/career-ops-tracker
+/jobhunter "Senior AI Engineer at Anthropic..."
+/jobhunter-evaluate --file ./jds/openai.txt
+/jobhunter-scan
+/jobhunter-pdf
+/jobhunter-tracker
 ```
 
 The `GEMINI.md` file is auto-loaded as context. All 15 commands are defined in `.gemini/commands/*.toml`.
@@ -163,18 +374,22 @@ npm run gemini:eval -- "JD text here"
 Career-ops is a single slash command with multiple modes:
 
 ```
-/career-ops                → Show all available commands
-/career-ops {paste a JD}   → Full auto-pipeline (evaluate + PDF + tracker)
-/career-ops scan           → Scan portals for new offers
-/career-ops pdf            → Generate ATS-optimized CV
-/career-ops batch          → Batch evaluate multiple offers
-/career-ops tracker        → View application status
-/career-ops apply          → Fill application forms with AI
-/career-ops pipeline       → Process pending URLs
-/career-ops contacto       → LinkedIn outreach message
-/career-ops deep           → Deep company research
-/career-ops training       → Evaluate a course/cert
-/career-ops project        → Evaluate a portfolio project
+/jobhunter                → Show all available commands
+/jobhunter {paste a JD}   → Full auto-pipeline (evaluate + PDF + tracker)
+/jobhunter scan           → Scan portals + job boards for new offers (zero tokens)
+/jobhunter evaluate       → Score a single offer A–G
+/jobhunter compare        → Side-by-side matrix for multiple offers
+/jobhunter pdf            → Generate ATS-optimized CV
+/jobhunter humanize       → Remove AI writing patterns from LaTeX CV/cover letter
+/jobhunter batch          → Batch evaluate multiple offers in parallel
+/jobhunter tracker        → View application status
+/jobhunter apply          → Fill application forms with AI
+/jobhunter pipeline       → Process pending URLs
+/jobhunter contact        → LinkedIn outreach message
+/jobhunter deep           → Deep company research
+/jobhunter interview      → STAR story prep for a specific company
+/jobhunter follow         → Follow-up cadence tracker
+/jobhunter help           → Full command reference + function hierarchy
 ```
 
 Or just paste a job URL or description directly -- career-ops auto-detects it and runs the full pipeline.
@@ -232,31 +447,43 @@ Features: 6 filter tabs, 4 sort modes, grouped/flat view, lazy-loaded previews, 
 
 ```
 career-ops/
-├── CLAUDE.md                    # Agent instructions
-├── cv.md                        # Your CV (create this)
-├── article-digest.md            # Your proof points (optional)
+├── CLAUDE.md                    # Agent instructions (auto-loaded)
+├── cv.md                        # Your CV — gitignored, create this
+├── portals.yml                  # Research config — gitignored, create this
+├── jobspy_scan.py               # JobSpy scraper (Python) — Level 4 scan
+├── requirements.txt             # Python deps (python-jobspy, pyyaml)
 ├── config/
-│   └── profile.example.yml      # Template for your profile
-├── modes/                       # 14 skill modes
-│   ├── _shared.md               # Shared context (customize this)
-│   ├── oferta.md                # Single evaluation
+│   ├── profile.example.yml      # Profile template — copy to profile.yml
+│   └── profile.yml              # Your profile (gitignored, single source of truth)
+├── modes/                       # Skill modes
+│   ├── _shared.md               # Shared evaluation context
+│   ├── _profile.md              # Your archetype customization (gitignored)
+│   ├── evaluate.md              # Single offer A-G scoring
+│   ├── compare.md               # Multi-offer comparison matrix
+│   ├── contact.md               # LinkedIn outreach
+│   ├── scan.md                  # 4-level portal + board scanner
 │   ├── pdf.md                   # PDF generation
-│   ├── scan.md                  # Portal scanner
-│   ├── batch.md                 # Batch processing
-│   └── ...
+│   ├── help.md                  # Command reference + function hierarchy
+│   ├── onboarding.md            # First-launch setup guide
+│   ├── rb/
+│   │   └── humanize.md          # LaTeX humanizer (29 rules)
+│   ├── de/                      # German (DACH) modes
+│   ├── fr/                      # French modes
+│   └── ja/                      # Japanese modes
 ├── templates/
-│   ├── cv-template.html         # ATS-optimized CV template
+│   ├── cv-template.html         # HTML CV template (for Playwright PDF)
+│   ├── cv-template.tex          # LaTeX CV template
 │   ├── portals.example.yml      # Scanner config template
-│   └── states.yml               # Canonical statuses
+│   └── states.yml               # Canonical application statuses
 ├── batch/
 │   ├── batch-prompt.md          # Self-contained worker prompt
 │   └── batch-runner.sh          # Orchestrator script
 ├── dashboard/                   # Go TUI pipeline viewer
-├── data/                        # Your tracking data (gitignored)
-├── reports/                     # Evaluation reports (gitignored)
-├── output/                      # Generated PDFs (gitignored)
+├── data/                        # Tracking data — gitignored
+├── reports/                     # Evaluation reports — gitignored
+├── output/                      # Generated CVs + cover letters — gitignored
 ├── fonts/                       # Space Grotesk + DM Sans
-├── docs/                        # Setup, customization, architecture
+├── docs/                        # Architecture docs and plans
 └── examples/                    # Sample CV, report, proof points
 ```
 

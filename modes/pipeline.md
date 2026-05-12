@@ -1,6 +1,6 @@
 # Modo: pipeline — Inbox de URLs (Second Brain)
 
-Processes offer URLs accumulated in `data/pipeline.md`. The user adds URLs whenever they want and then runs `/career-ops pipeline` to process them all.
+Processes offer URLs accumulated in `data/pipeline.md`. The user adds URLs whenever they want and then runs `/jobhunter pipeline` to process them all.
 
 ## Workflow
 
