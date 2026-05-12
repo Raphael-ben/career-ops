@@ -1,0 +1,837 @@
+{
+  "_meta": {
+    "version": 2,
+    "last_updated": "2026-04-26",
+    "note": "Migrated from profile_bank.py. Ground truth for all agent claims about Raphael's career and background."
+  },
+  "candidate": {
+    "name": "Raphael Benyamine",
+    "base": "Zürich, Switzerland",
+    "languages": [
+      {
+        "language": "French",
+        "level": "native"
+      },
+      {
+        "language": "English",
+        "level": "C2"
+      },
+      {
+        "language": "German",
+        "level": "C1"
+      }
+    ],
+    "contact": {
+      "email": "raphael.benyamine@gmail.com",
+      "phone": "+41 78 621 34 68",
+      "linkedin": "",
+      "address": "Schaffhauserstrasse 75, 8057 Zürich, Switzerland"
+    }
+  },
+  "education": [
+    {
+      "id": "edu_hsg",
+      "institution": "University of St. Gallen (HSG)",
+      "degree": "Master of Business Administration (MBA)",
+      "location": "St. Gallen, Switzerland",
+      "start": "2020-08",
+      "end": "2021-08",
+      "notes": "CGPA 4.98/6.0 (6.0 = excellent). 75/75 ECTS. Self-funded. Triple-accredited (EQUIS, AACSB, AMBA). Ranked #6 in Europe by FT 2021. LAW (Learning Assessment Week): 24-hour consulting case presented to professors and industry panel.",
+      "keywords": [
+        "MBA",
+        "strategy",
+        "corporate finance",
+        "private equity",
+        "value-based management",
+        "business model innovation",
+        "entrepreneurship",
+        "impact investing",
+        "organisational behaviour",
+        "marketing",
+        "leadership",
+        "structured problem solving"
+      ]
+    },
+    {
+      "id": "edu_ifma",
+      "institution": "IFMA (now SIGMA) — French Institute for Advanced Mechanics",
+      "degree": "Master of Mechanical Engineering",
+      "location": "Clermont-Ferrand, France",
+      "start": "2011-09",
+      "end": "2015-09",
+      "notes": "École des Mines group. Specialization: Machines, Mechanisms and Systems.",
+      "keywords": [
+        "mechanical engineering",
+        "CAD-CAM",
+        "product design",
+        "manufacturing processes",
+        "machine design",
+        "industrial systems",
+        "automation",
+        "materials science",
+        "structural analysis",
+        "digital control",
+        "robotics",
+        "process engineering",
+        "algorithmics",
+        "numerical analysis"
+      ]
+    },
+    {
+      "id": "edu_prepa",
+      "institution": "Lycée La Martinière Monplaisir — Classes Préparatoires (CPGE)",
+      "degree": "Intensive 2-year preparatory course for competitive engineering school entrance",
+      "location": "Lyon, France",
+      "start": "2009-09",
+      "end": "2011-09",
+      "notes": "Signals academic selectivity and rigour in French context.",
+      "keywords": [
+        "academic excellence",
+        "engineering schools",
+        "France",
+        "CPGE"
+      ]
+    }
+  ],
+  "experience": [
+    {
+      "id": "exp_pwc",
+      "company": "PwC Switzerland",
+      "role": "Senior Associate, Deals Strategy",
+      "location": "Zürich, Switzerland",
+      "start": "2022-11",
+      "end": "2026-05-31",
+      "end_status": "contract_ending",
+      "summary": "Senior Associate in the Deals Strategy practice. Generalist across sectors, Swiss mid-market focus. Full deal lifecycle: CDD, VDD, carve-out advisory, PMI, value creation, 100-day planning. Trilingual client work (EN/FR/DE). Manages workstreams independently; coordinates 2–3 junior analysts on faster-paced engagements. 10+ engagements since Nov 2022.",
+      "achievements": [
+        {
+          "id": "ach_pwc_engagements",
+          "text": "Delivered 10+ M&A engagements across the full deal lifecycle — from pre-deal market screening to post-acquisition integration — for PE and corporate clients in the Swiss mid-market and internationally.",
+          "keywords": [
+            "M&A",
+            "deal lifecycle",
+            "PE advisory",
+            "Swiss mid-market",
+            "post-acquisition integration"
+          ],
+          "surface_in": [
+            "strategy",
+            "consulting",
+            "M&A",
+            "finance"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_pwc_cdd_lead",
+          "text": "Led and owned CDD workstreams independently: market sizing & attractiveness, customer & revenue analysis, competitor benchmarking, voice of customer, synergy assessment, operational performance review, and company benchmarking against sector peers.",
+          "keywords": [
+            "commercial due diligence",
+            "market sizing",
+            "revenue analysis",
+            "competitive benchmarking",
+            "voice of customer",
+            "synergy assessment"
+          ],
+          "surface_in": [
+            "strategy",
+            "consulting",
+            "M&A",
+            "finance"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_pwc_mgmt_interviews",
+          "text": "Conducted management interviews as part of due diligence processes, synthesizing qualitative intelligence into investment-grade findings.",
+          "keywords": [
+            "management interviews",
+            "due diligence",
+            "qualitative analysis"
+          ],
+          "surface_in": [
+            "strategy",
+            "consulting",
+            "M&A",
+            "finance"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_pwc_deliverables",
+          "text": "Authored and contributed to final deliverables including full CDD/VDD reports, executive red flag memos, carve-out perimeter & separation plans, value creation roadmaps, and board-level presentations.",
+          "keywords": [
+            "CDD report",
+            "VDD report",
+            "board presentations",
+            "value creation roadmap",
+            "red flag memo"
+          ],
+          "surface_in": [
+            "strategy",
+            "consulting",
+            "M&A",
+            "finance",
+            "operations"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_pwc_carveout",
+          "text": "Advised on carve-out situations — defining separation perimeters, interdependencies, and standalone cost structures for divested entities.",
+          "keywords": [
+            "carve-out",
+            "separation perimeter",
+            "standalone cost structure",
+            "divestiture"
+          ],
+          "surface_in": [
+            "strategy",
+            "consulting",
+            "M&A",
+            "operations"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_pwc_100day",
+          "text": "Built 100-day value creation plans translating strategic investment thesis into concrete operational priorities and quick wins.",
+          "keywords": [
+            "value creation",
+            "100-day plan",
+            "post-merger integration",
+            "operational priorities"
+          ],
+          "surface_in": [
+            "strategy",
+            "consulting",
+            "M&A",
+            "operations"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_pwc_distressed",
+          "text": "Assessed distressed and turnaround situations under time pressure, evaluating recovery levers and viability for PE clients.",
+          "keywords": [
+            "distressed situations",
+            "turnaround",
+            "PE advisory",
+            "recovery levers"
+          ],
+          "surface_in": [
+            "strategy",
+            "consulting",
+            "M&A",
+            "finance"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_pwc_multilingual",
+          "text": "Operated across English, French, and German depending on client context.",
+          "keywords": [
+            "trilingual",
+            "multilingual",
+            "EN/FR/DE"
+          ],
+          "surface_in": [
+            "general"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_pwc_mentoring",
+          "text": "Mentored and coordinated junior analysts on select engagements, owning quality and output under tight deal timelines.",
+          "keywords": [
+            "junior mentoring",
+            "workstream leadership",
+            "team coordination"
+          ],
+          "surface_in": [
+            "strategy",
+            "consulting",
+            "M&A",
+            "general"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_pwc_ai_automation",
+          "text": "Applied AI tooling (Claude Code, Codex, Python) to automate repetitive deliverable tasks — cutting production time on structured outputs and enabling faster iteration on client-facing documents.",
+          "keywords": [
+            "AI tooling",
+            "workflow automation",
+            "Claude Code",
+            "Python",
+            "productivity",
+            "document automation",
+            "AI-native"
+          ],
+          "surface_in": [
+            "strategy",
+            "tech",
+            "operations",
+            "general"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "tools_methods": [
+        "Excel advanced modelling",
+        "PowerPoint",
+        "Tableau",
+        "Python",
+        "Alteryx"
+      ]
+    },
+    {
+      "id": "exp_serpentine",
+      "company": "Serpentine Ventures (formerly Swiss Startup Capital)",
+      "role": "Venture Scout / Analyst",
+      "location": "Zürich, Switzerland",
+      "start": "2021-08",
+      "end": "2022-07",
+      "end_status": "completed",
+      "summary": "Generalist Swiss-focused early-stage fund (Pre-Seed to Series A). Joined as intern, promoted to full-time Venture Scout / Analyst within the year. Sole owner of initial screening process; part of 3–4 person analyst team for deep-dive analysis.",
+      "achievements": [
+        {
+          "id": "ach_serp_screening",
+          "text": "Sole owner of the initial screening process — independently evaluated 60+ startup applications, applying a consistent scoring framework across business model, team, market, and traction dimensions.",
+          "keywords": [
+            "startup screening",
+            "deal evaluation",
+            "scoring framework",
+            "investment analysis"
+          ],
+          "surface_in": [
+            "strategy",
+            "finance",
+            "tech",
+            "general"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_serp_investments",
+          "text": "Contributed to 5+ investments across Pre-Seed, Seed, and Series A stages, including deals sourced directly through own network and outreach.",
+          "keywords": [
+            "early-stage investing",
+            "Pre-Seed",
+            "Seed",
+            "Series A",
+            "deal sourcing"
+          ],
+          "surface_in": [
+            "finance",
+            "strategy",
+            "tech"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_serp_pipeline",
+          "text": "Built and maintained a diversified deal flow pipeline across all major Swiss sourcing channels: accelerators, incubators, university spin-outs, founder referrals, demo days, and cold inbound.",
+          "keywords": [
+            "deal flow",
+            "pipeline management",
+            "Swiss startup ecosystem",
+            "sourcing"
+          ],
+          "surface_in": [
+            "finance",
+            "strategy",
+            "tech"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_serp_analysis",
+          "text": "Conducted deep-dive investment analysis including financial modelling, valuation review, market sizing (TAM/SAM/SOM), and competitive landscape mapping.",
+          "keywords": [
+            "financial modelling",
+            "valuation",
+            "market sizing",
+            "TAM/SAM/SOM",
+            "competitive analysis"
+          ],
+          "surface_in": [
+            "finance",
+            "strategy",
+            "tech"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_serp_memos",
+          "text": "Authored Investment Memoranda presented to the investment committee.",
+          "keywords": [
+            "investment memoranda",
+            "IC process",
+            "investment committee"
+          ],
+          "surface_in": [
+            "finance",
+            "strategy"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_serp_promoted",
+          "text": "Promoted from intern to full-time Venture Scout / Analyst within the same year on the basis of performance.",
+          "keywords": [
+            "promoted",
+            "fast progression"
+          ],
+          "surface_in": [
+            "general",
+            "finance",
+            "strategy"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "tools_methods": [
+        "Excel modelling",
+        "PowerPoint",
+        "Notion",
+        "Airtable"
+      ]
+    },
+    {
+      "id": "exp_rolex_2",
+      "company": "Rolex SA",
+      "role": "Project Manager, Production Tests Organization",
+      "location": "Biel/Bienne, Switzerland",
+      "start": "2017-08",
+      "end": "2020-06",
+      "end_status": "completed",
+      "summary": "Role created specifically for Raphael. Dual mandate: (1) build a cost/savings calculation tool from scratch for all new manufacturing projects in the fournitures division (sub-millimeter watch movement components); (2) drive full organizational adoption across a 600+ person workforce spanning every level of the hierarchy, with no formal authority.",
+      "achievements": [
+        {
+          "id": "ach_rolex2_tool",
+          "text": "Designed and built an object-oriented cost modelling tool to calculate and track costs and savings for every new production project in the fournitures division — enabling management accounting decisions previously performed manually or not at all.",
+          "keywords": [
+            "cost modelling",
+            "management accounting",
+            "object-oriented programming",
+            "tool development",
+            "fournitures"
+          ],
+          "surface_in": [
+            "manufacturing",
+            "industrial",
+            "operations",
+            "tech",
+            "general"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_rolex2_savings",
+          "text": "Contributed to identifying and realizing CHF 1–5M in savings during tenure, providing C-level visibility into project economics at an unprecedented granularity.",
+          "keywords": [
+            "cost savings",
+            "CHF 1-5M",
+            "C-level reporting",
+            "financial visibility"
+          ],
+          "surface_in": [
+            "manufacturing",
+            "industrial",
+            "operations",
+            "strategy"
+          ],
+          "confidence": "medium"
+        },
+        {
+          "id": "ach_rolex2_adoption",
+          "text": "Drove adoption of the tool across 600+ employees — operators, industrialization engineers, finance controllers, operations managers, and C-suite — navigating significant organizational resistance at every level of the hierarchy.",
+          "keywords": [
+            "change management",
+            "organizational adoption",
+            "600 employees",
+            "stakeholder management",
+            "influence without authority"
+          ],
+          "surface_in": [
+            "manufacturing",
+            "industrial",
+            "operations",
+            "strategy",
+            "general"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_rolex2_change",
+          "text": "Managed a politically complex change management programme with no formal authority, relying entirely on persuasion, relationship-building, and demonstrated value to move a resistant organization.",
+          "keywords": [
+            "change management",
+            "influence without authority",
+            "organizational resistance",
+            "persuasion"
+          ],
+          "surface_in": [
+            "manufacturing",
+            "industrial",
+            "operations",
+            "strategy",
+            "consulting"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_rolex2_bridge",
+          "text": "Operated as the connective tissue between site C-level leadership and workshop-floor operators, translating financial logic into operational language and vice versa.",
+          "keywords": [
+            "cross-hierarchy communication",
+            "C-level",
+            "stakeholder alignment",
+            "cross-functional"
+          ],
+          "surface_in": [
+            "manufacturing",
+            "industrial",
+            "operations",
+            "general"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "tools_methods": [
+        "object-oriented programming",
+        "Excel advanced modelling",
+        "SAP"
+      ]
+    },
+    {
+      "id": "exp_rolex_1",
+      "company": "Rolex SA",
+      "role": "Project Manager, Control Methods Department",
+      "location": "Biel/Bienne, Switzerland",
+      "start": "2015-03",
+      "end": "2017-07",
+      "end_status": "completed",
+      "summary": "Two-year role within the fournitures division — internal service manufacturing sub-millimeter watch movement components to micrometer tolerances. Grew from junior contributor to full project ownership across measurement infrastructure for a new production line.",
+      "achievements": [
+        {
+          "id": "ach_rolex1_java",
+          "text": "Developed a Java/JavaScript tool to eliminate redundant remeasurement cycles on 3D coordinate measuring machines (CMMs), saving thousands of hours per year across the production line.",
+          "keywords": [
+            "Java",
+            "JavaScript",
+            "CMM",
+            "3D measurement",
+            "metrology",
+            "tool development"
+          ],
+          "surface_in": [
+            "manufacturing",
+            "industrial",
+            "tech",
+            "operations"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_rolex1_infra",
+          "text": "Contributed to the design and deployment of a full measurement infrastructure for a new fournitures production line — defining control points, measurement protocols, and quality gates for watch movement components at micrometer precision.",
+          "keywords": [
+            "measurement infrastructure",
+            "quality control",
+            "metrology",
+            "production line",
+            "micrometer precision"
+          ],
+          "surface_in": [
+            "manufacturing",
+            "industrial",
+            "operations"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_rolex1_vision",
+          "text": "Managed computer vision projects to increase measurement throughput and compliance with Rolex's operational excellence standards.",
+          "keywords": [
+            "computer vision",
+            "measurement throughput",
+            "operational excellence",
+            "quality compliance"
+          ],
+          "surface_in": [
+            "manufacturing",
+            "industrial",
+            "tech"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "tools_methods": [
+        "Java",
+        "JavaScript",
+        "computer vision",
+        "CMM / 3D measurement",
+        "metrology"
+      ]
+    },
+    {
+      "id": "exp_chopard",
+      "company": "Chopard",
+      "role": "Engineer Intern, Design & CNC Department",
+      "location": "Pforzheim, Germany",
+      "start": "2014-09",
+      "end": "2015-01",
+      "end_status": "completed",
+      "summary": "Conditional inclusion only — luxury / manufacturing / industrial roles. CNC programming and machining for luxury watch and jewelry components.",
+      "achievements": [
+        {
+          "id": "ach_chopard_cnc",
+          "text": "CNC programming and machining for luxury watch and jewellery components.",
+          "keywords": [
+            "CNC programming",
+            "machining",
+            "luxury manufacturing",
+            "precision components"
+          ],
+          "surface_in": [
+            "luxury",
+            "manufacturing",
+            "industrial"
+          ],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_chopard_industrial",
+          "text": "Industrialization of new parts and contributed to machine improvement initiatives on the production floor.",
+          "keywords": [
+            "industrialization",
+            "machine optimization",
+            "production floor"
+          ],
+          "surface_in": [
+            "luxury",
+            "manufacturing",
+            "industrial"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "tools_methods": [
+        "CNC programming",
+        "CAD-CAM",
+        "SolidWorks"
+      ]
+    }
+  ],
+  "skills_master": {
+    "technical": [
+      "Java",
+      "JavaScript",
+      "Python",
+      "C",
+      "C++",
+      "SQL",
+      "object-oriented programming",
+      "computer vision",
+      "CMM / 3D measurement",
+      "metrology",
+      "CNC programming",
+      "CAD-CAM",
+      "SolidWorks",
+      "Excel advanced modelling",
+      "financial modelling",
+      "market sizing",
+      "TAM/SAM/SOM",
+      "cost modelling",
+      "management accounting"
+    ],
+    "domain": [
+      "commercial due diligence",
+      "vendor due diligence",
+      "carve-out advisory",
+      "post-merger integration",
+      "value creation",
+      "100-day planning",
+      "deal sourcing",
+      "investment analysis",
+      "investment memoranda",
+      "early-stage investing",
+      "Pre-Seed to Series A",
+      "Swiss M&A market",
+      "Swiss startup ecosystem",
+      "change management",
+      "stakeholder alignment",
+      "influence without authority",
+      "cross-functional communication",
+      "management accounting",
+      "cost modelling",
+      "luxury manufacturing",
+      "precision manufacturing",
+      "industrialization",
+      "metrology",
+      "quality control",
+      "operational excellence",
+      "process design",
+      "competitive benchmarking",
+      "synergy assessment",
+      "distressed situations",
+      "turnaround advisory",
+      "board-level presentations",
+      "IC-ready reporting"
+    ],
+    "soft": [
+      "trilingual EN/FR/DE",
+      "executive communication",
+      "pressure performance",
+      "stakeholder management",
+      "cross-hierarchy communication",
+      "workstream leadership",
+      "junior mentoring",
+      "political navigation",
+      "relationship-building",
+      "structured problem solving",
+      "curiosity",
+      "proactivity"
+    ],
+    "tools": [
+      "Excel (advanced)",
+      "PowerPoint",
+      "Tableau",
+      "Power BI",
+      "Alteryx",
+      "Python",
+      "SAP",
+      "Notion",
+      "Airtable",
+      "n8n",
+      "Zapier",
+      "Claude / ChatGPT (daily professional use, prompt engineering)",
+      "AI workflow automation",
+      "document automation pipelines",
+      "Claude Code"
+    ]
+  },
+  "rules": {
+    "never_mention": [
+      "VBA",
+      "intern (for exp_rolex_1)"
+    ],
+    "conditional_mentions": [
+      {
+        "entity": "Chopard",
+        "surface_only_when": [
+          "luxury",
+          "manufacturing",
+          "industrial"
+        ],
+        "reason": "Short internship at Chopard. Only surfaces when luxury / precision manufacturing / industrial sector relevance is high. Omit entirely for strategy, finance, or tech roles."
+      },
+      {
+        "entity": "edu_prepa",
+        "surface_only_when": [
+          "general"
+        ],
+        "reason": "Mention only when space allows and role is France-facing. Signals academic selectivity in French context only."
+      },
+      {
+        "entity": "aviation_ppl",
+        "surface_only_when": [
+          "aviation",
+          "finance",
+          "industrial",
+          "manufacturing"
+        ],
+        "reason": "PPL(A) licence worth surfacing for roles valuing precision, rule-following under pressure, and technical rigour. ATPL studies ongoing."
+      }
+    ],
+    "framing": [
+      {
+        "rule": "first_rolex_role_is_not_internship",
+        "enforce_on": [
+          "cv",
+          "cover_letter"
+        ],
+        "explanation": "Role exp_rolex_1 (Rolex Control Methods, Mar 2015–Jul 2017) must NEVER be described as an internship. Use the actual title: 'Project Manager, Control Methods Department'."
+      },
+      {
+        "rule": "no_vba",
+        "enforce_on": [
+          "cv",
+          "cover_letter"
+        ],
+        "explanation": "Never write the word 'VBA'. Describe the tool's function or use 'object-oriented programming'."
+      },
+      {
+        "rule": "no_individual_course_grades",
+        "enforce_on": [
+          "cv",
+          "cover_letter"
+        ],
+        "explanation": "Never show individual course grades. Show only overall CGPA: 4.98/6.0 for HSG MBA."
+      },
+      {
+        "rule": "single_page_cv",
+        "enforce_on": [
+          "cv"
+        ],
+        "explanation": "Output must always fit a single page. Apply ruthless selection — trim bullets before expanding."
+      },
+      {
+        "rule": "banned_bullet_openers",
+        "enforce_on": [
+          "cv",
+          "cover_letter"
+        ],
+        "explanation": "No bullet or sentence should open with: leveraged, utilized, spearheaded, harnessed, fostered, championed. Vary openers and lengths."
+      },
+      {
+        "rule": "banned_words",
+        "enforce_on": [
+          "cv",
+          "cover_letter"
+        ],
+        "explanation": "Banned words anywhere in output: leveraged, utilized, spearheaded, harnessed, fostered, championed, passionate, excited, thrilled, eager, dynamic, synergies (as verb)."
+      },
+      {
+        "rule": "ats_mirroring",
+        "enforce_on": [
+          "cv",
+          "cover_letter"
+        ],
+        "explanation": "Mirror job ad language exactly for ATS keyword matching. Use the JD's own terminology where applicable."
+      },
+      {
+        "rule": "serpentine_role_title",
+        "enforce_on": [
+          "cv",
+          "cover_letter"
+        ],
+        "explanation": "Use 'Venture Scout / Analyst' not just 'Analyst' or 'Intern'. Reflects promotion within the year."
+      }
+    ],
+    "tense": {
+      "departure_date": "2026-05-31",
+      "note": "Roles ending on or after 2026-05-31 use present tense, including PwC (contract_ending). Never write 'left PwC' or similar until after departure date."
+    }
+  },
+  "cover_letter_reference": {
+    "note": "Actual cover letter written by Raphael (Pilatus, March 2026). Use as voice and structure reference — not as content to copy.",
+    "structure_observed": [
+      "Para 1: direct application statement + 2-3 domain profile formula + specific motivation for this company (aviation passion for Pilatus)",
+      "Para 2: current role at PwC described concretely (3 activities) + explicit mapping sentence naming JD requirements ('Diese Erfahrung passt zu... insbesondere in Bezug auf...')",
+      "Para 3: prior role at Rolex, transition word 'Zuvor', 3 action verbs, closes with 'Diese Erfahrung hat meine Fähigkeit gestärkt, [specific competency]'",
+      "Para 4: education in one sentence (MBA HSG + Maschinenbau) + specific motivation for THIS company (not generic)",
+      "Para 5: 2 sentences — company values (brief) + desire to contribute",
+      "Para 6: formal German close ('Vielen Dank... Ich freue mich auf ein persönliches Gespräch')"
+    ],
+    "voice_notes": [
+      "Tone is formal but direct — no preamble, each sentence carries information",
+      "JD mapping is made explicit, not left implicit",
+      "Company-specific motivation is tied to a real reason (aviation passion, sector, technology) — never invented",
+      "No employment status mentioned in closing",
+      "German register: 'mit grossem Interesse', 'Leidenschaft für [X] with real reason', formal close are conventional and acceptable"
+    ]
+  }
+}

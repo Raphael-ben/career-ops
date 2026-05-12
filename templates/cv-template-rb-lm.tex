@@ -1,0 +1,425 @@
+%% ============================================================
+%%  cv-template-rb.tex  —  Raphael Benyamine sidebar CV
+%%  Based on: Raphael Benyamine - Resume - NewATS2.docx
+%%
+%%  Compile with:  pdflatex cv-template-rb.tex
+%%  Font:          Carlito (Calibri-compatible, open-source)
+%%  Layout:        Sidebar (left) + Main column (right), A4
+%% ============================================================
+
+\documentclass[a4paper,11pt]{article}
+
+%% ─── Encoding & Font ─────────────────────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}                    %% Latin Modern — smooth at any size
+\renewcommand*\familydefault{\sfdefault}
+
+%% ─── Page layout ─────────────────────────────────────────────────────────────
+\usepackage[a4paper, margin=0pt, nohead, nofoot]{geometry}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\setlength{\topskip}{0pt}              %% prevents blank first page with margin=0pt
+\pagestyle{empty}
+
+%% ─── Colors ──────────────────────────────────────────────────────────────────
+\usepackage[dvipsnames,svgnames,table]{xcolor}
+\definecolor{SidebarBg}{RGB}{231,237,239}    %% light blue-grey
+\definecolor{AccentBlue}{RGB}{17,85,204}     %% icons, links
+\definecolor{SubtleGray}{RGB}{150,150,150}   %% dates
+\definecolor{LocationColor}{RGB}{90,90,90}   %% locations (darker than dates)
+\definecolor{CompanyColor}{RGB}{50,50,50}    %% company / institution names
+
+%% ─── Sidebar background ──────────────────────────────────────────────────────
+\usepackage{eso-pic}
+\newlength{\sidebarW}
+\setlength{\sidebarW}{62mm}
+\AddToShipoutPictureBG{%
+  \AtPageLowerLeft{%
+    \color{SidebarBg}\rule{\sidebarW}{\paperheight}%
+  }%
+}
+
+%% ─── Graphics ────────────────────────────────────────────────────────────────
+\usepackage{graphicx}
+\graphicspath{{./}{./templates/}}      %% works from templates/ or repo root
+
+%% ─── Links ───────────────────────────────────────────────────────────────────
+%% Mac Preview hyperref workaround (option #3):
+%%   - hidelinks         : drops default colored borders
+%%   - colorlinks=false  : no coloring
+%%   - pdflinkmargin=0pt : zero padding around the annotation rectangle
+%% Combined with \mbox{} around link content in \email (forces tight inline box).
+\usepackage{hyperref}
+\hypersetup{hidelinks, colorlinks=false, pdflinkmargin=0pt}
+\urlstyle{same}
+
+%% ─── Icons ───────────────────────────────────────────────────────────────────
+\usepackage{fontawesome5}
+
+%% ─── Lists / Tables / Typography ─────────────────────────────────────────────
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{microtype}
+\usepackage{calc}
+\usepackage{tikz}
+\usepackage{soul}                       %% controllable underline (\ul) — fixed gap regardless of descenders
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+
+
+%% ════════════════════════════════════════════════════════════════════════════
+%%  USER VARIABLES  —  edit only inside this block
+%% ════════════════════════════════════════════════════════════════════════════
+
+\newcommand{\CVName}{RAPHAEL BENYAMINE}
+\newcommand{\CVTagline}{Mechanical Engineer, MBA,\\[2pt]Innovation enthusiast}
+\newcommand{\CVPhoto}{cv-2.jpg}           %% path to photo (relative to this file)
+
+\newcommand{\CVAddress}{Schaffhauserstrasse 75\\8057 Zürich}
+\newcommand{\CVPhone}{+41\,78\,621\,34\,68}
+\newcommand{\CVEmail}{raphael.benyamine@gmail.com}
+
+%% Photo crop controls — tweak to re-centre on a different photo
+\def\photoScale{1.15\linewidth}   %% zoom: larger = tighter crop
+\def\photoXshift{6mm}             %% + shifts image right  (face left of centre)
+\def\photoYshift{0mm}             %% more negative shifts image down (face above centre)
+
+%% ════════════════════════════════════════════════════════════════════════════
+
+
+%% ─── Spacing controls ────────────────────────────────────────────────────────
+%%  Tune these to adjust the whole document uniformly.  AI-friendly: one place
+%%  per concern, semantic names, no magic numbers scattered across commands.
+
+\newlength{\entryRowGap}          %% gap between title row and company row (smaller than entryBottomGap to compensate for \large title's visual weight)
+\setlength{\entryRowGap}{-3pt}
+
+\newlength{\entryBottomGap}       %% gap after the entry header, before bullets start
+\setlength{\entryBottomGap}{3pt}
+
+\newlength{\entryGap}             %% gap between consecutive experience/education blocks (auto-added by env close)
+\setlength{\entryGap}{5pt}
+
+\newlength{\sectionGap}           %% extra gap before a new main section title, ON TOP of entryGap from previous entry
+\setlength{\sectionGap}{10pt}
+
+\newlength{\sectionRuleGap}       %% gap between main section title text and its underline rule (negative pulls rule up under the title's descenders, so the rule reads as part of the title)
+\setlength{\sectionRuleGap}{-3pt}
+
+\newlength{\sectionBodyGap}       %% gap between the rule and the first entry below it
+\setlength{\sectionBodyGap}{1pt}
+
+%% Company underline — \setul{<distance from baseline>}{<rule thickness>}
+%% Smaller distance = tighter underline. At <3pt, p/q descenders cross the rule.
+\setul{1.5pt}{0.4pt}
+
+%% --- Sidebar spacing ---
+\newlength{\sidebarLineGap}       %% gap between items within a sidebarBlock body (sline / pair)
+\setlength{\sidebarLineGap}{3pt}
+
+\newlength{\photoBelowGap}        %% gap below the photo, above the tagline
+\setlength{\photoBelowGap}{2pt}
+
+\newlength{\nameBelowGap}         %% gap below the name, above the photo
+\setlength{\nameBelowGap}{5pt}
+
+\newlength{\taglineBelowGap}      %% gap below the tagline, above the first sidebar block
+\setlength{\taglineBelowGap}{14pt}
+
+\newlength{\sidebarBottomPad}     %% padding at the bottom of the sidebar (after contact)
+\setlength{\sidebarBottomPad}{8pt}
+
+
+%% ─── Custom commands ─────────────────────────────────────────────────────────
+
+%% Sidebar section title — more space above (separates from prev block), tight below
+\newcommand{\sidebarSection}[1]{%
+  \vspace{16pt}%
+  {\centering\normalsize\textbf{#1}\par}%
+  \vspace{5pt}%
+}
+
+%% Single source of truth for sidebar body text size — used by \sline, \pair, \address, \phone, \email
+%% Change this once to re-size every sidebar body item (section titles use \normalsize and are unaffected).
+\newcommand{\sidebarBodyFont}{\small}
+
+%% Sidebar two-column row — used internally by \pair inside sidebarBlock
+\newcommand{\skillrow}[2]{%
+  \noindent\begin{tabular}{@{}>{\centering\arraybackslash}p{0.47\linewidth}@{\hspace{0.06\linewidth}}>{\centering\arraybackslash}p{0.47\linewidth}@{}}
+    \sidebarBodyFont#1 & \sidebarBodyFont#2\\
+  \end{tabular}\par\vspace{\sidebarLineGap}%
+}
+
+%% --- Sidebar building blocks ---
+%% These hide all visual mechanics (centering, line gaps, vfill, photo crop,
+%% mailto bug workaround). Body authors only call the semantic commands below.
+
+%% \cvName — renders the name centred at LARGE, with bottom gap.
+\newcommand{\cvName}{%
+  {\centering\LARGE\textbf{\CVName}\par}%
+  \vspace{\nameBelowGap}%
+}
+
+%% \cvPhoto — renders circular photo crop or placeholder fallback.
+%%   Crop controlled by preamble: \photoRadius, \photoScale, \photoXshift, \photoYshift.
+\newcommand{\cvPhoto}{%
+  \begin{center}%
+  \IfFileExists{\CVPhoto}{%
+    \begin{tikzpicture}
+      \useasboundingbox (-\photoRadius,-\photoRadius) rectangle (\photoRadius,\photoRadius);
+      \clip (0,0) circle (\photoRadius);
+      \node[inner sep=0] at (\photoXshift,\photoYshift)
+        {\includegraphics[width=\photoScale]{\CVPhoto}};
+    \end{tikzpicture}%
+  }{%
+    \begin{tikzpicture}
+      \useasboundingbox (-\photoRadius,-\photoRadius) rectangle (\photoRadius,\photoRadius);
+      \draw[color=SubtleGray] (0,0) circle (\photoRadius);
+      \node[color=SubtleGray,font=\small] at (0,0) {[photo]};
+    \end{tikzpicture}%
+  }%
+  \end{center}\vspace{\photoBelowGap}%
+}
+
+%% \tagline{text} — renders centred bold tagline with bottom gap before first block.
+\newcommand{\tagline}[1]{%
+  {\centering\large\textbf{#1}\par}%
+  \vspace{\taglineBelowGap}%
+}
+
+%% sidebarBlock — header + centred body. Body uses \sline (single column) or \pair (two column).
+%%   \begin{sidebarBlock}{TITLE}
+%%     \sline{single line}
+%%     \pair{left}{right}
+%%   \end{sidebarBlock}
+\newenvironment{sidebarBlock}[1]{%
+  \sidebarSection{#1}%
+  \centering
+}{%
+  \par
+}
+
+%% \sline{text} — single-column item inside sidebarBlock or contactBlock.
+\newcommand{\sline}[1]{{\sidebarBodyFont #1}\par\vspace{\sidebarLineGap}}
+
+%% \pair{left}{right} — two-column item inside sidebarBlock (alias for \skillrow).
+\let\pair\skillrow
+
+%% contactBlock — automatically pushed to bottom of sidebar via \vfill.
+%%   \begin{contactBlock}
+%%     \address{...}  \phone{...}  \email{...}
+%%   \end{contactBlock}
+\newenvironment{contactBlock}{%
+  \vfill
+  \sidebarSection{CONTACT DETAILS}%
+  \centering
+}{%
+  \par\vspace{\sidebarBottomPad}%
+}
+
+%% \address{text} — postal address line. Use \\ for line breaks inside.
+\newcommand{\address}[1]{{\sidebarBodyFont #1}\par\vspace{2pt}}
+
+%% \phone{number} — phone with leading icon. Plain text (NOT a tel: link).
+%%   Mac Preview expands hyperref link annotations to the full container minipage,
+%%   making clickable links unreliable in the sidebar. Icon is purely visual.
+\newcommand{\phone}[1]{{\sidebarBodyFont\faPhone~#1}\par}
+
+%% \email{addr} — email with mailto: link. Mac Preview tends to expand the
+%%   hyperref annotation rectangle in centered minipage contexts. Two-pronged
+%%   defense: (a) \mbox{} forces a single tight inline box around the content,
+%%   (b) pdflinkmargin=0pt in \hypersetup zeroes hyperref's annotation padding.
+%%   If Preview still misbehaves, revert to plain text: {\sidebarBodyFont\faEnvelope~#1}.
+\newcommand{\email}[1]{{\sidebarBodyFont\href{mailto:#1}{\mbox{\faEnvelope~#1}}}\par}
+
+%% Main section title with optional FontAwesome icon
+%%   \mainSection[\faBriefcase]{TITLE}   — with icon
+%%   \mainSection{TITLE}                 — no icon
+\newcommand{\mainSection}[2][\relax]{%
+  \noindent\Large\textbf{%
+    \ifx#1\relax\else{\normalsize\color{black}#1\hspace{5pt}}\fi%
+    #2%
+  }\par\vspace{\sectionRuleGap}%
+  \noindent\rule{\linewidth}{0.5pt}\par\vspace{\sectionBodyGap}%
+}
+
+%% Experience / Education block — atomic unit: title row + company row + bullets
+%%   \begin{experience}{date}{title}{org}{location}{url}
+%%     \item bullet
+%%     \item bullet
+%%   \end{experience}
+%% Use \begin{education}{...} for education entries (semantic alias of experience).
+%% All internal spacing (\entryRowGap, \entryBottomGap, itemsep, \entryGap) is
+%% controlled by named variables in the Spacing controls block above.
+\newenvironment{experience}[5]{%
+  \noindent\begin{tabular*}{\linewidth}{@{}l@{\extracolsep{\fill}}r@{}}
+    {\large\textbf{#2}} & {\small\color{SubtleGray}#1}%
+  \end{tabular*}\par\vspace{\entryRowGap}%
+  \noindent\begin{tabular*}{\linewidth}{@{}l@{\extracolsep{\fill}}r@{}}
+    {\small\href{#5}{\color{CompanyColor}\ul{#3}}} & {\small\color{LocationColor}#4}%
+  \end{tabular*}\par\vspace{\entryBottomGap}%
+  \begin{itemize}[%
+    leftmargin=1.2em,%
+    label={\small$\cdot$},%
+    itemsep=2pt,%
+    parsep=0pt,%
+    topsep=0pt,%
+    partopsep=0pt%
+  ]\small%
+}{%
+  \end{itemize}\vspace{\entryGap}%
+}
+
+\let\education\experience
+\let\endeducation\endexperience
+
+
+%% ════════════════════════════════════════════════════════════════════════════
+%%  DOCUMENT
+%% ════════════════════════════════════════════════════════════════════════════
+\newlength{\photoRadius}
+\begin{document}
+\noindent
+%% ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+\begin{minipage}[t][\textheight][t]{\sidebarW}%
+  \vspace{12pt}%
+  \hspace{6pt}%
+  \begin{minipage}[t][\dimexpr\textheight-20pt\relax][s]{\dimexpr\sidebarW-12pt\relax}%
+    \setlength{\photoRadius}{0.32\linewidth}%
+    \small  %% sidebar body text default = 10pt (unifies plain text with \pair; section titles override with \normalsize)
+
+    \cvName
+    \cvPhoto
+    \tagline{\CVTagline}
+
+    \begin{sidebarBlock}{FOREIGN LANGUAGES}
+      \sline{French: Mother tongue}
+      \sline{English: Bilingual}
+      \sline{German: Fluent}
+    \end{sidebarBlock}
+
+    \begin{sidebarBlock}{PERSONAL SKILLS}
+      \pair{Team Player}{Curious}
+      \pair{Business Analysis}{Finance}
+      \pair{Communication}{Pro-active}
+      \pair{Manufacturing}{Luxury}
+      \pair{Startups}{Innovation}
+      \pair{Investment}{Due diligence}
+      \sline{High-Tech \& Innovation knowledge}
+    \end{sidebarBlock}
+
+    \begin{sidebarBlock}{COMPUTER SKILLS}
+      \pair{MS Office}{AI automations}
+      \pair{VBA}{JAVA}
+      \pair{C, C++}{SQL}
+      \sline{SolidWorks}
+    \end{sidebarBlock}
+
+    \begin{sidebarBlock}{EXTRA-CURRICULAR ACTIVITIES}
+      \sline{CrossFit Level 1 trainer}
+      \sline{Aviation -- PPL(A)}
+      \pair{Skiing}{Mountaineering}
+      \pair{Triathlon}{Cycling}
+      \pair{Rock Climbing}{Golf}
+    \end{sidebarBlock}
+
+    \begin{contactBlock}
+      \address{\CVAddress}
+      \phone{\CVPhone}
+      \email{\CVEmail}
+    \end{contactBlock}
+
+  \end{minipage}%
+\end{minipage}%
+%
+%% ─── MAIN COLUMN ──────────────────────────────────────────────────────────────
+\begin{minipage}[t][\textheight][t]{\dimexpr\paperwidth-\sidebarW\relax}%
+  \vspace{12pt}%
+  \hspace{8pt}%
+  \begin{minipage}[t]{\dimexpr\paperwidth-\sidebarW-22pt\relax}%
+
+    %% ── Professional Experience ───────────────────────────────────────────
+    \mainSection[\faBriefcase]{PROFESSIONAL EXPERIENCE}
+
+    \begin{experience}{Since Nov.~2022}%
+                      {Senior Associate -- Deals Strategy}%
+                      {PwC Switzerland}%
+                      {Zürich, Switzerland}%
+                      {https://www.pwc.ch}
+      \item Pre- and Post-acquisition strategy, Commercial Due Diligence advisory
+      \item Carve-out plans and due diligence advisory
+      \item Strategy advisory, Value-creation advisory
+    \end{experience}
+
+    \begin{experience}{Aug.~'21 -- Jul.~'22}%
+                      {Investment intern then Venture Scout / Analyst}%
+                      {Serpentine Ventures}%
+                      {Zurich, Switzerland}%
+                      {https://www.serpentine.vc/}
+      \item Scouted and on-boarded Pre-Seed, Seed, and Series A investments (60 applications, $>$5 investments)
+      \item Market analysis, KPIs and multiples study, valuation review, in-depth startup analysis
+    \end{experience}
+
+    \begin{experience}{Aug.~'17 -- Jun.~'20}%
+                      {Project Manager -- Production Tests Organization}%
+                      {Rolex SA}%
+                      {Biel, Switzerland}%
+                      {https://www.rolex.com}
+      \item Set new rules and organization for tests operations ($>$600 multidisciplinary coworkers trained)
+      \item Developed object-oriented tool for management accounting calculations, enabling to track \& save millions of CHF
+      \item Created, analyzed and presented a new cost collector to report to C-level managers
+    \end{experience}
+
+    \begin{experience}{Mar.~'15 -- Jul.~'17}%
+                      {Project Manager -- Control Methods Department}%
+                      {Rolex SA}%
+                      {Biel, Switzerland}%
+                      {https://www.rolex.com}
+      \item Managed computer vision projects to enhance measurement efficiency
+      \item Coded a new control tool on a new production line (hundreds of thousands of hours saved)
+    \end{experience}
+
+    \begin{experience}{Sept.~'14 -- Jan.~'15}%
+                      {Engineer Intern -- Design \& CNC Department}%
+                      {Chopard}%
+                      {Pforzheim, Germany}%
+                      {https://www.chopard.com}
+      \item Luxury, Milling, CNC, Design Manufacturing, Industrialization
+    \end{experience}
+    \vspace{\sectionGap}
+
+    %% ── Education ─────────────────────────────────────────────────────────
+    \mainSection[\faGraduationCap]{EDUCATION}
+
+    \begin{education}{Aug.~'20 -- Aug.~'21}%
+                     {Master of Business Administration (MBA)}%
+                     {HSG -- University of St.~Gallen}%
+                     {St.~Gallen, Switzerland}%
+                     {https://www.unisg.ch}
+      \item Ranked \#6 in Europe by Financial Times 2021 -- Triple-accredited (EQUIS, AACSB, AMBA)
+      \item Core subjects: corporate strategy, corporate finance, value-based management, impact investing, private equity
+    \end{education}
+
+    \begin{education}{Sept.~'11 -- Sept.~'15}%
+                     {Master of Mechanical Engineering}%
+                     {IFMA (now SIGMA)}%
+                     {Clermont-Ferrand, France}%
+                     {https://sigma-clermont.fr}
+      \item \'Ecole des Mines group -- Core subjects: general mechanics, manufacturing process, industrial design
+      \item Projects: innovation design, virtual reality cycling simulator, onboard drone camera
+    \end{education}
+
+    \begin{education}{Sept.~'09 -- Sept.~'11}%
+                     {Engineering Preparatory Class (CPGE)}%
+                     {Lycée La Martinière Monplaisir}%
+                     {Lyon, France}%
+                     {https://martiniere-monplaisir.ent.auvergnerhonealpes.fr/}
+      \item Intensive 2-year preparatory course for top engineering schools
+    \end{education}
+
+  \end{minipage}%
+\end{minipage}
+
+\end{document}

@@ -1,0 +1,168 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Raphael's Profile Bank",
+  "description": "Single source of truth for all agent claims about Raphael's career and background.",
+  "type": "object",
+  "required": ["candidate", "education", "experience", "rules"],
+  "properties": {
+    "candidate": {
+      "type": "object",
+      "required": ["name", "base", "languages", "contact"],
+      "properties": {
+        "name": { "type": "string" },
+        "base": { "type": "string" },
+        "languages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["language", "level"],
+            "properties": {
+              "language": { "type": "string" },
+              "level": { "type": "string", "enum": ["native", "C2", "C1", "B2", "B1", "A2", "A1"] }
+            }
+          }
+        },
+        "contact": {
+          "type": "object",
+          "properties": {
+            "email": { "type": "string", "format": "email" },
+            "phone": { "type": "string" },
+            "linkedin": { "type": "string", "format": "uri" },
+            "address": { "type": "string" }
+          }
+        }
+      }
+    },
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "institution", "degree", "start", "end"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^edu_[a-z_0-9]+$" },
+          "institution": { "type": "string" },
+          "degree": { "type": "string" },
+          "location": { "type": "string" },
+          "start": { "type": "string", "pattern": "^\\d{4}-\\d{2}$" },
+          "end": { "type": "string", "pattern": "^\\d{4}-\\d{2}$" },
+          "notes": { "type": "string" },
+          "keywords": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "experience": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "company", "role", "start", "end_status", "summary"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^exp_[a-z_0-9]+$" },
+          "company": { "type": "string" },
+          "role": { "type": "string" },
+          "location": { "type": "string" },
+          "start": { "type": "string", "pattern": "^\\d{4}-\\d{2}$" },
+          "end": {
+            "oneOf": [
+              { "type": "string", "pattern": "^\\d{4}-\\d{2}(-\\d{2})?$" },
+              { "type": "null" }
+            ]
+          },
+          "end_status": {
+            "type": "string",
+            "enum": ["completed", "current_indefinite", "contract_ending"],
+            "description": "completed: role finished. current_indefinite: still in role, no end date set. contract_ending: still in role but with a known end date (used for tense rules)."
+          },
+          "summary": { "type": "string" },
+          "achievements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "text", "confidence"],
+              "properties": {
+                "id": { "type": "string", "pattern": "^ach_[a-z_0-9]+$" },
+                "text": { "type": "string" },
+                "keywords": { "type": "array", "items": { "type": "string" } },
+                "surface_in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ["strategy", "consulting", "M&A", "luxury", "manufacturing", "industrial", "tech", "aviation", "finance", "operations", "general"]
+                  },
+                  "description": "Which JD classifications this achievement should be surfaced for."
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": ["high", "medium"],
+                  "description": "high: exact wording from real source. medium: summarized, needs care."
+                }
+              }
+            }
+          },
+          "tools_methods": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "skills_master": {
+      "type": "object",
+      "description": "Skills bank, tagged by category, for the writer to select from.",
+      "properties": {
+        "technical": { "type": "array", "items": { "type": "string" } },
+        "domain": { "type": "array", "items": { "type": "string" } },
+        "soft": { "type": "array", "items": { "type": "string" } },
+        "tools": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "required": ["never_mention", "conditional_mentions", "framing", "tense"],
+      "properties": {
+        "never_mention": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Terms that must never appear in any output (e.g. 'VBA')."
+        },
+        "conditional_mentions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["entity", "surface_only_when"],
+            "properties": {
+              "entity": { "type": "string" },
+              "surface_only_when": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "reason": { "type": "string" }
+            }
+          }
+        },
+        "framing": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["rule", "enforce_on"],
+            "properties": {
+              "rule": { "type": "string" },
+              "enforce_on": {
+                "type": "array",
+                "items": { "type": "string", "enum": ["cv", "cover_letter"] }
+              },
+              "explanation": { "type": "string" }
+            }
+          }
+        },
+        "tense": {
+          "type": "object",
+          "required": ["departure_date"],
+          "properties": {
+            "departure_date": {
+              "type": "string",
+              "format": "date",
+              "description": "PwC contract end date. Roles ending after today (incl. PwC) use present tense; roles ending before use past tense."
+            }
+          }
+        }
+      }
+    }
+  }
+}

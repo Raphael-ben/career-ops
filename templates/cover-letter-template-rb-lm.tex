@@ -1,0 +1,199 @@
+%% ============================================================
+%%  cover-letter-template-rb-lm.tex  — Raphael Benyamine cover letter
+%%  Modeled on: Raphael-Benyamine_cover-letter.pdf (original Word version)
+%%  Font:       Latin Modern Sans (matches cv-template-rb-lm)
+%%
+%%  Compile with:  pdflatex cover-letter-template-rb-lm.tex (run twice)
+%%  Layout:        Single column, A4, traditional business letter
+%% ============================================================
+
+\documentclass[a4paper,11pt]{article}
+
+%% ——— Encoding & Font ————————————————————————————————————————————————————————
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\renewcommand*\familydefault{\sfdefault}
+
+%% ——— Page layout ————————————————————————————————————————————————————————————
+\usepackage[a4paper, top=20mm, bottom=20mm, left=25mm, right=25mm]{geometry}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\pagestyle{empty}
+
+%% ——— Colors —————————————————————————————————————————————————————————————————
+\usepackage[dvipsnames,svgnames,table]{xcolor}
+\definecolor{HeaderGray}{RGB}{89,89,89}     %% top header + bottom signature contact
+\definecolor{LinkBlue}{RGB}{17,85,204}      %% mailto link colour (bottom only)
+
+%% ——— Links ———————————————————————————————————————————————————————————————————
+\usepackage{hyperref}
+\hypersetup{hidelinks, colorlinks=false, pdflinkmargin=0pt}
+\urlstyle{same}
+
+%% ——— Underline (controlled) —————————————————————————————————————————————————
+\usepackage{soul}
+\setul{1.2pt}{0.4pt}
+
+%% ——— Language / hyphenation ————————————————————————————————————————————————
+%% Load all three languages; select active language via \CLLanguage in user vars.
+\usepackage[english,french,ngerman]{babel}
+
+%% ——— Typography —————————————————————————————————————————————————————————————
+\usepackage{microtype}
+\hyphenpenalty=2000
+\exhyphenpenalty=2000
+
+
+%% ————————————————————————————————————————————————————————————————————————————
+%%  USER VARIABLES  — edit only inside this block
+%%  Layout map:
+%%    [APPLICANT block]  — top header (lines 1 & 2) + bottom signature
+%%    [DATE]             — right-aligned, between header and recipient
+%%    [RECIPIENT block]  — left-aligned, below date
+%%    [LETTER body]      — subject, salutation, paragraphs, greeting, name
+%% ————————————————————————————————————————————————————————————————————————————
+
+%% ——— LANGUAGE — set to: ngerman | french | english ——————————————————————————
+\newcommand{\CLLanguage}{english}
+
+%% ——— APPLICANT (sender — you) ————————————————————————————————————————————————
+\newcommand{\CLName}{Raphael Benyamine}
+\newcommand{\CLAddress}{Schaffhauserstrasse 75 -- 8057 Z\"urich -- Switzerland}
+\newcommand{\CLPhone}{+41\,78\,621\,34\,68}
+\newcommand{\CLEmail}{raphael.benyamine@gmail.com}
+
+%% ——— DATE ————————————————————————————————————————————————————————————————————
+\newcommand{\CLDate}{April 26\textsuperscript{th} 2026}
+
+%% ——— RECIPIENT (addressee — the company) ————————————————————————————————————
+\newcommand{\CLCompanyName}{Company Name}
+\newcommand{\CLCompanyStreet}{Street and number}
+\newcommand{\CLCompanyCity}{ZIP City, Country}
+
+%% ——— LETTER BODY METADATA ————————————————————————————————————————————————————
+\newcommand{\CLSubject}{Application -- Role Title}
+\newcommand{\CLSalutation}{Dear Sir or Madam,}
+\newcommand{\CLClosing}{I would welcome the chance to discuss how I could contribute.}
+\newcommand{\CLGreeting}{Yours sincerely,}
+
+%% ————————————————————————————————————————————————————————————————————————————
+
+
+%% ——— Spacing controls ————————————————————————————————————————————————————————
+
+\newlength{\headerLineGap}
+\setlength{\headerLineGap}{2pt}
+
+\newlength{\afterHeaderGap}
+\setlength{\afterHeaderGap}{18pt}
+
+\newlength{\afterDateGap}
+\setlength{\afterDateGap}{14pt}
+
+\newlength{\afterCompanyGap}
+\setlength{\afterCompanyGap}{14pt}
+
+\newlength{\afterSubjectGap}
+\setlength{\afterSubjectGap}{14pt}
+
+\newlength{\afterSalutationGap}
+\setlength{\afterSalutationGap}{10pt}
+
+\newlength{\parBodyGap}
+\setlength{\parBodyGap}{10pt}
+
+\newlength{\beforeClosingGap}
+\setlength{\beforeClosingGap}{4pt}
+
+\newlength{\beforeGreetingGap}
+\setlength{\beforeGreetingGap}{8pt}
+
+\newlength{\beforeSignatureGap}
+\setlength{\beforeSignatureGap}{12pt}
+
+\newlength{\beforeContactGap}
+\setlength{\beforeContactGap}{4pt}
+
+
+%% ——— Custom commands —————————————————————————————————————————————————————————
+
+\newcommand{\letterHeader}{%
+  \noindent\hfill{\small\color{HeaderGray}\CLName~--~\CLAddress}\par
+  \vspace{\headerLineGap}%
+  \noindent\hfill{\small\color{HeaderGray}%
+    \href{mailto:\CLEmail}{\mbox{\CLEmail}}\,-\,\CLPhone%
+  }\par
+  \vspace{\afterHeaderGap}%
+}
+
+\newcommand{\letterDate}{%
+  \noindent\hfill\CLDate\par
+  \vspace{\afterDateGap}%
+}
+
+\newcommand{\letterCompany}{%
+  \noindent\CLCompanyName\\
+  \CLCompanyStreet\\
+  \CLCompanyCity\par
+  \vspace{\afterCompanyGap}%
+}
+
+\newcommand{\letterSubject}{%
+  \noindent\textbf{Subject:~\CLSubject}\par
+  \vspace{\afterSubjectGap}%
+}
+
+\newcommand{\letterSalutation}{%
+  \noindent\CLSalutation\par
+  \vspace{\afterSalutationGap}%
+}
+
+\newcommand{\CLParagraph}[1]{%
+  \noindent #1\par
+  \vspace{\parBodyGap}%
+}
+
+\newcommand{\letterClose}{%
+  \vspace{\beforeClosingGap}%
+  \noindent\CLClosing\par
+  \vspace{\beforeGreetingGap}%
+  \noindent\CLGreeting\par
+  \vspace{\beforeSignatureGap}%
+  \noindent\CLName\par
+  \vspace{\beforeContactGap}%
+  \noindent{\small\color{HeaderGray}%
+    \href{mailto:\CLEmail}{\mbox{\CLEmail}}\,-\,\CLPhone%
+  }\par
+}
+
+
+%% ————————————————————————————————————————————————————————————————————————————
+%%  DOCUMENT  — AI: fill \CLParagraph blocks only; use \letterClose at end
+%% ————————————————————————————————————————————————————————————————————————————
+\begin{document}
+\selectlanguage{\CLLanguage}
+
+\letterHeader
+\letterDate
+\letterCompany
+\letterSubject
+\letterSalutation
+
+%% AI-FILL-START
+\CLParagraph{%
+  Opening paragraph: why this specific role and company (show research).
+}
+
+\CLParagraph{%
+  Second paragraph: 2--3 specific experiences that match the JD exactly.
+}
+
+\CLParagraph{%
+  Third paragraph: additional experience or context if needed.
+}
+%% AI-FILL-END
+
+\letterClose
+
+\end{document}
