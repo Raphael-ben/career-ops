@@ -23,7 +23,7 @@ Leer `portals.yml` que contiene:
 - `tracked_companies`: Empresas específicas con `careers_url` para navegación directa
 - `title_filter`: Keywords positive/negative/seniority_boost para filtrado de títulos
 
-## Estrategia de descubrimiento (3 niveles)
+## Estrategia de descubrimiento (4 niveles)
 
 ### Nivel 1 — Playwright directo (PRINCIPAL)
 
@@ -59,10 +59,33 @@ Para empresas con API pública o feed estructurado, usar la respuesta JSON/XML c
 
 Los `search_queries` con `site:` filters cubren portales de forma transversal (todos los Ashby, todos los Greenhouse, etc.). Útil para descubrir empresas NUEVAS que aún no están en `tracked_companies`, pero los resultados pueden estar desfasados.
 
+### Level 4 — JobSpy (BROAD COVERAGE)
+
+Scrapes LinkedIn, Indeed, Glassdoor, Google Jobs, ZipRecruiter, Bayt, and Naukri via
+HTTP. Zero LLM tokens. Runs as a shell step inside the scan subagent.
+
+**Prerequisites:** `python3` and `python-jobspy` installed (`pip install python-jobspy`).
+Search terms and location are read from the `jobspy:` block in `config/profile.yml`.
+
+**Execute:**
+
+```bash
+python3 jobspy_scan.py
+```
+
+Parse the JSON array from stdout. Each item has: `title`, `company`, `url`, `source`,
+`location`, `date_posted`.
+
+Add each item to the candidates list (dedup with Levels 1–3 by URL).
+
+**If `jobspy_scan.py` fails or is not installed:** log a warning in the scan summary
+and continue — Levels 1–3 results are still valid.
+
 **Prioridad de ejecución:**
 1. Nivel 1: Playwright → todas las `tracked_companies` con `careers_url`
 2. Nivel 2: API → todas las `tracked_companies` con `api:`
 3. Nivel 3: WebSearch → todos los `search_queries` con `enabled: true`
+4. Level 4: JobSpy → all `search_terms` from `config/profile.yml` jobspy block
 
 Los niveles son aditivos — se ejecutan todos, los resultados se mezclan y deduplicar.
 
@@ -103,6 +126,12 @@ Los niveles son aditivos — se ejecutan todos, los resultados se mezclan y dedu
       - **url**: URL del resultado
       - **company**: después del " @ " en el título, o extraer del dominio/path
    c. Acumular en lista de candidatos (dedup con Nivel 1+2)
+
+6.5. **Level 4 — JobSpy** (shell step):
+   Ejecutar `python3 jobspy_scan.py` (lee `config/profile.yml` bloque `jobspy:`).
+   a. Si el script falla o no está instalado: registrar warning en el resumen y continuar
+   b. De cada item en el JSON array extraer: `{title, company, url, source, location, date_posted}`
+   c. Acumular en lista de candidatos (dedup con Niveles 1+2+3 por URL)
 
 6. **Filtrar por título** usando `title_filter` de `portals.yml`:
    - Al menos 1 keyword de `positive` debe aparecer en el título (case-insensitive)
