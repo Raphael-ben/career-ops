@@ -10,7 +10,15 @@ Usage:
   python jobspy_scan.py                      # run with profile.yml
   python jobspy_scan.py --config path.yml    # custom config path
   python jobspy_scan.py --dry-run            # return mock data, no HTTP
+
+NOTE: Run via the project venv to ensure python-jobspy is available:
+  .venv/bin/python3 jobspy_scan.py
 """
+import sys
+if sys.version_info < (3, 10):
+    print(f"[]", flush=True)
+    raise SystemExit(f"jobspy_scan: Python ≥3.10 required, got {sys.version.split()[0]}. "
+                     f"Run with .venv/bin/python3 instead of system python3.")
 import argparse
 import json
 import sys

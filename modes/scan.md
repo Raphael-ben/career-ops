@@ -64,14 +64,19 @@ For companies with a public API or structured feed, use the JSON/XML response as
 Scrapes LinkedIn, Indeed, Glassdoor, Google Jobs, ZipRecruiter, Bayt, and Naukri via
 HTTP. Zero LLM tokens. Runs as a shell step inside the scan subagent.
 
-**Prerequisites:** `python3` and `python-jobspy` installed (`pip install python-jobspy`).
+**Prerequisites:** `python-jobspy` installed in `.venv` (`pip install python-jobspy`) or system-wide.
 Search terms and location are read from the `jobspy:` block in `config/profile.yml`.
 
-**Execute:**
+**Execute** (always run from the `career-ops/` directory):
 
 ```bash
-python3 jobspy_scan.py
+# Prefer the project venv — it has python-jobspy installed
+PYTHON=".venv/bin/python3"
+[ -f "$PYTHON" ] || PYTHON="python3"
+$PYTHON jobspy_scan.py
 ```
+
+If `.venv/bin/python3` exists use it (it has `python-jobspy`). The script exits with `[]` and a clear error if the Python version is below 3.10.
 
 Parse the JSON array from stdout. Each item has: `title`, `company`, `url`, `source`,
 `location`, `date_posted`.
