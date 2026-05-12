@@ -48,3 +48,7 @@ package-lock.json
 # Generated PDFs and photos at root
 *.pdf
 CV-2.jpg
+
+# Build artifacts and tool caches
+__pycache__/
+.understand-anything/
