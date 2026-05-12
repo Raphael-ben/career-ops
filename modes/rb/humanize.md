@@ -268,7 +268,7 @@ Fix: One hedge word maximum per claim.
 Phrases: the future looks bright, exciting times lie ahead, journey toward excellence, major step in the right direction
 Fix: Specific facts or plans.
 > Before: "I am excited to contribute to your journey toward excellence"
-> After: "I want to apply the transaction experience from PwC directly to your M&A pipeline"
+> After: "I want to apply the due diligence experience from consulting directly to your deal pipeline"
 
 ---
 
