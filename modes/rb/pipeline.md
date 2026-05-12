@@ -193,9 +193,14 @@ otherwise                        → modes/rb/write-cv.md         +  modes/rb/wr
 
 ### Step 4a — Write CV
 
-```bash
-claude -p "$(cat {write-cv-mode-path})
+Read `{write-cv-mode-path}` to load the CV writer instructions into memory.
 
+Call the Agent tool:
+- `subagent_type`: `"general-purpose"`
+- `description`: `"write CV — {Company} {Role}"`
+- `prompt`: the full content of the write-cv mode file, followed by:
+
+```
 ---
 ## Orchestrator context for this run
 
@@ -205,16 +210,21 @@ Profile (filtered) is in: output/{folder}/profile-filtered.json
 Output folder: output/{folder}
 Today's date: {YYYY-MM-DD}
 
-Write Raphael-Benyamine_CV.tex to the output folder."
+Write Raphael-Benyamine_CV.tex to the output folder.
 ```
 
-Check: if exit code is non-zero or `output/{folder}/Raphael-Benyamine_CV.tex` is missing → report error, stop.
+Check: if the Agent returns an error or `output/{folder}/Raphael-Benyamine_CV.tex` is missing → report error, stop.
 
 ### Step 4b — Write cover letter
 
-```bash
-claude -p "$(cat {write-cl-mode-path})
+Read `{write-cl-mode-path}` to load the cover letter writer instructions into memory.
 
+Call the Agent tool:
+- `subagent_type`: `"general-purpose"`
+- `description`: `"write cover letter — {Company} {Role}"`
+- `prompt`: the full content of the write-cl mode file, followed by:
+
+```
 ---
 ## Orchestrator context for this run
 
@@ -224,18 +234,23 @@ Profile (filtered) is in: output/{folder}/profile-filtered.json
 Output folder: output/{folder}
 Today's date: {YYYY-MM-DD}
 
-Write Raphael-Benyamine_cover-letter.tex to the output folder."
+Write Raphael-Benyamine_cover-letter.tex to the output folder.
 ```
 
-Check: if exit code is non-zero or `output/{folder}/Raphael-Benyamine_cover-letter.tex` is missing → report error, stop.
+Check: if the Agent returns an error or `output/{folder}/Raphael-Benyamine_cover-letter.tex` is missing → report error, stop.
 
 ---
 
 ## Step 5 — Humanize (isolated subagent)
 
-```bash
-claude -p "$(cat modes/rb/humanize.md)
+Read `modes/rb/humanize.md` to load the humanizer instructions into memory.
 
+Call the Agent tool:
+- `subagent_type`: `"general-purpose"`
+- `description`: `"humanize — {Company} {Role}"`
+- `prompt`: the full content of `modes/rb/humanize.md`, followed by:
+
+```
 ---
 ## Orchestrator context for this run
 
@@ -243,10 +258,10 @@ CV: output/{folder}/Raphael-Benyamine_CV.tex
 Cover letter: output/{folder}/Raphael-Benyamine_cover-letter.tex
 Language: {en|fr|de} (from classification)
 
-Rewrite bullet text in Raphael-Benyamine_CV.tex and paragraph text in Raphael-Benyamine_cover-letter.tex in-place."
+Rewrite bullet text in Raphael-Benyamine_CV.tex and paragraph text in Raphael-Benyamine_cover-letter.tex in-place.
 ```
 
-Check: if exit code is non-zero, warn user and ask whether to proceed. If files are unchanged after the call (check mtime), warn — possible silent failure.
+Check: if the Agent returns an error, warn user and ask whether to proceed. If both files are unchanged after the call (compare mtime before and after), warn — possible silent failure.
 
 ---
 
@@ -312,9 +327,14 @@ Review the JSON output from each compilation call:
 
 ## Step 7 — Verify (isolated subagent)
 
-```bash
-claude -p "$(cat modes/rb/verify.md)
+Read `modes/rb/verify.md` to load the verifier instructions into memory.
 
+Call the Agent tool:
+- `subagent_type`: `"general-purpose"`
+- `description`: `"verify — {Company} {Role}"`
+- `prompt`: the full content of `modes/rb/verify.md`, followed by:
+
+```
 ---
 ## Orchestrator context for this run
 
@@ -323,10 +343,10 @@ CV: output/{folder}/Raphael-Benyamine_CV.tex
 Cover letter: output/{folder}/Raphael-Benyamine_cover-letter.tex
 JD text: output/{folder}/jd.txt
 
-Write the verdict to output/{folder}/verifier_report.json."
+Write the verdict to output/{folder}/verifier_report.json.
 ```
 
-Check: if exit code is non-zero or `verifier_report.json` is missing → treat as fail, stop.
+Check: if the Agent returns an error or `output/{folder}/verifier_report.json` is missing → treat as fail, stop.
 
 If verdict is `fail`: report blockers to user. **Stop** — do NOT mark as ready.
 If verdict is `pass` or `pass_with_warnings`: continue.
