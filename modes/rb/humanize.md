@@ -1,5 +1,7 @@
 # Mode: rb/humanize — Job Application Humanizer
 
+> Adapted from [blader/humanizer](https://github.com/blader/humanizer) — LaTeX-specific fork with 29 rules tuned for job application CVs and cover letters.
+
 ## Purpose
 Remove AI writing patterns from CV and cover letter LaTeX content. This mode is self-contained — all 29 humanization rules are embedded below. No external skill is required.
 

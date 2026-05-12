@@ -496,8 +496,10 @@ career-ops/
 ![Bubble Tea](https://img.shields.io/badge/Bubble_Tea-FF75B5?style=flat&logo=go&logoColor=white)
 
 - **Agent**: Claude Code with custom skills and modes
-- **PDF**: Playwright/Puppeteer + HTML template
-- **Scanner**: Playwright + Greenhouse API + WebSearch
+- **PDF**: Playwright/Puppeteer + HTML template or pdflatex
+- **Scanner (Levels 1–3)**: Playwright + ATS APIs (Greenhouse, Ashby, Lever) + WebSearch
+- **Scanner (Level 4)**: [python-jobspy](https://github.com/cullenwatson/JobSpy) — scrapes LinkedIn, Indeed, Glassdoor, Google Jobs, ZipRecruiter, Bayt, Naukri via HTTP (zero LLM tokens)
+- **Humanizer**: adapted from [blader/humanizer](https://github.com/blader/humanizer) — 29-rule LaTeX-specific humanizer for job application CVs and cover letters
 - **Dashboard**: Go + Bubble Tea + Lipgloss (Catppuccin Mocha theme)
 - **Data**: Markdown tables + YAML config + TSV batch files
 

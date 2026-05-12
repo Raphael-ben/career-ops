@@ -2,6 +2,9 @@
 """
 jobspy_scan.py — JobSpy scraper for /jobhunter scan (Level 4).
 
+Powered by python-jobspy: https://github.com/cullenwatson/JobSpy
+License: MIT
+
 Reads search config from config/profile.yml (jobspy block), scrapes all
 supported boards concurrently via HTTP, deduplicates by URL, outputs
 JSON array to stdout.
