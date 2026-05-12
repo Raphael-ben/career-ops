@@ -75,24 +75,24 @@ When using [OpenCode](https://opencode.ai), the following slash commands are ava
 
 | Command | Claude Code Equivalent | Description |
 |---------|------------------------|-------------|
-| `/career-ops` | `/career-ops` | Show menu or evaluate JD with args |
-| `/career-ops-pipeline` | `/career-ops pipeline` | Process pending URLs from inbox |
-| `/career-ops-evaluate` | `/career-ops oferta` | Evaluate job offer (A-F scoring) |
-| `/career-ops-compare` | `/career-ops ofertas` | Compare and rank multiple offers |
-| `/career-ops-contact` | `/career-ops contacto` | LinkedIn outreach (find contacts + draft) |
-| `/career-ops-deep` | `/career-ops deep` | Deep company research |
-| `/career-ops-pdf` | `/career-ops pdf` | Generate ATS-optimized CV |
-| `/career-ops-latex` | `/career-ops latex` | Export CV as LaTeX/Overleaf .tex |
-| `/career-ops-training` | `/career-ops training` | Evaluate course/cert against goals |
-| `/career-ops-project` | `/career-ops project` | Evaluate portfolio project idea |
-| `/career-ops-tracker` | `/career-ops tracker` | Application status overview |
-| `/career-ops-apply` | `/career-ops apply` | Live application assistant |
-| `/career-ops-scan` | `/career-ops scan` | Scan portals for new offers |
-| `/career-ops-batch` | `/career-ops batch` | Batch processing with parallel workers |
-| `/career-ops-patterns` | `/career-ops patterns` | Analyze rejection patterns and improve targeting |
-| `/career-ops-followup` | `/career-ops followup` | Follow-up cadence tracker |
+| `/jobhunter` | `/jobhunter` | Show menu or evaluate JD with args |
+| `/jobhunter-pipeline` | `/jobhunter pipeline` | Process pending URLs from inbox |
+| `/jobhunter-evaluate` | `/jobhunter oferta` | Evaluate job offer (A-F scoring) |
+| `/jobhunter-compare` | `/jobhunter ofertas` | Compare and rank multiple offers |
+| `/jobhunter-contact` | `/jobhunter contacto` | LinkedIn outreach (find contacts + draft) |
+| `/jobhunter-deep` | `/jobhunter deep` | Deep company research |
+| `/jobhunter-pdf` | `/jobhunter pdf` | Generate ATS-optimized CV |
+| `/jobhunter-latex` | `/jobhunter latex` | Export CV as LaTeX/Overleaf .tex |
+| `/jobhunter-training` | `/jobhunter training` | Evaluate course/cert against goals |
+| `/jobhunter-project` | `/jobhunter project` | Evaluate portfolio project idea |
+| `/jobhunter-tracker` | `/jobhunter tracker` | Application status overview |
+| `/jobhunter-apply` | `/jobhunter apply` | Live application assistant |
+| `/jobhunter-scan` | `/jobhunter scan` | Scan portals for new offers |
+| `/jobhunter-batch` | `/jobhunter batch` | Batch processing with parallel workers |
+| `/jobhunter-patterns` | `/jobhunter patterns` | Analyze rejection patterns and improve targeting |
+| `/jobhunter-followup` | `/jobhunter followup` | Follow-up cadence tracker |
 
-**Note:** OpenCode commands invoke the same `.claude/skills/career-ops/SKILL.md` skill used by Claude Code. The `modes/*` files are shared between both platforms.
+**Note:** OpenCode commands invoke the same `.claude/skills/jobhunter/SKILL.md` skill used by Claude Code. The `modes/*` files are shared between both platforms.
 
 ### Gemini CLI Commands
 
@@ -100,21 +100,21 @@ When using the [Gemini CLI](https://github.com/google-gemini/gemini-cli), the fo
 
 | Command | Claude Code Equivalent | Description |
 |---------|------------------------|-------------|
-| `/career-ops` | `/career-ops` | Show menu or evaluate JD with args |
-| `/career-ops-pipeline` | `/career-ops pipeline` | Process pending URLs from inbox |
-| `/career-ops-evaluate` | `/career-ops oferta` | Evaluate job offer (A-G scoring) |
-| `/career-ops-compare` | `/career-ops ofertas` | Compare and rank multiple offers |
-| `/career-ops-contact` | `/career-ops contacto` | LinkedIn outreach (find contacts + draft) |
-| `/career-ops-deep` | `/career-ops deep` | Deep company research |
-| `/career-ops-pdf` | `/career-ops pdf` | Generate ATS-optimized CV |
-| `/career-ops-training` | `/career-ops training` | Evaluate course/cert against goals |
-| `/career-ops-project` | `/career-ops project` | Evaluate portfolio project idea |
-| `/career-ops-tracker` | `/career-ops tracker` | Application status overview |
-| `/career-ops-apply` | `/career-ops apply` | Live application assistant |
-| `/career-ops-scan` | `/career-ops scan` | Scan portals for new offers |
-| `/career-ops-batch` | `/career-ops batch` | Batch processing with parallel workers |
-| `/career-ops-patterns` | `/career-ops patterns` | Analyze rejection patterns and improve targeting |
-| `/career-ops-followup` | `/career-ops followup` | Follow-up cadence tracker |
+| `/jobhunter` | `/jobhunter` | Show menu or evaluate JD with args |
+| `/jobhunter-pipeline` | `/jobhunter pipeline` | Process pending URLs from inbox |
+| `/jobhunter-evaluate` | `/jobhunter oferta` | Evaluate job offer (A-G scoring) |
+| `/jobhunter-compare` | `/jobhunter ofertas` | Compare and rank multiple offers |
+| `/jobhunter-contact` | `/jobhunter contacto` | LinkedIn outreach (find contacts + draft) |
+| `/jobhunter-deep` | `/jobhunter deep` | Deep company research |
+| `/jobhunter-pdf` | `/jobhunter pdf` | Generate ATS-optimized CV |
+| `/jobhunter-training` | `/jobhunter training` | Evaluate course/cert against goals |
+| `/jobhunter-project` | `/jobhunter project` | Evaluate portfolio project idea |
+| `/jobhunter-tracker` | `/jobhunter tracker` | Application status overview |
+| `/jobhunter-apply` | `/jobhunter apply` | Live application assistant |
+| `/jobhunter-scan` | `/jobhunter scan` | Scan portals for new offers |
+| `/jobhunter-batch` | `/jobhunter batch` | Batch processing with parallel workers |
+| `/jobhunter-patterns` | `/jobhunter patterns` | Analyze rejection patterns and improve targeting |
+| `/jobhunter-followup` | `/jobhunter followup` | Follow-up cadence tracker |
 
 **Note:** Gemini CLI commands are defined in `.gemini/commands/*.toml`. The project context is auto-loaded from `GEMINI.md`. All `modes/*` files are shared across Claude Code, OpenCode, and Gemini CLI.
 
@@ -190,8 +190,8 @@ Store any insights the user shares in `config/profile.yml` (under narrative), `m
 Once all files exist, confirm:
 > "You're all set! You can now:
 > - Paste a job URL to evaluate it
-> - Run `/career-ops scan` (or `/career-ops-scan` if using OpenCode) to search portals
-> - Run `/career-ops` to see all commands
+> - Run `/jobhunter scan` (or `/jobhunter-scan` if using OpenCode) to search portals
+> - Run `/jobhunter` to see all commands
 >
 > Everything is customizable — just ask me to change anything.
 >
@@ -200,7 +200,7 @@ Once all files exist, confirm:
 Then suggest automation:
 > "Want me to scan for new offers automatically? I can set up a recurring scan every few days so you don't miss anything. Just say 'scan every 3 days' and I'll configure it."
 
-If the user accepts, use the `/loop` or `/schedule` skill (if available) to set up a recurring `/career-ops scan` (or `/career-ops-scan` if using OpenCode). If those aren't available, suggest adding a cron job or remind them to run `/career-ops scan` (or `/career-ops-scan` if using OpenCode) periodically.
+If the user accepts, use the `/loop` or `/schedule` skill (if available) to set up a recurring `/jobhunter scan` (or `/jobhunter-scan` if using OpenCode). If those aren't available, suggest adding a cron job or remind them to run `/jobhunter scan` (or `/jobhunter-scan` if using OpenCode) periodically.
 
 ### Personalization
 
@@ -259,6 +259,46 @@ Default modes are in `modes/` (English). Additional language-specific modes are 
 | Batch processes offers | `batch` |
 | Asks about rejection patterns or wants to improve targeting | `patterns` |
 | Asks about follow-ups or application cadence | `followup` |
+| Wants to humanize LaTeX CV/cover letter | `modes/rb/humanize` |
+| Asks for help or command list | `modes/help` |
+
+## Quick Reference
+
+When the user runs `/jobhunter` with no arguments, print this reference card immediately
+(no LLM call needed — this is static content):
+
+```
+JOBHUNTER — Command Reference
+══════════════════════════════════════════════════════
+
+DISCOVERY (zero tokens)
+  scan          Scrape all job boards + company portals → pipeline.md
+
+EVALUATION
+  evaluate      Full A-G score for one job (URL or paste JD)
+  compare       Side-by-side matrix for multiple offers
+  deep          Deep company research before applying
+  patterns      Analyse your win/loss history
+
+APPLICATION
+  pdf           Generate ATS-optimized CV PDF
+  humanize      Remove AI writing patterns from LaTeX CV/cover letter
+  apply         Pre-fill application form (stops before submit)
+  contact       LinkedIn outreach message
+
+TRACKING
+  tracker       View and filter your pipeline
+  pipeline      Process all pending URLs in batch
+  batch         Evaluate 10+ jobs in parallel
+
+PREPARATION
+  interview     STAR stories + interview prep
+  follow        Follow-up cadence for active applications
+
+SYSTEM
+  update        Check and apply updates for all components
+  help          Guided walkthrough + function hierarchy
+```
 
 ### CV Source of Truth
 
@@ -366,3 +406,28 @@ Write one TSV file per evaluation to `batch/tracker-additions/{num}-{company-slu
 - No markdown bold (`**`) in status field
 - No dates in status field (use the date column)
 - No extra text (use the notes column)
+
+## Update Mechanism
+
+When the user runs `/jobhunter update`, check and surface updates for all three components:
+
+### career-ops
+```bash
+node update-system.mjs check
+```
+If update available, offer to apply: `node update-system.mjs apply`
+
+### jobspy
+```bash
+pip show python-jobspy | grep Version
+pip install -U python-jobspy --dry-run 2>&1 | grep "Would install"
+```
+If newer version available, offer: `pip install -U python-jobspy`
+
+### humanizer (RB mode)
+Check upstream for new rules:
+```bash
+git -C ~/.claude/skills/humanizer log --oneline origin/main ^HEAD 2>/dev/null
+```
+If there are new commits, review them and manually merge relevant rule changes into
+`modes/rb/humanize.md`. The RB mode is a custom fork — do not auto-overwrite it.

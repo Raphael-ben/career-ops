@@ -39,21 +39,21 @@ When using [Gemini CLI](https://github.com/google-gemini/gemini-cli), the follow
 
 | Command | Claude Code Equivalent | Description |
 |---------|------------------------|-------------|
-| `/career-ops` | `/career-ops` | Show menu or evaluate JD |
-| `/career-ops-pipeline` | `/career-ops pipeline` | Process pending URLs from inbox |
-| `/career-ops-evaluate` | `/career-ops oferta` | Evaluate job offer (A-G scoring) |
-| `/career-ops-compare` | `/career-ops ofertas` | Compare and rank multiple offers |
-| `/career-ops-contact` | `/career-ops contacto` | LinkedIn outreach |
-| `/career-ops-deep` | `/career-ops deep` | Deep company research |
-| `/career-ops-pdf` | `/career-ops pdf` | Generate ATS-optimized CV |
-| `/career-ops-training` | `/career-ops training` | Evaluate course/cert |
-| `/career-ops-project` | `/career-ops project` | Evaluate portfolio project |
-| `/career-ops-tracker` | `/career-ops tracker` | Application status overview |
-| `/career-ops-apply` | `/career-ops apply` | Live application assistant |
-| `/career-ops-scan` | `/career-ops scan` | Scan portals for new offers |
-| `/career-ops-batch` | `/career-ops batch` | Batch processing |
-| `/career-ops-patterns` | `/career-ops patterns` | Analyze rejection patterns |
-| `/career-ops-followup` | `/career-ops followup` | Follow-up cadence tracker |
+| `/jobhunter` | `/jobhunter` | Show menu or evaluate JD |
+| `/jobhunter-pipeline` | `/jobhunter pipeline` | Process pending URLs from inbox |
+| `/jobhunter-evaluate` | `/jobhunter oferta` | Evaluate job offer (A-G scoring) |
+| `/jobhunter-compare` | `/jobhunter ofertas` | Compare and rank multiple offers |
+| `/jobhunter-contact` | `/jobhunter contacto` | LinkedIn outreach |
+| `/jobhunter-deep` | `/jobhunter deep` | Deep company research |
+| `/jobhunter-pdf` | `/jobhunter pdf` | Generate ATS-optimized CV |
+| `/jobhunter-training` | `/jobhunter training` | Evaluate course/cert |
+| `/jobhunter-project` | `/jobhunter project` | Evaluate portfolio project |
+| `/jobhunter-tracker` | `/jobhunter tracker` | Application status overview |
+| `/jobhunter-apply` | `/jobhunter apply` | Live application assistant |
+| `/jobhunter-scan` | `/jobhunter scan` | Scan portals for new offers |
+| `/jobhunter-batch` | `/jobhunter batch` | Batch processing |
+| `/jobhunter-patterns` | `/jobhunter patterns` | Analyze rejection patterns |
+| `/jobhunter-followup` | `/jobhunter followup` | Follow-up cadence tracker |
 
 **All commands share the same evaluation logic** in `modes/*.md`. The `modes/` files are shared between Claude Code, OpenCode, and Gemini CLI.
 
