@@ -1,6 +1,7 @@
 # Mode: rb/humanize — Job Application Humanizer
 
 > Adapted from [blader/humanizer](https://github.com/blader/humanizer) — LaTeX-specific fork with 29 rules tuned for job application CVs and cover letters.
+> Original work Copyright (c) 2025 Siqi Chen, MIT License.
 
 ## Purpose
 Remove AI writing patterns from CV and cover letter LaTeX content. This mode is self-contained — all 29 humanization rules are embedded below. No external skill is required.
@@ -19,9 +20,9 @@ Remove AI writing patterns from CV and cover letter LaTeX content. This mode is 
 
 ## What to touch
 
-**CV (`Raphael-Benyamine_CV.tex`)**: `\item` bullet text only. One bullet at a time. Do not touch LaTeX commands, section headers, company names, dates, or numeric metrics.
+**CV (`{candidate}_CV.tex`)**: `\item` bullet text only. One bullet at a time. Do not touch LaTeX commands, section headers, company names, dates, or numeric metrics.
 
-**Cover letter (`Raphael-Benyamine_cover-letter.tex`)**: text inside `\CLParagraph{%...}` blocks only. Do not touch salutation, `\CLDate`, `\CLCompanyName`, `\CLSenderName`, or any other header variable.
+**Cover letter (`{candidate}_cover-letter.tex`)**: text inside `\CLParagraph{%...}` blocks only. Do not touch salutation, `\CLDate`, `\CLCompanyName`, `\CLSenderName`, or any other header variable.
 
 ## What NOT to touch
 
@@ -281,7 +282,7 @@ Fix: Specific facts or plans.
    c. Rewrite only the flagged phrases; leave everything else identical
 4. Do a final pass: "What still reads as obviously AI-generated?" — fix any remaining tells
 5. **Cover-letter-specific checks (run after pattern pass):**
-   a. **CGPA / grades**: Scan `\CLParagraph{}` blocks for any numeric grade (`CGPA`, `GPA`, `4.98`, `4,98`, any decimal score next to `/6` or `/4` or `/5`). Remove the numeric score entirely — keep only institution and degree name. Example: "My HSG MBA (CGPA 4.98/6.0, ranked #6 in Europe)" → "My HSG MBA (ranked #6 in Europe by FT 2021)".
+   a. **CGPA / grades**: Scan `\CLParagraph{}` blocks for any numeric grade (`CGPA`, `GPA`, or any decimal score next to `/6` or `/4` or `/5`). Remove the numeric score entirely — keep only institution and degree name. Example: "My MBA (CGPA X.X/6.0, ranked #6 in Europe)" → "My MBA (ranked #6 in Europe by FT 2021)".
    b. **Word count**: Count words inside all `\CLParagraph{}` blocks combined. If total > 360, trim the longest paragraph(s) by cutting generic or repeated observations until the total reaches ≤ 360. Never cut factual claims or the formal close. Report the trim count in `changes`.
 6. Output the full `.tex` file with LaTeX structure intact and only text regions changed
 
@@ -296,12 +297,12 @@ After writing the humanized `.tex` files, write `humanizer_report.json` to the s
 ```json
 {
   "ran_at": "ISO-8601 timestamp",
-  "documents": ["Raphael-Benyamine_CV.tex", "Raphael-Benyamine_cover-letter.tex"],
+  "documents": ["{candidate}_CV.tex", "{candidate}_cover-letter.tex"],
   "flags_found": <total count of patterns triggered across both documents>,
   "rewrites_applied": <total count of phrases actually rewritten>,
   "changes": [
     {
-      "document": "Raphael-Benyamine_CV.tex",
+      "document": "{candidate}_CV.tex",
       "pattern": "<pattern name from the 29-pattern list>",
       "before": "<original phrase>",
       "after": "<rewritten phrase>"
