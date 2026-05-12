@@ -52,3 +52,6 @@ CV-2.jpg
 # Build artifacts and tool caches
 __pycache__/
 .understand-anything/
+
+# Local design work
+template-revamp/

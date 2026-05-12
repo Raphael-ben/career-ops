@@ -43,6 +43,7 @@
 %% ─── Graphics ────────────────────────────────────────────────────────────────
 \usepackage{graphicx}
 \graphicspath{{./}{./templates/}}      %% works from templates/ or repo root
+\usepackage{paracol}
 
 %% ─── Links ───────────────────────────────────────────────────────────────────
 %% Mac Preview hyperref workaround (option #3):
@@ -212,7 +213,6 @@
 %%     \address{...}  \phone{...}  \email{...}
 %%   \end{contactBlock}
 \newenvironment{contactBlock}{%
-  \vfill
   \sidebarSection{CONTACT DETAILS}%
   \centering
 }{%
@@ -281,12 +281,13 @@
 %% ════════════════════════════════════════════════════════════════════════════
 \newlength{\photoRadius}
 \begin{document}
-\noindent
+\setlength{\columnsep}{0pt}
+\columnratio{0.2952380952}
+\begin{paracol}{2}
 %% ─── SIDEBAR ──────────────────────────────────────────────────────────────────
-\begin{minipage}[t][\textheight][t]{\sidebarW}%
   \vspace{12pt}%
   \hspace{6pt}%
-  \begin{minipage}[t][\dimexpr\textheight-20pt\relax][s]{\dimexpr\sidebarW-12pt\relax}%
+  \begin{minipage}[t][\dimexpr\textheight-20pt\relax][t]{\dimexpr\sidebarW-12pt\relax}%
     \setlength{\photoRadius}{0.32\linewidth}%
     \small  %% sidebar body text default = 10pt (unifies plain text with \pair; section titles override with \normalsize)
 
@@ -325,6 +326,7 @@
       \pair{Rock Climbing}{Golf}
     \end{sidebarBlock}
 
+    \vfill
     \begin{contactBlock}
       \address{\CVAddress}
       \phone{\CVPhone}
@@ -332,13 +334,13 @@
     \end{contactBlock}
 
   \end{minipage}%
-\end{minipage}%
-%
+
+\switchcolumn
+
 %% ─── MAIN COLUMN ──────────────────────────────────────────────────────────────
-\begin{minipage}[t][\textheight][t]{\dimexpr\paperwidth-\sidebarW\relax}%
-  \vspace{12pt}%
-  \hspace{8pt}%
-  \begin{minipage}[t]{\dimexpr\paperwidth-\sidebarW-22pt\relax}%
+\vspace{12pt}%
+\hspace{8pt}%
+\begin{minipage}[t]{\dimexpr\paperwidth-\sidebarW-22pt\relax}%
 
     %% ── Professional Experience ───────────────────────────────────────────
     \mainSection[\faBriefcase]{PROFESSIONAL EXPERIENCE}
@@ -420,6 +422,6 @@
     \end{education}
 
   \end{minipage}%
-\end{minipage}
 
+\end{paracol}
 \end{document}
