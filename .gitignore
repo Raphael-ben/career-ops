@@ -45,3 +45,6 @@ bun.lock
 .claude/memory/
 career-dashboard
 package-lock.json
+# Generated PDFs and photos at root
+*.pdf
+CV-2.jpg
