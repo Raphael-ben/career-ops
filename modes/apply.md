@@ -165,6 +165,13 @@ If a Notion MCP file-upload tool is available (e.g. `upload_file`, `create_file`
 
 If no file-upload tool is available, skip the property upload and add the local paths to the page body (handled in the Q&A block below).
 
+If the upload tool is available but the upload call fails for CV or CL, log the failure inline and add the local path to the page body for that file:
+```
+⚠ CV upload failed — attach manually: career-ops/output/{folder}/{cv-filename}.pdf
+⚠ CL upload failed — attach manually: career-ops/output/{folder}/{cl-filename}.pdf
+```
+Continue to the Q&A step regardless of upload outcome.
+
 **Append Q&A and file paths to page body:**
 
 From Step 5 output, collect responses to **substantive free-text questions only**: motivational questions, "why this company", competency / situation questions, cover letter fields.
