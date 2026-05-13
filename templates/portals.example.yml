@@ -53,6 +53,8 @@ title_filter:
     - "Mainframe"
     - "COBOL"
   seniority_boost:
+    # Advisory only — used by the scanner for ranking, not as a gate.
+    # LLM triage in pipeline Step 0.5 handles semantic relevance screening.
     # These prefixes add relevance but are not required
     - "Senior"
     - "Staff"
