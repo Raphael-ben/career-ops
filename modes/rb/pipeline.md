@@ -509,7 +509,7 @@ Discarded entries are logged to scan-history.tsv.
 
 Wait for user input.
 
-**For each number entered:** run Steps 1–9 for that entry immediately (same as a pass entry). After completing, mark its `[?]` entry in `data/pipeline.md` as done (`[x]`).
+**For each number entered:** run Steps 1–9 for that entry immediately (same as a pass entry). After completing, change its `[?]` marker to `[x]` in the `## Borderline` section of `data/pipeline.md` (mark as done, keep the line).
 
 **For each number NOT entered** (discarded): append one TSV line to `data/scan-history.tsv`:
 
@@ -517,7 +517,7 @@ Wait for user input.
 {url}	{YYYY-MM-DD}	triage	{title}	{company}	discarded_borderline
 ```
 
-Remove the `[?]` entry from the `## Borderline` section of `data/pipeline.md`. If the `## Borderline` section becomes empty, remove the section header too.
+Then **delete the entire `[?]` entry** (and any sub-lines indented below it) from the `## Borderline` section of `data/pipeline.md`. Do not mark as done — fully remove the lines. If the `## Borderline` section becomes empty after removal, delete the section header line too.
 
 ### Interaction B: False negative feedback
 
@@ -580,7 +580,8 @@ Instructions:
 3. Append all entries from data/triage-feedback.jsonl (verbatim, one per line)
    to data/triage-feedback.archive.jsonl (create if it doesn't exist, append mode).
 4. Overwrite data/triage-feedback.jsonl with an empty file (0 bytes).
-5. Report which rules changed and why.
+5. Write all changes to disk (you have file-write access). Do not just output changes — actually write the updated profile.yml, the archive file, and the empty feedback file.
+6. Report which preference rules changed and why.
 ```
 
 Show the synthesis agent's report to the user.
