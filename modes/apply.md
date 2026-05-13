@@ -130,11 +130,13 @@ If the candidate confirms that they submitted the application:
 
 **Resolve output folder and PDF paths:**
 
-Run `ls -t career-ops/output/` and find the folder whose name contains the company slug (lowercase, spaces to hyphens). Take the most recently modified match.
+Run `ls -t career-ops/output/` (from the repo root) and find the folder whose name contains the company slug (lowercase, spaces to hyphens). Take the most recently modified match.
 
 Inside that folder:
 - CV PDF: the `.pdf` file whose name does NOT end in `-cl-YYYY-MM-DD.pdf`
 - CL PDF: the `.pdf` file whose name ends in `-cl-YYYY-MM-DD.pdf`
+
+If no matching PDF is found for CV or CL, set that path to `""` and note it in the fallback block.
 
 If no output folder matches, set both PDF paths to `""` (upload skipped, handled in fallback).
 
@@ -205,7 +207,10 @@ Call `append_block_children` with the page_id:
 }
 ```
 
-Repeat the heading_3 + paragraph pair for each substantive question. If there are no substantive questions and file upload succeeded, skip the `append_block_children` call entirely.
+Repeat the heading_3 + paragraph pair for each substantive question.
+
+- If file upload succeeded AND there are no substantive questions: skip the `append_block_children` call entirely.
+- If file upload was not possible (local paths need to be written to the page body): always call `append_block_children`, even if there are no substantive Q&A answers, so the file paths are recorded.
 
 **On any failure (MCP unavailable, OAuth expired, tool error, page creation fails):**
 
