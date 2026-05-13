@@ -65,7 +65,13 @@ After adding the block, re-run /jobhunter pipeline.
 
 ### Parse pending entries
 
-From the `- [ ]` entries read in Step 0, extract `{title}` and `{company}` from each display line. The display format is `Company Name — Role Title`. If a line doesn't parse into that format, use the raw line as `title` and `"unknown"` as `company`. Build an indexed list: `[{index: 1, title: "...", company: "..."}, ...]`.
+From the `- [ ]` entries read in Step 0, extract `{url}`, `{title}`, and `{company}` from each line. The entry format in `data/pipeline.md` is:
+
+```
+- [ ] {url} | {company} | {title}
+```
+
+Strip the leading `- [ ] ` prefix, then split on ` | ` — field 0 is url, field 1 is company, field 2 is title. If the line does not contain ` | `, use the raw line as `title`, `"unknown"` as `company`, and `""` (empty) as `url`. Build an indexed list: `[{index: 1, url: "...", title: "...", company: "..."}, ...]`.
 
 ### Score entries (batches of 50)
 
@@ -112,13 +118,19 @@ Parse each response line: extract `index` (integer), `verdict` (`pass` / `border
      Triage: {reason}
 ```
 
-**skip** → remove the `- [ ]` entry from `data/pipeline.md`. Append one TSV line to `data/scan-history.tsv` (create the file if it doesn't exist):
+**skip** → remove the `- [ ]` entry from `data/pipeline.md`. Append one TSV line to `data/scan-history.tsv` (the file has a header row; if creating from scratch, write the header first, then the data row):
 
+Header row (write only if creating the file from scratch):
 ```
-{YYYY-MM-DD}	{title}	{company}	skipped_triage	{reason}
+url	first_seen	portal	title	company	status	reason
 ```
 
-(Tab-separated. Five fields. No header row needed if the file already has data; if creating from scratch, no header either — the file is append-only.)
+Data row:
+```
+{url}	{YYYY-MM-DD}	triage	{title}	{company}	skipped_triage	{reason}
+```
+
+(Tab-separated. Seven fields. `url` is from the parsed entry — use empty string if url was not available. `portal` is the literal string `triage`. `reason` is the one-line reason from the triage verdict.)
 
 ### Display triage summary
 
