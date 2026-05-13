@@ -122,15 +122,15 @@ Parse each response line: extract `index` (integer), `verdict` (`pass` / `border
 
 Header row (write only if creating the file from scratch):
 ```
-url	first_seen	portal	title	company	status	reason
+url	first_seen	portal	title	company	status
 ```
 
 Data row:
 ```
-{url}	{YYYY-MM-DD}	triage	{title}	{company}	skipped_triage	{reason}
+{url}	{YYYY-MM-DD}	triage	{title}	{company}	skipped_triage
 ```
 
-(Tab-separated. Seven fields. `url` is from the parsed entry — use empty string if url was not available. `portal` is the literal string `triage`. `reason` is the one-line reason from the triage verdict.)
+(Tab-separated. Six fields. Matches the existing `scan-history.tsv` schema. `url` is from the parsed entry — use empty string if url was not available. `portal` is the literal string `triage`. `status` is the literal string `skipped_triage`. The triage reason is not stored here — it is captured in `data/triage-feedback.jsonl` via Step 10.5.)
 
 ### Display triage summary
 
