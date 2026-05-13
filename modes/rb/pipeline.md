@@ -34,9 +34,117 @@ Which job would you like to process? Enter a number, or paste a URL/JD text dire
 4. Wait for user selection.
    - If the user enters a number: use the corresponding URL. Go to Step 1.
    - If the user pastes a URL or JD text: use that directly. Go to Step 1.
-   - If the user says "all" or "process all": loop through each unchecked item sequentially, running Steps 1–9 for each, then mark each checkbox (`- [x]`) in pipeline.md when done.
+   - If the user says "all" or "process all": go to Step 0.5.
 
 After successfully completing the pipeline for a job, mark its checkbox in `career-ops/data/pipeline.md` as done: change `- [ ]` to `- [x]`.
+
+---
+
+## Step 0.5 — Triage pending entries
+
+**Triggered by Step 0's "all" path only.** Skip entirely if the user provided a specific URL, JD text, or selected a single entry by number.
+
+### Read triage preferences
+
+Read `career-ops/config/profile.yml`. Extract `triage.preferences`.
+
+If the `triage:` block is missing from `profile.yml`, stop and show:
+
+```
+Triage is not configured. Please add a triage: block to career-ops/config/profile.yml.
+
+Minimum required:
+  triage:
+    model: claude-haiku-4-5
+    borderline_bucket: true
+    preferences: |
+      Describe your target roles here. The LLM uses this to score each job.
+
+After adding the block, re-run /jobhunter pipeline.
+```
+
+### Parse pending entries
+
+From the `- [ ]` entries read in Step 0, extract `{title}` and `{company}` from each display line. The display format is `Company Name — Role Title`. If a line doesn't parse into that format, use the raw line as `title` and `"unknown"` as `company`. Build an indexed list: `[{index: 1, title: "...", company: "..."}, ...]`.
+
+### Score entries (batches of 50)
+
+For each batch of up to 50 entries, call the Agent tool:
+
+- `subagent_type`: `"general-purpose"`
+- `model`: `"haiku"`
+- `description`: `"triage batch {start}–{end} of {total}"`
+- `prompt`:
+
+```
+You are a job relevance screener for a specific candidate. Score each job below.
+
+Candidate preferences:
+{value of triage.preferences from config/profile.yml — paste verbatim}
+
+For each job output EXACTLY one line in this format (no preamble, no extra text):
+<index> | <verdict> | <one-line reason>
+
+Verdicts:
+- pass      — clear match with candidate profile
+- borderline — plausible but uncertain (wrong company size, adjacent title, sector mismatch)
+- skip      — clearly irrelevant
+
+Jobs:
+1. {title} — {company}
+2. {title} — {company}
+...
+```
+
+Parse each response line: extract `index` (integer), `verdict` (`pass` / `borderline` / `skip`), `reason` (text after the last `|`, trimmed). If a line cannot be parsed, default to `borderline` with reason `"parse error"`.
+
+### Route entries
+
+**pass** → entry stays as `- [ ]` in `data/pipeline.md`. No change to the file. Will be processed in Steps 1–9.
+
+**borderline** → move entry from the `- [ ]` section to a `## Borderline` section at the bottom of `data/pipeline.md`. Create the section if it doesn't exist. Write:
+
+```markdown
+## Borderline
+
+- [?] {Company} — {Role}
+     {url}
+     Triage: {reason}
+```
+
+**skip** → remove the `- [ ]` entry from `data/pipeline.md`. Append one TSV line to `data/scan-history.tsv` (create the file if it doesn't exist):
+
+```
+{YYYY-MM-DD}	{title}	{company}	skipped_triage	{reason}
+```
+
+(Tab-separated. Five fields. No header row needed if the file already has data; if creating from scratch, no header either — the file is append-only.)
+
+### Display triage summary
+
+After all routing is done, show:
+
+```
+Triage complete — {total} pending entries scored:
+  ✓ {pass_count} pass  (will process)
+  ~ {borderline_count} borderline  (review at end)
+  ✗ {skip_count} skip
+
+Processing {pass_count} offers...
+```
+
+If `pass_count` is 0:
+
+```
+Triage complete — 0 offers passed triage. Nothing to process.
+Borderline entries are saved in data/pipeline.md under ## Borderline for manual review.
+```
+
+Then stop. Do NOT proceed to Steps 1–9.
+
+### Process pass entries
+
+For each entry that scored `pass`, run Steps 1–9 sequentially. After completing each entry, mark its checkbox as done (`- [x]`) in `data/pipeline.md`.
 
 ---
 
