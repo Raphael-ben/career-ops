@@ -122,7 +122,7 @@ If the candidate confirms that they submitted the application:
 | `workday.com` | `Workday` |
 | `greenhouse.io` | `Greenhouse` |
 | `lever.co` | `Lever` |
-| `ashbyhq.com` | `Ashby` |
+| `ashbyhq.com` or `ashby.com` | `Ashby` |
 | `join.com` | `join.com` |
 | `smartrecruiters.com` | `SmartRecruiters` |
 | `jobvite.com` | `Jobvite` |
@@ -130,7 +130,7 @@ If the candidate confirms that they submitted the application:
 
 **Resolve output folder and PDF paths:**
 
-Run `ls -t career-ops/output/` (from the repo root) and find the folder whose name contains the company slug (lowercase, spaces to hyphens). Take the most recently modified match.
+Run `ls -t career-ops/output/` (from the JOB-hunter repo root, i.e. the parent of the `career-ops/` directory) and find the folder whose name contains the company slug (lowercase, spaces to hyphens). Take the most recently modified match.
 
 Inside that folder:
 - CV PDF: the `.pdf` file whose name does NOT end in `-cl-YYYY-MM-DD.pdf`
@@ -192,14 +192,17 @@ Call `append_block_children` with the page_id:
   "block_id": "{page_id}",
   "children": [
     {
+      "object": "block",
       "type": "heading_2",
       "heading_2": { "rich_text": [{ "text": { "content": "Application Questions" } }] }
     },
     {
+      "object": "block",
       "type": "heading_3",
       "heading_3": { "rich_text": [{ "text": { "content": "{Exact question text}" } }] }
     },
     {
+      "object": "block",
       "type": "paragraph",
       "paragraph": { "rich_text": [{ "text": { "content": "{Answer text}" } }] }
     }
@@ -227,8 +230,8 @@ Applied:      {YYYY-MM-DD}
 URL:          {url}
 Match Score:  {X.X/5}
 Location:     {location}
-CV PDF:       career-ops/output/{folder}/{cv-filename}.pdf
-CL PDF:       career-ops/output/{folder}/{cl-filename}.pdf
+CV PDF:       {cv-path or "(not found)"}
+CL PDF:       {cl-path or "(not found)"}
 ──────────────────────────────────────────────
 ```
 
