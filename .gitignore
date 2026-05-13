@@ -57,3 +57,7 @@ __pycache__/
 
 # Local design work
 template-revamp/
+
+# Apply extension runtime
+data/fill-request.json
+data/fill-response.json
