@@ -15,60 +15,21 @@
 #
 # HOW TO CUSTOMIZE:
 #   1. Copy this file to portals.yml in the project root
-#   2. Edit title_filter.positive with YOUR target role keywords
+#   2. Add keywords to title_filter.negative to block clearly irrelevant titles
 #   3. Add/remove companies in tracked_companies
 #   4. Adjust search_queries for your preferred job boards
 #   5. Set enabled: false on companies you don't care about
+#   (title_filter.positive removed — relevance screening now handled by LLM triage
+#    in pipeline Step 0.5. Configure it via the triage: block in config/profile.yml)
 
 # -- Title filter --
-# The scanner uses these keywords to decide if a title is relevant.
-# At least 1 positive must match AND 0 negatives must match (case-insensitive).
+# The scanner uses negative keywords to block clearly irrelevant titles.
+# title_filter.positive has been removed — all titles now pass the positive gate.
+# Semantic relevance screening happens in pipeline Step 0.5 (LLM triage).
+# 0 negatives must match for an entry to reach the pipeline (case-insensitive).
 
 title_filter:
-  positive:
-    # [CUSTOMIZE] Add keywords matching YOUR target roles
-    # -- AI/ML roles --
-    - "AI"
-    - "ML"
-    - "LLM"
-    - "Agent"
-    - "Agentic"
-    - "GenAI"
-    - "Generative AI"
-    - "NLP"
-    - "LLMOps"
-    - "MLOps"
-    - "Voice AI"
-    - "Conversational AI"
-    - "Speech"
-    # -- German AI/ML keywords (DACH market) --
-    - "KI"
-    - "Künstliche Intelligenz"
-    - "KI Engineer"
-    - "KI Trainer"
-    - "Dozent"
-    - "Weiterbildung"
-    # -- Engineering roles --
-    - "Platform Engineer"
-    - "Solutions Architect"
-    - "Solutions Engineer"
-    - "Forward Deployed"
-    - "Deployed Engineer"
-    - "Customer Engineer"
-    - "Integration Engineer"
-    # -- Product roles --
-    - "Product Manager"
-    - "Technical PM"
-    # -- Automation roles --
-    - "Automation"
-    - "Hyperautomation"
-    - "Low-Code"
-    - "No-Code"
-    - "GTM Engineer"
-    - "RevOps"
-    - "Business Systems"
-    - "Internal Tools"
-    - "Transformation"
+  # positive: block removed — configure relevance in config/profile.yml triage: block
   negative:
     # [CUSTOMIZE] Add keywords for roles you want to exclude
     - "Junior"
