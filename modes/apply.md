@@ -98,6 +98,133 @@ If the candidate confirms that they submitted the application:
 1. Update status in `applications.md` from "Evaluated" to "Applied"
 2. Update Section G of the report with the final responses
 3. Suggest next step: `/jobhunter contact` for LinkedIn outreach
+4. Create Notion Job Op entry (Step 6.4 below)
+
+### Step 6.4 — Notion Job Op entry
+
+**Collect field values from session context:**
+
+| Field | Source |
+|---|---|
+| Name | `{Company} — {Role}` |
+| Position | Role title from Step 2 |
+| ATS Platform | Detected from form URL (see table below) |
+| Application date | Today (YYYY-MM-DD) |
+| URL | Job posting URL from Step 1 |
+| Status | `Applied` |
+| Match Score | Score from loaded report, format `X.X/5`; blank if report not loaded |
+| Location | Location from loaded report; blank if report not loaded |
+
+**ATS platform detection — map URL to select value:**
+
+| URL contains | Platform |
+|---|---|
+| `workday.com` | `Workday` |
+| `greenhouse.io` | `Greenhouse` |
+| `lever.co` | `Lever` |
+| `ashbyhq.com` | `Ashby` |
+| `join.com` | `join.com` |
+| `smartrecruiters.com` | `SmartRecruiters` |
+| `jobvite.com` | `Jobvite` |
+| anything else | `Other` |
+
+**Resolve output folder and PDF paths:**
+
+Run `ls -t career-ops/output/` and find the folder whose name contains the company slug (lowercase, spaces to hyphens). Take the most recently modified match.
+
+Inside that folder:
+- CV PDF: the `.pdf` file whose name does NOT end in `-cl-YYYY-MM-DD.pdf`
+- CL PDF: the `.pdf` file whose name ends in `-cl-YYYY-MM-DD.pdf`
+
+If no output folder matches, set both PDF paths to `""` (upload skipped, handled in fallback).
+
+**Create the Notion page:**
+
+Call the Notion MCP `create_page` tool with:
+```json
+{
+  "parent": { "database_id": "5f2ad32d02bd4930b66c97006f2661ae" },
+  "properties": {
+    "Name": { "title": [{ "text": { "content": "{Company} — {Role}" } }] },
+    "Position": { "rich_text": [{ "text": { "content": "{Role}" } }] },
+    "ATS Platform": { "select": { "name": "{Platform}" } },
+    "Application date": { "date": { "start": "{YYYY-MM-DD}" } },
+    "URL": { "url": "{job-url}" },
+    "Status": { "select": { "name": "Applied" } },
+    "Match Score": { "rich_text": [{ "text": { "content": "{X.X/5 or blank}" } }] },
+    "Location": { "rich_text": [{ "text": { "content": "{location or blank}" } }] }
+  }
+}
+```
+
+Save the returned `page_id` for the next calls.
+
+**Upload CV and CL PDFs:**
+
+If a Notion MCP file-upload tool is available (e.g. `upload_file`, `create_file`), call it for each PDF and attach the result to the CV / Cover Letter properties of the page.
+
+If no file-upload tool is available, skip the property upload and add the local paths to the page body (handled in the Q&A block below).
+
+**Append Q&A and file paths to page body:**
+
+From Step 5 output, collect responses to **substantive free-text questions only**: motivational questions, "why this company", competency / situation questions, cover letter fields.
+
+**Exclude**: work authorization, relocation, visa, how-did-you-hear, salary, yes/no, and any other dropdown or numeric field.
+
+If file upload was not possible (tool unavailable), prepend these lines to the body content:
+```
+CV:  career-ops/output/{folder}/{cv-filename}.pdf
+CL:  career-ops/output/{folder}/{cl-filename}.pdf
+```
+
+Call `append_block_children` with the page_id:
+```json
+{
+  "block_id": "{page_id}",
+  "children": [
+    {
+      "type": "heading_2",
+      "heading_2": { "rich_text": [{ "text": { "content": "Application Questions" } }] }
+    },
+    {
+      "type": "heading_3",
+      "heading_3": { "rich_text": [{ "text": { "content": "{Exact question text}" } }] }
+    },
+    {
+      "type": "paragraph",
+      "paragraph": { "rich_text": [{ "text": { "content": "{Answer text}" } }] }
+    }
+  ]
+}
+```
+
+Repeat the heading_3 + paragraph pair for each substantive question. If there are no substantive questions and file upload succeeded, skip the `append_block_children` call entirely.
+
+**On any failure (MCP unavailable, OAuth expired, tool error, page creation fails):**
+
+Do NOT stop Step 6. Print this block and continue:
+
+```
+──────────────────────────────────────────────
+NOTION ENTRY — paste into Job Op database
+──────────────────────────────────────────────
+Name:         {Company} — {Role}
+Position:     {Role}
+ATS:          {Platform}
+Applied:      {YYYY-MM-DD}
+URL:          {url}
+Match Score:  {X.X/5}
+Location:     {location}
+CV PDF:       career-ops/output/{folder}/{cv-filename}.pdf
+CL PDF:       career-ops/output/{folder}/{cl-filename}.pdf
+──────────────────────────────────────────────
+```
+
+If there are substantive Q&A answers, append them below the separator block in this format:
+```
+Q: {question}
+A: {answer}
+```
 
 ## Scroll handling
 
