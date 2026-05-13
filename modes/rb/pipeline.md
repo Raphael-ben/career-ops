@@ -60,7 +60,7 @@ Minimum required:
     preferences: |
       Describe your target roles here. The LLM uses this to score each job.
 
-After adding the block, re-run /jobhunter pipeline.
+After adding the block, re-run /jobhunter pipeline and select 'all' to activate triage.
 ```
 
 ### Parse pending entries
@@ -118,6 +118,8 @@ Parse each response line: extract `index` (integer), `verdict` (`pass` / `border
      Triage: {reason}
 ```
 
+Separate each `- [?]` entry from the previous one with a blank line.
+
 **skip** → remove the `- [ ]` entry from `data/pipeline.md`. Append one TSV line to `data/scan-history.tsv` (the file has a header row; if creating from scratch, write the header first, then the data row):
 
 Header row (write only if creating the file from scratch):
@@ -152,7 +154,7 @@ Triage complete — 0 offers passed triage. Nothing to process.
 Borderline entries are saved in data/pipeline.md under ## Borderline for manual review.
 ```
 
-Then stop. Do NOT proceed to Steps 1–9.
+Then stop. Do NOT proceed to Steps 1–9 or Step 10.5.
 
 ### Process pass entries
 
@@ -577,7 +579,7 @@ Instructions:
    career-ops/config/profile.yml. Use a | block scalar. Max 20 lines.
    - Keep all rules that were never overridden.
    - Incorporate newly learned rules as clear additions or modifications.
-3. Append all entries from data/triage-feedback.jsonl (verbatim, one per line)
+3. Append the entries pasted above (verbatim, one per line)
    to data/triage-feedback.archive.jsonl (create if it doesn't exist, append mode).
 4. Overwrite data/triage-feedback.jsonl with an empty file (0 bytes).
 5. Write all changes to disk (you have file-write access). Do not just output changes — actually write the updated profile.yml, the archive file, and the empty feedback file.
