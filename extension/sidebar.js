@@ -1,15 +1,22 @@
 const BRIDGE = 'http://localhost:7823';
+const processedIds = new Set();
+let currentTab = null;
+let isProcessing = false;
+let bridgeError = false;
 
-async function detectFields(tabId) {
+// --- Page interaction ---
+
+async function detectPageElements(tabId) {
   const results = await chrome.scripting.executeScript({
     target: { tabId },
     func: () => {
+      const out = [];
+
+      // Form inputs + textareas
       const inputs = document.querySelectorAll(
         'input:not([type=hidden]):not([type=submit]):not([type=button])' +
-        ':not([type=reset]):not([type=file]):not([type=image]),' +
-        'textarea'
+        ':not([type=reset]):not([type=file]):not([type=image]),textarea'
       );
-      const out = [];
       for (const f of inputs) {
         const rect = f.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) continue;
@@ -33,6 +40,28 @@ async function detectFields(tabId) {
           value: f.value, tag: f.tagName.toLowerCase()
         });
       }
+
+      // "Add another" type action buttons
+      const btns = document.querySelectorAll(
+        'button:not([disabled]),[role="button"]:not([aria-disabled="true"])'
+      );
+      for (const btn of btns) {
+        const rect = btn.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) continue;
+        const text = (btn.innerText || btn.textContent || btn.getAttribute('aria-label') || '')
+          .trim().replace(/\s+/g, ' ');
+        if (!text || text.length > 80) continue;
+        if (!/\badd\b|another|\+\s*$/i.test(text)) continue;
+        out.push({
+          id: 'btn::' + text,
+          label: text,
+          type: 'action_button',
+          tag: 'button',
+          name: '',
+          value: ''
+        });
+      }
+
       return out;
     }
   });
@@ -40,6 +69,7 @@ async function detectFields(tabId) {
 }
 
 async function injectFill(tabId, fields) {
+  if (!fields.length) return;
   await chrome.scripting.executeScript({
     target: { tabId },
     func: (toFill) => {
@@ -61,6 +91,28 @@ async function injectFill(tabId, fields) {
   });
 }
 
+async function clickButtons(tabId, labels) {
+  if (!labels.length) return;
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    func: (labelsToClick) => {
+      for (const label of labelsToClick) {
+        const all = document.querySelectorAll(
+          'button:not([disabled]),[role="button"]:not([aria-disabled="true"])'
+        );
+        for (const btn of all) {
+          const text = (btn.innerText || btn.textContent || btn.getAttribute('aria-label') || '')
+            .trim().replace(/\s+/g, ' ');
+          if (text === label) { btn.click(); break; }
+        }
+      }
+    },
+    args: [labels]
+  });
+}
+
+// --- Bridge ---
+
 async function postBridge(url, title, fields) {
   const res = await fetch(`${BRIDGE}/fill`, {
     method: 'POST',
@@ -71,98 +123,122 @@ async function postBridge(url, title, fields) {
   return res.json();
 }
 
-function renderFields(answered, tabId) {
+// --- UI ---
+
+function setStatus(text) {
+  document.getElementById('status').textContent = text;
+}
+
+function renderManualItems(items) {
   const container = document.getElementById('fields');
   container.innerHTML = '';
-
-  for (const f of answered) {
+  for (const f of items) {
     const row = document.createElement('div');
     row.className = 'field-row';
-    row.dataset.id = f.id;
-    row.dataset.action = f.action;
-
     const lbl = document.createElement('div');
     lbl.className = 'field-label';
     lbl.textContent = f.label || f.id;
     row.appendChild(lbl);
-
-    if (f.action === 'fill') {
-      const ta = document.createElement('textarea');
-      ta.className = 'field-answer';
-      ta.rows = (f.answer || '').length > 100 ? 4 : 1;
-      ta.value = f.answer || '';
-      row.appendChild(ta);
-
-      const actions = document.createElement('div');
-      actions.className = 'field-actions';
-      const btn = document.createElement('button');
-      btn.textContent = 'Fill';
-      btn.onclick = async () => {
-        await injectFill(tabId, [{ id: f.id, value: ta.value }]);
-        btn.textContent = '✓ Done';
-        btn.disabled = true;
-      };
-      actions.appendChild(btn);
-      row.appendChild(actions);
-    } else {
-      const note = document.createElement('div');
-      note.className = 'field-note';
-      note.textContent = '⚠ ' + (f.note || 'manual action needed');
-      row.appendChild(note);
-      if (f.answer) {
-        const hint = document.createElement('div');
-        hint.className = 'field-hint';
-        hint.textContent = f.answer;
-        row.appendChild(hint);
-      }
+    const note = document.createElement('div');
+    note.className = 'field-note';
+    note.textContent = '⚠ ' + (f.note || 'manual action needed');
+    row.appendChild(note);
+    if (f.answer) {
+      const hint = document.createElement('div');
+      hint.className = 'field-hint';
+      hint.textContent = f.answer;
+      row.appendChild(hint);
     }
-
     container.appendChild(row);
   }
+}
 
-  document.getElementById('fill-all-wrap').style.display = 'block';
+// --- Core loop ---
 
-  document.getElementById('fill-all').onclick = async () => {
-    const toFill = [];
-    document.querySelectorAll('.field-row[data-action="fill"]').forEach(row => {
-      const ta = row.querySelector('textarea');
-      if (ta) toFill.push({ id: row.dataset.id, value: ta.value });
-    });
-    await injectFill(tabId, toFill);
-    document.querySelectorAll('.field-row[data-action="fill"] button').forEach(btn => {
-      btn.textContent = '✓ Done';
-      btn.disabled = true;
-    });
-  };
+async function processNewElements() {
+  if (isProcessing || bridgeError) return;
+
+  // Refresh tab each cycle — catches SPA navigation
+  let tab;
+  try {
+    [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  } catch { return; }
+  if (!tab) return;
+
+  // URL changed → new page, reset state
+  if (currentTab && tab.url !== currentTab.url) {
+    processedIds.clear();
+    document.getElementById('fields').innerHTML = '';
+  }
+  currentTab = tab;
+
+  let all;
+  try {
+    all = await detectPageElements(tab.id);
+  } catch { return; }
+
+  const newFields = all.filter(f => !processedIds.has(f.id));
+  if (!newFields.length) return;
+
+  isProcessing = true;
+  setStatus(`${newFields.length} new element${newFields.length > 1 ? 's' : ''} — generating…`);
+
+  try {
+    const response = await postBridge(tab.url, tab.title, newFields);
+    if (response.error) throw new Error(response.error);
+
+    const toFill  = response.fields.filter(f => f.action === 'fill');
+    const toClick = response.fields.filter(f => f.action === 'click');
+    const toSkip  = response.fields.filter(f => f.action === 'skip');
+
+    // Fill and skip items are done — mark processed
+    // Click items (buttons) stay un-processed so Claude re-evaluates each cycle
+    toFill.forEach(f => processedIds.add(f.id));
+    toSkip.forEach(f => processedIds.add(f.id));
+
+    if (toFill.length) {
+      await injectFill(tab.id, toFill.map(f => ({ id: f.id, value: f.answer })));
+    }
+
+    if (toClick.length) {
+      await new Promise(r => setTimeout(r, 400));
+      await clickButtons(tab.id, toClick.map(f => f.label));
+    }
+
+    renderManualItems(toSkip);
+
+    const parts = [];
+    if (toFill.length)  parts.push(`filled ${toFill.length}`);
+    if (toClick.length) parts.push(`clicked ${toClick.length} btn`);
+    if (toSkip.length)  parts.push(`${toSkip.length} manual`);
+    setStatus(parts.length ? parts.join(' · ') : 'watching…');
+
+  } catch (err) {
+    const msg = err.message || '';
+    if (msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('Failed to fetch')) {
+      bridgeError = true;
+      setStatus('Bridge not reachable');
+      document.getElementById('error').textContent =
+        'Run `/jobhunter apply` in Claude Code first, then reopen this panel.';
+    } else {
+      setStatus('Error: ' + msg);
+    }
+  }
+
+  isProcessing = false;
 }
 
 async function init() {
-  const status = document.getElementById('status');
-  const errorEl = document.getElementById('error');
-
+  document.getElementById('fill-all-wrap').style.display = 'none';
+  setStatus('Scanning…');
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab) { status.textContent = 'No active tab found.'; return; }
-
-    status.textContent = 'Reading form fields…';
-    const fields = await detectFields(tab.id);
-    if (!fields || fields.length === 0) {
-      status.textContent = 'No form fields detected on this page.';
-      return;
-    }
-
-    status.textContent = `Generating answers for ${fields.length} fields…`;
-    const response = await postBridge(tab.url, tab.title, fields);
-    if (response.error) throw new Error(response.error);
-    const fillCount = response.fields.filter(f => f.action === 'fill').length;
-    status.textContent = `Ready — ${fillCount} fields to fill, ${response.fields.length - fillCount} manual.`;
-    renderFields(response.fields, tab.id);
+    if (!tab) { setStatus('No active tab.'); return; }
+    currentTab = tab;
+    await processNewElements();
+    setInterval(processNewElements, 1500);
   } catch (err) {
-    status.textContent = 'Error';
-    errorEl.textContent =
-      (err.message.includes('fetch') || err.message.includes('NetworkError') || err.message.includes('Failed to fetch'))
-        ? 'Bridge server not reachable — run `/jobhunter apply` in Claude Code first.'
-        : err.message;
+    setStatus('Init error: ' + err.message);
   }
 }
 
