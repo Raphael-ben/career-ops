@@ -488,6 +488,105 @@ Report to user:
 
 ---
 
+## Step 10.5 — Triage feedback
+
+**Triggered only when Step 0.5 ran in this session** (queue mode, "all" path). Skip entirely if no entries were scored in Step 0.5, or if Step 0.5 produced 0 skip + 0 borderline results.
+
+### Interaction A: Borderline review (skip if borderline_count = 0)
+
+Display all entries routed to `borderline` in Step 0.5:
+
+```
+─────────────────────────────────────────────────────
+Borderline review — process any of these now?
+
+  {i}. {title} — {company}     [borderline: {reason}]
+
+Enter numbers to process (runs full pipeline), or Enter to discard all.
+Discarded entries are logged to scan-history.tsv.
+─────────────────────────────────────────────────────
+```
+
+Wait for user input.
+
+**For each number entered:** run Steps 1–9 for that entry immediately (same as a pass entry). After completing, mark its `[?]` entry in `data/pipeline.md` as done (`[x]`).
+
+**For each number NOT entered** (discarded): append one TSV line to `data/scan-history.tsv`:
+
+```
+{url}	{YYYY-MM-DD}	triage	{title}	{company}	discarded_borderline
+```
+
+Remove the `[?]` entry from the `## Borderline` section of `data/pipeline.md`. If the `## Borderline` section becomes empty, remove the section header too.
+
+### Interaction B: False negative feedback
+
+Collect all entries from this session that ended up not processed: `skip` entries + borderline entries not chosen in Interaction A. If none remain, skip this interaction.
+
+Display:
+
+```
+─────────────────────────────────────────────────────
+Triage feedback — flag incorrectly scored
+
+  Skipped:
+    {i}. {title} — {company}     [skip: {reason}]
+
+  Discarded borderline:
+    {j}. {title} — {company}     [borderline: {reason}]
+
+Enter numbers to flag for feedback (improves future triage),
+or press Enter to skip.
+─────────────────────────────────────────────────────
+```
+
+Wait for user input. If the user presses Enter with no input, skip the rest of this step.
+
+### Write feedback entries
+
+For each flagged number, append one JSON object to `data/triage-feedback.jsonl` (create the file if it doesn't exist; append mode, one object per line, no trailing comma, no wrapping array):
+
+```json
+{"date": "{YYYY-MM-DD}", "title": "{title}", "company": "{company}", "triage_verdict": "{skip|borderline}", "triage_reason": "{reason}", "user_verdict": "pass", "note": ""}
+```
+
+### Synthesis check
+
+After writing, count total lines in `data/triage-feedback.jsonl`.
+
+If count < 20: show `Feedback saved ({count}/20 before next synthesis).` Done.
+
+If count ≥ 20:
+
+1. Read all lines from `data/triage-feedback.jsonl`.
+2. Call the Agent tool:
+   - `subagent_type`: `"general-purpose"`
+   - `description`: `"synthesize triage feedback"`
+   - `prompt`:
+
+```
+You are updating a job triage preference profile based on user feedback corrections.
+
+Here are the triage feedback entries (one JSON object per line):
+{all lines from data/triage-feedback.jsonl — paste verbatim}
+
+Instructions:
+1. Identify patterns in what the user consistently flagged as incorrectly scored
+   (jobs the triage scored skip/borderline but the user wanted to process).
+2. Rewrite the preferences: value inside the triage: block in
+   career-ops/config/profile.yml. Use a | block scalar. Max 20 lines.
+   - Keep all rules that were never overridden.
+   - Incorporate newly learned rules as clear additions or modifications.
+3. Append all entries from data/triage-feedback.jsonl (verbatim, one per line)
+   to data/triage-feedback.archive.jsonl (create if it doesn't exist, append mode).
+4. Overwrite data/triage-feedback.jsonl with an empty file (0 bytes).
+5. Report which rules changed and why.
+```
+
+Show the synthesis agent's report to the user.
+
+---
+
 ## Liveness check (optional)
 
 Before Step 4, optionally run career-ops liveness check if a job URL was provided:
