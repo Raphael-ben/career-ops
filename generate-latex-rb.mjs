@@ -75,10 +75,10 @@ export async function compileTex(inputTexPath, outputPdfPath, { swissGerman = fa
   writeFileSync(tmpTexPath, normalized, 'utf8');
 
   // Copy image assets so \includegraphics can resolve them.
-  // Search order: same folder as the .tex file, project root, then the shared templates dir.
+  // Search order: same folder as the .tex file, project root, project templates/, then the shared templates dir.
   const sourceDir = dirname(resolve(inputTexPath));
   const TEMPLATES_DIR = join(PROJECT_ROOT, '..', 'job-hunter-data', 'templates');
-  for (const searchDir of [sourceDir, PROJECT_ROOT, TEMPLATES_DIR]) {
+  for (const searchDir of [sourceDir, PROJECT_ROOT, join(PROJECT_ROOT, 'templates'), TEMPLATES_DIR]) {
     if (!existsSync(searchDir)) continue;
     for (const f of readdirSync(searchDir)) {
       const ext = f.slice(f.lastIndexOf('.')).toLowerCase();
