@@ -13,10 +13,19 @@ Usage:
   python jobspy_scan.py                      # run with profile.yml
   python jobspy_scan.py --config path.yml    # custom config path
   python jobspy_scan.py --dry-run            # return mock data, no HTTP
-
-NOTE: Run via the project venv to ensure python-jobspy is available:
-  .venv/bin/python3 jobspy_scan.py
 """
+import os as _os, sys as _sys
+
+# If not already running inside the project venv, re-exec with it so that
+# python-jobspy and pyyaml are always available regardless of which python3
+# the caller used (agent subprocess, system python3, etc.).
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+_VENV_PY = _os.path.join(_os.path.dirname(_HERE), ".venv", "bin", "python3")
+if not _os.path.exists(_VENV_PY):
+    _VENV_PY = _os.path.join(_HERE, ".venv", "bin", "python3")
+if _os.path.exists(_VENV_PY) and _os.path.realpath(_sys.executable) != _os.path.realpath(_VENV_PY):
+    _os.execv(_VENV_PY, [_VENV_PY] + _sys.argv)
+
 import sys
 if sys.version_info < (3, 10):
     print(f"[]", flush=True)
