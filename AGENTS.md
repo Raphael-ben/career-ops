@@ -216,6 +216,7 @@ Default modes are in `modes/` (English). Additional language-specific modes are 
 | Batch processes offers | `batch` |
 | Asks about rejection patterns or wants to improve targeting | `patterns` |
 | Asks about follow-ups or application cadence | `followup` |
+| Wants to update the system | `update` |
 
 ### CV Source of Truth
 
@@ -274,10 +275,6 @@ When spawning headless workers for batch processing, use the appropriate command
 | Codex | `codex exec "prompt"` |
 | OpenCode | `opencode run "prompt"` |
 | Qwen | `qwen -p "prompt"` |
-
-**Claude Code billing note (effective June 15, 2026):** `claude -p` usage on Pro/Max subscription plans draws from a separate "Agent SDK credits" pool (Pro: $20/mo, Max: $200/mo). Heavy batch runs can exhaust this pool. To route billing to the API instead (no monthly cap), set `ANTHROPIC_API_KEY` before running batch jobs — Claude Code will use API credits when the key is present.
-
-**Permission flag:** `batch-runner.sh` uses `--permission-mode bypassPermissions` to suppress all approval prompts in workers. Do not use `--dangerously-skip-permissions` — it has reliability issues since v2.1.78 and may cause workers to hang.
 
 ## Stack and Conventions
 

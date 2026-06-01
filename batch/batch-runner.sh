@@ -6,15 +6,9 @@ set -euo pipefail
 # tracks state in batch-state.tsv for resumability.
 #
 # NOTE: This script is Claude Code-specific. It uses claude -p with
-# --permission-mode bypassPermissions and --append-system-prompt-file flags
+# --dangerously-skip-permissions and --append-system-prompt-file flags
 # that are not available in other CLIs. Multi-CLI support is out of scope
 # for now — contributions welcome.
-#
-# BILLING (June 15, 2026+): claude -p on Pro/Max subscriptions draws from
-# the Agent SDK credit pool ($20/mo Pro, $200/mo Max). To route billing to
-# the API instead (no monthly cap), set ANTHROPIC_API_KEY before running:
-#   export ANTHROPIC_API_KEY=sk-ant-...
-#   ./batch-runner.sh ...
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
