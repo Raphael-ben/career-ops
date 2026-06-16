@@ -1,100 +1,83 @@
 #!/usr/bin/env python3
 """
-cv_fitcheck.py — enforced page-fill gate for the RB CV (Step 9 of write-cv.md).
+cv_fitcheck.py — REAL page-fill gate for the RB CV.
 
-WHY THIS EXISTS:
-  Step 9 used to be a manual table the agent computed by hand and self-reported
-  as PASS. The Cerrion CV (2026-06-16) shipped at ~72 estimated lines against a
-  66-line "100% fill" ceiling because the self-check was skipped/under-counted.
-  This script makes the check deterministic and enforceable — verify.md runs it
-  and treats total > MAX as a BLOCKER. UNTRACKED on purpose (survives updates).
+Measures the ACTUAL rendered fill of the compiled PDF, not a character estimate.
+The previous char-heuristic version LIED: it reported 65/66 "full" while the
+real main column was only 88.9% filled (~1 inch / 93pt of blank at the bottom).
+This version opens the compiled PDF with PyMuPDF and measures the lowest text
+baseline in the MAIN column versus the page height.
 
-FORMULA (mirrors write-cv.md Step 9):
-  total = section_headers(2*2) + section_gap(1)
-        + 4 * experience_blocks + 4 * education_blocks
-        + sum over bullets of: 1 line (<90 chars) | 2 (90-175) | 3 (>175)
-  Targets: 60-64 ideal, 66 = ~100% fill (ceiling). >66 => overfilled.
-
-ALSO ENFORCES bullet-length variety:
-  - no bullet > 175 rendered chars (would wrap to 3 lines)
-  - at least MIN_SHORT bullets < 90 chars (punchy, for visual rhythm)
+PROCESS THIS ENFORCES (mirrored in write-cv.md Step 9 / verify.md Step 0):
+  1. write-cv emits the CV from the FULL humanized bullet set — the canonical,
+     rule-compliant, em-dash-free content. Never rewrite/rephrase ad hoc.
+  2. Compile to PDF (pdflatex).
+  3. Run this script on the PDF.
+  4. ADJUST BY SELECTION, then recompile and re-measure — loop until PASS:
+       - overflow (>1 page) -> DROP the lowest-priority WHOLE bullet
+         (Prépa -> Serpentine bullet 3 -> weakest PwC bullet).
+       - underfilled (<MIN_FILL) -> RESTORE a dropped humanized bullet, or swap
+         in the fuller profile_bank variant of a bullet.
+     NEVER invent prose, pad with em dashes, or stretch wording to hit the number.
 
 USAGE:
-  python3 cv_fitcheck.py path/to/***REMOVED***_CV.tex
-  exit 0 = within budget; exit 1 = overfilled / variety violation (BLOCKER)
+  python3 cv_fitcheck.py path/to/***REMOVED***_CV.pdf
+  exit 0 = full single page; exit 1 = overflow or underfilled (BLOCKER)
 """
-import re
+import os as _os
+import sys as _sys
+
+# Re-exec into the project venv that has PyMuPDF (root .venv preferred).
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+for _v in (_os.path.join(_os.path.dirname(_HERE), ".venv", "bin", "python3"),
+           _os.path.join(_HERE, ".venv", "bin", "python3")):
+    if _os.path.exists(_v) and _os.path.realpath(_sys.executable) != _os.path.realpath(_v):
+        _os.execv(_v, [_v] + _sys.argv)
+        break
+
 import sys
 
-MAX_LINES = 66          # ceiling = ~100% fill (overflow above this)
-MIN_LINES = 62          # floor: below this the page looks too empty -> EXPAND
-MAX_THREELINE = 6       # cap on 3-line bullets (avoids uniform wall-of-text)
-MIN_SHORT = 2           # at least this many short bullets (<90) for rhythm
-# Goal: a FULL single page. Aim near MAX_LINES (62-66), not the floor.
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    print("BLOCKER: PyMuPDF not installed in this venv (pip install pymupdf).",
+          file=sys.stderr)
+    sys.exit(2)
 
-
-def rendered_chars(s: str) -> int:
-    s = re.sub(r"\\[a-zA-Z]+\{([^}]*)\}", r"\1", s)  # \cmd{x} -> x
-    s = re.sub(r"\\[a-zA-Z]+", "", s)                 # bare \cmd
-    s = re.sub(r"[\\${}~^]", "", s)
-    return len(s.strip())
+SIDEBAR_X = 180   # main column starts right of the ~62mm sidebar
+MIN_FILL = 0.94   # below this the bottom looks empty -> EXPAND from humanized set
 
 
 def main():
     if len(sys.argv) < 2:
-        print("usage: cv_fitcheck.py <cv.tex>", file=sys.stderr)
+        print("usage: cv_fitcheck.py <cv.pdf>", file=sys.stderr)
         return 2
-    lines_in = [l for l in open(sys.argv[1]).read().splitlines()
-                if not l.lstrip().startswith("%")]  # ignore comment lines
-    body = "\n".join(lines_in)
-
-    exp_blocks = len(re.findall(r"\\begin\{experience\}", body))
-    edu_blocks = len(re.findall(r"\\begin\{education\}", body))
-    bullets = re.findall(r"\\item\s+(.*)", body)
-
-    bullet_lines = 0
-    short = 0
-    three_line = 0
-    print(f"{'chars':>5}  {'lines':>5}  bullet")
-    for b in bullets:
-        c = rendered_chars(b)
-        ln = 1 if c < 90 else (2 if c <= 175 else 3)
-        bullet_lines += ln
-        if c < 90:
-            short += 1
-        if ln == 3:
-            three_line += 1
-        print(f"{c:>5}  {ln:>5}  {b[:58]}")
-
-    headers, gap = 4, 1
-    total = headers + gap + 4 * exp_blocks + 4 * edu_blocks + bullet_lines
-    print(f"\nexp_blocks={exp_blocks} edu_blocks={edu_blocks} "
-          f"bullet_lines={bullet_lines} short={short} three_line={three_line}")
-    print(f"TOTAL = {total}  (target {MIN_LINES}-{MAX_LINES} — aim near "
-          f"{MAX_LINES} for a FULL page)")
+    doc = fitz.open(sys.argv[1])
+    pages = doc.page_count
+    page = doc[0]
+    H = page.rect.height
+    main = [w for w in page.get_text("words") if w[0] > SIDEBAR_X]
+    low = max((w[3] for w in main), default=0)
+    fill = (low / H) if H else 0.0
+    blank = H - low
+    print(f"pages={pages}  page_height={H:.0f}pt  "
+          f"main-column fill={100 * fill:.1f}%  bottom blank={blank:.0f}pt")
 
     fail = False
-    if total > MAX_LINES:
-        print(f"BLOCKER: overfilled — {total} > {MAX_LINES}. Trim "
-              f"{total - MAX_LINES + 1} line(s) (shorten 3-line bullets).")
+    if pages > 1:
+        print(f"BLOCKER: overflow — {pages} pages. Drop the lowest-priority WHOLE "
+              f"bullet (Prépa -> Serpentine bullet 3 -> weakest PwC bullet), then "
+              f"recompile. Do not shrink geometry.")
         fail = True
-    elif total < MIN_LINES:
-        print(f"BLOCKER: underfilled — {total} < {MIN_LINES}. Too much blank "
-              f"space; EXPAND {MIN_LINES - total}+ line(s): lengthen bullets "
-              f"with real profile_bank detail, restore a trimmed bullet, or add "
-              f"Prépa. Do NOT ship a half-empty page.")
-        fail = True
-    if three_line > MAX_THREELINE:
-        print(f"BLOCKER: {three_line} three-line bullets (> {MAX_THREELINE}) — "
-              f"wall-of-text risk. Shorten some to 1-2 lines for rhythm.")
-        fail = True
-    if short < MIN_SHORT:
-        print(f"BLOCKER: only {short} bullet(s) < 90 chars; need >= {MIN_SHORT} "
-              f"for rhythm (mix short punchy bullets with longer ones).")
+    elif fill < MIN_FILL:
+        print(f"BLOCKER: underfilled — {100 * fill:.1f}% < {100 * MIN_FILL:.0f}% "
+              f"({blank:.0f}pt blank, ~{blank / 15:.0f} lines). RESTORE a humanized "
+              f"bullet you dropped, or swap in the fuller profile_bank variant. "
+              f"Never invent prose or pad with em dashes.")
         fail = True
 
     if not fail:
-        print(f"PASS: full page ({MIN_LINES}-{MAX_LINES}), good rhythm.")
+        print(f"PASS: full single page ({100 * fill:.1f}% main-column fill).")
     return 1 if fail else 0
 
 
