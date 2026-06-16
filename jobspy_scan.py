@@ -47,8 +47,8 @@ MOCK_JOB = {
 }
 
 SUPPORTED_SITES = [
-    "linkedin", "indeed", "glassdoor", "google",
-    "zip_recruiter", "bayt", "naukri",
+    "linkedin", "indeed",
+    # glassdoor removed — consistently returns API errors; google removed — poor CH coverage
 ]
 
 
@@ -64,15 +64,19 @@ def load_config(config_path: str) -> dict:
 
 
 def scrape(config: dict) -> list:
+    import time
     from jobspy import scrape_jobs
 
     search_terms = config.get("search_terms", [])
     location = config.get("location", "")
     results_wanted = int(config.get("results_wanted", 20))
     hours_old = int(config.get("hours_old", 72))
+    sleep_between = float(config.get("sleep_between_terms", 3.0))
 
     all_jobs = []
-    for term in search_terms:
+    for i, term in enumerate(search_terms):
+        if i > 0:
+            time.sleep(sleep_between)  # avoid LinkedIn 429 rate-limit
         try:
             df = scrape_jobs(
                 site_name=SUPPORTED_SITES,
@@ -80,7 +84,9 @@ def scrape(config: dict) -> list:
                 location=location,
                 results_wanted=results_wanted,
                 hours_old=hours_old,
+                country_indeed="switzerland",
                 description_format="markdown",
+                linkedin_fetch_description=False,  # skip per-job detail fetch; halves request count
             )
         except Exception as e:
             print(f"Warning: scrape failed for '{term}': {e}", file=sys.stderr)
@@ -128,7 +134,11 @@ def main() -> None:
         return
 
     config = load_config(args.config)
-    jobs = scrape(config)
+    try:
+        jobs = scrape(config)
+    except Exception as e:
+        print(f"Error: scrape() crashed: {e}", file=sys.stderr)
+        jobs = []
     print(json.dumps(jobs))
 
 
