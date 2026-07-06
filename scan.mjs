@@ -30,18 +30,30 @@
  *   node scan.mjs --verify --throttle=8000     # custom base gap in ms (waits base..2*base)
  */
 
-import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from 'fs';
 import { pathToFileURL, fileURLToPath } from 'url';
 import path from 'path';
 import yaml from 'js-yaml';
 
 import { makeHttpCtx } from './providers/_http.mjs';
+import { buildTrustValidator } from './providers/_trust-validator.mjs';
+import { loadProviders, resolveProvider } from './providers/_registry.mjs';
+import { mergeProviderPlugins } from './plugins/_engine.mjs';
+import { classifyFetchError } from './verify-portals.mjs';
+
+try {
+  const { config } = await import('dotenv');
+  config();
+} catch {
+  // dotenv is optional — fall back to process.env if not installed
+}
 
 const parseYaml = yaml.load;
 
 // ── Config ──────────────────────────────────────────────────────────
 
 const PORTALS_PATH = process.env.CAREER_OPS_PORTALS || 'portals.yml';
+const PROFILE_PATH = process.env.CAREER_OPS_PROFILE || 'config/profile.yml';
 const SCAN_HISTORY_PATH = 'data/scan-history.tsv';
 const PIPELINE_PATH = 'data/pipeline.md';
 const APPLICATIONS_PATH = 'data/applications.md';
@@ -52,83 +64,40 @@ mkdirSync('data', { recursive: true });
 
 const CONCURRENCY = 10;
 
-// ── Provider loading ────────────────────────────────────────────────
-
-async function loadProviders(dir) {
-  const providers = new Map();
-  if (!existsSync(dir)) return providers;
-  // Alphabetical order so detect() priority is deterministic across machines.
-  const entries = readdirSync(dir)
-    .filter(f => f.endsWith('.mjs') && !f.startsWith('_'))
-    .sort();
-  for (const file of entries) {
-    const full = path.join(dir, file);
-    let mod;
-    try {
-      mod = await import(pathToFileURL(full).href);
-    } catch (err) {
-      console.error(`⚠️  ${file}: failed to load — ${err.message}`);
-      continue;
-    }
-    const p = mod.default;
-    if (!p || typeof p.fetch !== 'function' || !p.id) {
-      console.error(`⚠️  ${file}: skipping — default export must be { id, fetch }`);
-      continue;
-    }
-    if (providers.has(p.id)) {
-      console.error(`⚠️  ${file}: duplicate provider id "${p.id}" — keeping first`);
-      continue;
-    }
-    providers.set(p.id, p);
-  }
-  return providers;
-}
-
-// Resolve which provider handles a tracked_companies entry.
-// 1. Explicit `provider:` field wins (skips detect()).
-// 2. local-parser when parser.command + script are configured (before API detect).
-// 3. Otherwise each provider's detect() runs in load order; first hit wins.
-function resolveProvider(entry, providers, { skipIds = [] } = {}) {
-  if (entry.provider) {
-    const p = providers.get(entry.provider);
-    if (!p) return { error: `unknown provider: ${entry.provider}` };
-    return { provider: p };
-  }
-
-  const localParser = providers.get('local-parser');
-  if (localParser && !skipIds.includes('local-parser')) {
-    try {
-      const hit = localParser.detect?.(entry);
-      if (hit) return { provider: localParser };
-    } catch (err) {
-      console.error(`⚠️  local-parser: detect() threw for "${entry.name}" — ${err.message}`);
-    }
-  }
-
-  for (const p of providers.values()) {
-    if (skipIds.includes(p.id)) continue;
-    let hit;
-    try {
-      hit = p.detect?.(entry);
-    } catch (err) {
-      console.error(`⚠️  ${p.id}: detect() threw for "${entry.name}" — ${err.message}`);
-      continue;
-    }
-    if (hit) return { provider: p };
-  }
-  return null;
-}
+// Provider loading + routing live in providers/_registry.mjs so the portal
+// health check (verify-portals.mjs) can reuse the exact same layer without
+// importing this module.
 
 // ── Title filter ────────────────────────────────────────────────────
 
+// Compile a lowercased keyword into a matcher. Short all-letter acronyms
+// (2-3 chars: cfo, coo, sdr, bdr, gsi…) match on WORD BOUNDARIES so "COO" no
+// longer matches "Coordinator", "SDR" no longer matches anything mid-word, etc.
+// Multi-word phrases and keywords containing non-letters (".NET", "SAP ",
+// "L&D") keep fast, permissive substring matching.
+export function compileKeyword(kw) {
+  if (/^[a-z]{2,3}$/.test(kw)) {
+    const re = new RegExp(`\\b${kw}\\b`);
+    return (lower) => re.test(lower);
+  }
+  return (lower) => lower.includes(kw);
+}
+
 export function buildTitleFilter(titleFilter) {
-  const positive = (titleFilter?.positive || []).map(k => k.toLowerCase());
-  const negative = (titleFilter?.negative || []).map(k => k.toLowerCase());
+  // Normalize defensively: a malformed title_filter (a null, numeric, or otherwise
+  // non-string entry in the YAML) must not crash the scan via k.toLowerCase().
+  const normalize = (arr) => (Array.isArray(arr) ? arr : [])
+    .filter(k => typeof k === 'string')
+    .map(k => k.trim().toLowerCase())
+    .filter(k => k.length > 0)
+    .map(compileKeyword);
+  const positive = normalize(titleFilter?.positive);
+  const negative = normalize(titleFilter?.negative);
 
   return (title) => {
-    const lower = title.toLowerCase();
-    const hasPositive = positive.length === 0 || positive.some(k => lower.includes(k));
-    const hasNegative = negative.some(k => lower.includes(k));
+    const lower = (title || '').toLowerCase();
+    const hasPositive = positive.length === 0 || positive.some(m => m(lower));
+    const hasNegative = negative.some(m => m(lower));
     return hasPositive && !hasNegative;
   };
 }
@@ -173,6 +142,37 @@ export function buildLocationFilter(locationFilter) {
     if (block.length > 0 && block.some(k => lower.includes(k))) return false;
     if (allow.length === 0) return true;
     return allow.some(k => lower.includes(k));
+  };
+}
+
+// ── Content filter ──────────────────────────────────────────────────
+// Optional. If `content_filter` is absent from portals.yml, all jobs pass.
+// Filters on the job DESCRIPTION text to separate same-titled roles with
+// different stacks (a "Software Engineer" listing that mentions "PHP" vs one
+// that mentions "Rust"). Semantics (case-insensitive substring, in order):
+//   - Empty / whitespace-only / non-string description → PASS. The scanner is
+//     zero-token and only sees descriptions a provider already returns in its
+//     list payload; providers without one must never be silently dropped.
+//   - any `negative` keyword present → reject
+//   - `positive` empty → pass (already cleared negatives)
+//   - `positive` non-empty → at least one keyword must be present
+//
+// Provider support: only providers whose list API ships the description for
+// free (no extra per-job request, which would break the zero-token design)
+// populate `job.description`. Lever (`descriptionPlain`) does today; others
+// leave it empty and therefore always pass this filter.
+
+export function buildContentFilter(contentFilter) {
+  if (!contentFilter) return () => true;
+  const positive = normalizeKeywordList(contentFilter.positive);
+  const negative = normalizeKeywordList(contentFilter.negative);
+
+  return (description) => {
+    if (typeof description !== 'string' || description.trim() === '') return true;
+    const lower = description.toLowerCase();
+    if (negative.length > 0 && negative.some(k => lower.includes(k))) return false;
+    if (positive.length === 0) return true;
+    return positive.some(k => lower.includes(k));
   };
 }
 
@@ -236,6 +236,113 @@ export function buildSalaryFilter(salaryFilter) {
     return true;
   };
 }
+
+export function companyMatch(jobCompany, windowCompany) {
+  const cleanNoSpaces = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const c1NoSpaces = cleanNoSpaces(jobCompany);
+  const c2NoSpaces = cleanNoSpaces(windowCompany);
+  if (c1NoSpaces === c2NoSpaces) return true;
+
+  const cleanWithSpaces = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const c1WithSpaces = cleanWithSpaces(jobCompany);
+  const c2WithSpaces = cleanWithSpaces(windowCompany);
+  if (!c1WithSpaces || !c2WithSpaces) return false;
+
+  const regex1 = new RegExp('\\b' + c2WithSpaces.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '\\b');
+  const regex2 = new RegExp('\\b' + c1WithSpaces.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '\\b');
+  return regex1.test(c1WithSpaces) || regex2.test(c2WithSpaces);
+}
+
+export function addDays(dateStr, days) {
+  const date = new Date(`${dateStr}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+export function loadReApplyWindows(profilePath = PROFILE_PATH) {
+  if (!existsSync(profilePath)) return {};
+  try {
+    const raw = yaml.load(readFileSync(profilePath, 'utf-8')) || {};
+    const windows = raw.re_apply_windows || {};
+    const validWindows = {};
+    for (const [company, win] of Object.entries(windows)) {
+      if (!win || typeof win !== 'object') continue;
+      const lastApplyDate = win.last_apply_date;
+      if (typeof lastApplyDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(lastApplyDate)) continue;
+      if (isNaN(Date.parse(lastApplyDate))) continue;
+      
+      const sameRoleDays = win.same_role_days;
+      if (sameRoleDays !== undefined && (!Number.isInteger(sameRoleDays) || sameRoleDays < 0)) continue;
+
+      if (win.applied_to !== undefined && !Array.isArray(win.applied_to)) continue;
+      if (win.applied_to !== undefined && win.applied_to.some(x => typeof x !== 'string')) continue;
+
+      if (win.cross_role_bucket !== undefined && typeof win.cross_role_bucket !== 'string') continue;
+
+      validWindows[company] = win;
+    }
+    return validWindows;
+  } catch {
+    return {};
+  }
+}
+
+export function buildCooldownFilter(windows, today) {
+  if (!windows || Object.keys(windows).length === 0) {
+    return () => ({ skip: false });
+  }
+
+  const genericKeywords = new Set(['all', 'roles', 'role', 'family', 'bucket', 'group', 'team']);
+
+  return (job) => {
+    const jobCompany = job.company || '';
+    const jobTitleLower = (job.title || '').toLowerCase();
+
+    for (const [windowCompany, window] of Object.entries(windows)) {
+      if (companyMatch(jobCompany, windowCompany)) {
+        const lastApplyDate = window.last_apply_date;
+        const sameRoleDays = Number(window.same_role_days || 0);
+        if (!lastApplyDate) continue;
+
+        const cooldownUntil = addDays(lastApplyDate, sameRoleDays);
+        if (today >= cooldownUntil) {
+          continue;
+        }
+
+        if (Array.isArray(window.applied_to)) {
+          const matchesApplied = window.applied_to.some(role => {
+            const roleLower = role.toLowerCase();
+            return jobTitleLower.includes(roleLower);
+          });
+          if (matchesApplied) {
+            return { skip: true, reason: `cooldown:${windowCompany}:${cooldownUntil}`, cooldownUntil };
+          }
+        }
+
+        if (window.cross_role_bucket) {
+          const bucketKeywords = window.cross_role_bucket
+            .toLowerCase()
+            .split('_')
+            .filter(kw => kw && !genericKeywords.has(kw));
+
+          const matchesBucket = bucketKeywords.some(kw => {
+            if (kw === 'em') {
+              return /\bem\b/i.test(jobTitleLower) || jobTitleLower.includes('engineering manager');
+            }
+            return jobTitleLower.includes(kw);
+          });
+
+          if (matchesBucket) {
+            return { skip: true, reason: `cooldown:${windowCompany}:${cooldownUntil}`, cooldownUntil };
+          }
+        }
+      }
+    }
+
+    return { skip: false };
+  };
+}
+
 
 // ── URL rediscovery (--rediscover-404) ──────────────────────────────
 // When a tracked company's job URL returns 404/410, the role may have just
@@ -341,6 +448,11 @@ function daysBetweenIsoDates(start, end) {
 
 export function shouldDedupScanHistoryRow({ firstSeen, status = 'added' }, { recheckAfterDays = null, today = new Date().toISOString().slice(0, 10) } = {}) {
   if (PERMANENT_SCAN_HISTORY_STATUSES.has(status)) return true;
+  if (status.startsWith('cooldown:')) {
+    const parts = status.split(':');
+    const cooldownUntil = parts[parts.length - 1];
+    return today < cooldownUntil;
+  }
   if (status !== 'added') return true;
   if (recheckAfterDays == null) return true;
   const ageDays = daysBetweenIsoDates(firstSeen, today);
@@ -408,31 +520,138 @@ function loadSeenCompanyRoles() {
 
 // ── Pipeline writer ─────────────────────────────────────────────────
 
+function normalizeScanScalar(value) {
+  return String(value ?? '')
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
+function normalizeScanUrl(value) {
+  return String(value ?? '').trim().split(/\s+/)[0] || '';
+}
+
+const MARKDOWN_ESCAPE_CHARS = {
+  '\\': '\\\\',
+  '[': '\\[',
+  ']': '\\]',
+};
+
+export function sanitizeMarkdownField(value) {
+  return normalizeScanScalar(value)
+    .replace(/[\\[\]]/g, char => MARKDOWN_ESCAPE_CHARS[char])
+    .replace(/\|/g, '/');
+}
+
+function sanitizePipelineUrl(value) {
+  return normalizeScanUrl(value)
+    .replace(/[\\[\]]/g, char => MARKDOWN_ESCAPE_CHARS[char])
+    .replace(/\|/g, '%7C');
+}
+
+export function sanitizeTsvField(value) {
+  const normalized = normalizeScanScalar(value);
+  return /^[=+\-@]/.test(normalized) ? `'${normalized}` : normalized;
+}
+
+// Format an offer's parsed compensation (the annualized {min,max,currency} that
+// providers like Ashby attach as `offer.salary`) into a compact, sanitized cell
+// such as `120000-160000 USD`. Returns '' when there is no usable salary data.
+// Non-positive bounds are dropped (a 0 min/max is meaningless comp data, not "$0").
+export function formatCompensation(salary) {
+  if (!salary || typeof salary !== 'object') return '';
+  const num = (n) => (Number.isFinite(n) && n > 0 ? String(Math.round(n)) : null);
+  const lo = num(salary.min);
+  const hi = num(salary.max);
+  const range = lo && hi && lo !== hi ? `${lo}-${hi}` : (lo || hi || '');
+  if (!range) return '';
+  const currency = typeof salary.currency === 'string' ? salary.currency.trim() : '';
+  return sanitizeMarkdownField(currency ? `${range} ${currency}` : range);
+}
+
+export function formatPipelineOffer(offer) {
+  const url = sanitizePipelineUrl(offer.url);
+  const company = sanitizeMarkdownField(offer.company);
+  const title = sanitizeMarkdownField(offer.title);
+  // Optional trailing columns, each sanitized like every other field:
+  //   4th = location, 5th = compensation.
+  // Gate location on an actual string so malformed provider data (a number or
+  // object) degrades to the 3-column form instead of stringifying into a
+  // spurious column. The columns are positional, so a present compensation
+  // forces the (possibly empty) location cell to keep comp in column 5.
+  // loadSeenUrls dedups on the URL and ignores trailing columns (backward-compatible).
+  const location = typeof offer.location === 'string' ? sanitizeMarkdownField(offer.location) : '';
+  const compensation = formatCompensation(offer.salary);
+  const base = `- [ ] ${url} | ${company} | ${title}`;
+  let line = base;
+  if (compensation) line = `${base} | ${location} | ${compensation}`;
+  else if (location) line = `${base} | ${location}`;
+  // Optional free-text ranking signal (e.g. a curated-list flag an importer
+  // attaches). Labeled — not positional like location/compensation — so it can
+  // ride on any row shape (bare URL, 3-, 4-, or 5-column) without a reader
+  // confusing it for a positional cell, and it stays generic: nothing here is
+  // source-specific, and an offer without `note` produces byte-identical output.
+  const note = typeof offer.note === 'string' ? sanitizeMarkdownField(offer.note) : '';
+  return note ? `${line} | note: ${note}` : line;
+}
+
+export function formatScanHistoryRow(offer, date, status = 'added') {
+  return [
+    normalizeScanUrl(offer.url),
+    date,
+    offer.source,
+    offer.title,
+    offer.company,
+    status,
+    offer.location || '',
+  ].map(sanitizeTsvField).join('\t');
+}
+
+// Standard skeleton created on fresh install — matches the format documented
+// in modes/pipeline.md and expected by /career-ops pipeline.
+const PIPELINE_SKELETON = `# Pipeline — Pending URLs
+
+Paste job URLs below as \`- [ ] {url}\` then run \`/career-ops pipeline\`.
+
+## Pending
+
+## Processed
+`;
+
+// Current section names (English). Legacy Spanish names are checked as fallback
+// so existing pipeline.md files created before this change keep working.
+const PENDING_MARKERS = ['## Pending', '## Pendientes'];
+const PROCESSED_MARKERS = ['## Processed', '## Procesadas'];
+
 export function appendToPipeline(offers) {
   if (offers.length === 0) return;
 
+  // Auto-create with standard skeleton if missing (fresh-install guard).
+  if (!existsSync(PIPELINE_PATH)) {
+    writeFileSync(PIPELINE_PATH, PIPELINE_SKELETON, 'utf-8');
+  }
+
   let text = readFileSync(PIPELINE_PATH, 'utf-8');
 
-  // Find "## Pendientes" section and append after it
-  const marker = '## Pendientes';
-  const idx = text.indexOf(marker);
+  const marker = PENDING_MARKERS.find(m => text.includes(m)) ?? null;
+  const idx = marker !== null ? text.indexOf(marker) : -1;
+
   if (idx === -1) {
-    // No Pendientes section — append at end before Procesadas
-    const procIdx = text.indexOf('## Procesadas');
+    // No Pending section found — insert one before Processed (or at end)
+    const procIdx = PROCESSED_MARKERS.reduce((found, m) => {
+      const i = text.indexOf(m);
+      return (found === -1 || (i !== -1 && i < found)) ? i : found;
+    }, -1);
     const insertAt = procIdx === -1 ? text.length : procIdx;
-    const block = `\n${marker}\n\n` + offers.map(o =>
-      `- [ ] ${o.url} | ${o.company} | ${o.title}`
-    ).join('\n') + '\n\n';
+    const block = `\n## Pending\n\n` + offers.map(formatPipelineOffer).join('\n') + '\n\n';
     text = text.slice(0, insertAt) + block + text.slice(insertAt);
   } else {
-    // Find the end of existing Pendientes content (next ## or end)
+    // Find the end of existing Pending content (next ## or end)
     const afterMarker = idx + marker.length;
     const nextSection = text.indexOf('\n## ', afterMarker);
     const insertAt = nextSection === -1 ? text.length : nextSection;
 
-    const block = '\n' + offers.map(o =>
-      `- [ ] ${o.url} | ${o.company} | ${o.title}`
-    ).join('\n') + '\n';
+    const block = '\n' + offers.map(formatPipelineOffer).join('\n') + '\n';
     text = text.slice(0, insertAt) + block + text.slice(insertAt);
   }
 
@@ -449,9 +668,7 @@ export function appendToScanHistory(offers, date, status = 'added') {
     writeFileSync(SCAN_HISTORY_PATH, 'url\tfirst_seen\tportal\ttitle\tcompany\tstatus\tlocation\n', 'utf-8');
   }
 
-  const lines = offers.map(o =>
-    `${o.url}\t${date}\t${o.source}\t${o.title}\t${o.company}\t${status}\t${o.location || ''}`
-  ).join('\n') + '\n';
+  const lines = offers.map(o => formatScanHistoryRow(o, date, status)).join('\n') + '\n';
 
   appendFileSync(SCAN_HISTORY_PATH, lines, 'utf-8');
 }
@@ -618,6 +835,10 @@ async function main() {
 
   // 1. Load providers
   const providers = await loadProviders(PROVIDERS_DIR);
+  // Opt-in: merge enabled keyed/auth-gated provider plugins. Returns immediately
+  // (no discovery, no dotenv, no process.env mutation) when config/plugins.yml is
+  // absent — so a plain scan with no plugins configured stays byte-identical.
+  await mergeProviderPlugins(providers, { root: path.dirname(PROVIDERS_DIR) });
   if (providers.size === 0) {
     console.error('Error: no providers loaded from providers/');
     process.exit(1);
@@ -640,8 +861,21 @@ async function main() {
   const companies = Array.isArray(config.tracked_companies) ? config.tracked_companies : [];
   const boards = Array.isArray(config.job_boards) ? config.job_boards : [];
   const titleFilter = buildTitleFilter(config.title_filter);
+
+  // Seniority tier classifier integration
+  let classifyTier = null;
+  const skipTiers = Array.isArray(config.skip_tiers)
+    ? config.skip_tiers.filter(t => typeof t === 'string').map(t => t.toLowerCase())
+    : [];
+  if (skipTiers.length > 0) {
+    const mod = await import('./classify-tier.mjs');
+    classifyTier = mod.classifyTier || mod.default;
+  }
+
   const locationFilter = buildLocationFilter(config.location_filter);
   const salaryFilter = buildSalaryFilter(config.salary_filter);
+  const trustValidator = buildTrustValidator(config.trust_filter);
+  const contentFilter = buildContentFilter(config.content_filter);
 
   // 3. Resolve a provider for each enabled company / board
   const targets = [];
@@ -709,13 +943,20 @@ async function main() {
 
   // 5. Fetch from each target
   const date = new Date().toISOString().slice(0, 10);
+  const windows = loadReApplyWindows();
+  const cooldownFilter = buildCooldownFilter(windows, date);
+  let totalFilteredCooldown = 0;
+  const cooldownOffers = [];
   let totalFound = 0;
   let totalFilteredTitle = 0;
+  let totalFilteredTier = 0;
   let totalFilteredLocation = 0;
   let totalFilteredSalary = 0;
+  let totalFilteredContent = 0;
   let totalDupes = 0;
   const newOffers = [];
   const errors = [...resolveErrors];
+  const emptyTargets = [];
 
   const tasks = targets.map(company => async () => {
     let provider = company._provider;
@@ -741,10 +982,23 @@ async function main() {
         throw new Error(`${provider.id}: fetch() did not return an array`);
       }
       totalFound += jobs.length;
+      if (!company._isBoard && jobs.length === 0) {
+        emptyTargets.push(company.name);
+      }
 
       for (const job of jobs) {
+        // Trust enrichment — runs before filters, never drops
+        const trustResult = trustValidator(job);
+        job.trustScore = trustResult.score;
+        job.trustFlags = trustResult.flags;
+        job.trustLevel = trustResult.level;
+
         if (!titleFilter(job.title)) {
           totalFilteredTitle++;
+          continue;
+        }
+        if (classifyTier && skipTiers.includes(classifyTier(job.title))) {
+          totalFilteredTier++;
           continue;
         }
         if (!locationFilter(job.location)) {
@@ -755,6 +1009,10 @@ async function main() {
           totalFilteredSalary++;
           continue;
         }
+        if (!contentFilter(job.description)) {
+          totalFilteredContent++;
+          continue;
+        }
         if (seenUrls.has(job.url)) {
           totalDupes++;
           continue;
@@ -762,6 +1020,15 @@ async function main() {
         const key = `${job.company.toLowerCase()}::${job.title.toLowerCase()}`;
         if (seenCompanyRoles.has(key)) {
           totalDupes++;
+          continue;
+        }
+        const cooldownResult = cooldownFilter(job);
+        if (cooldownResult.skip) {
+          totalFilteredCooldown++;
+          cooldownOffers.push({
+            job: { ...job, source: sourceName },
+            status: cooldownResult.reason,
+          });
           continue;
         }
         // Mark as seen to avoid intra-scan dupes
@@ -779,7 +1046,11 @@ async function main() {
         });
       }
     } catch (err) {
-      errors.push({ company: company.name, error: err.message });
+      errors.push({
+        company: company.name,
+        error: err.message,
+        kind: classifyFetchError(err),
+      });
     }
   });
 
@@ -809,6 +1080,18 @@ async function main() {
   if (!dryRun && verifiedOffers.length > 0) {
     appendToPipeline(verifiedOffers);
     appendToScanHistory(verifiedOffers, date);
+  }
+  if (!dryRun && cooldownOffers.length > 0) {
+    const cooldownGroups = {};
+    for (const item of cooldownOffers) {
+      if (!cooldownGroups[item.status]) {
+        cooldownGroups[item.status] = [];
+      }
+      cooldownGroups[item.status].push(item.job);
+    }
+    for (const [status, group] of Object.entries(cooldownGroups)) {
+      appendToScanHistory(group, date, status);
+    }
   }
   // Expired postings — plus the old URLs of migrated offers — are recorded as
   // skipped_expired so subsequent scans dedup-skip the dead URLs.
@@ -850,8 +1133,15 @@ async function main() {
   if (summaryBoards > 0) console.log(`Job boards scanned:    ${summaryBoards}`);
   console.log(`Total jobs found:      ${totalFound}`);
   console.log(`Filtered by title:     ${totalFilteredTitle} removed`);
+  if (skipTiers.length > 0) {
+    console.log(`Filtered by tier:      ${totalFilteredTier} removed`);
+  }
   console.log(`Filtered by location:  ${totalFilteredLocation} removed`);
   console.log(`Filtered by salary:   ${totalFilteredSalary} removed`);
+  console.log(`Filtered by content:  ${totalFilteredContent} removed`);
+  if (Object.keys(windows).length > 0 || totalFilteredCooldown > 0) {
+    console.log(`Filtered by cooldown:  ${totalFilteredCooldown} removed`);
+  }
   console.log(`Duplicates:            ${totalDupes} skipped`);
   if (historyPolicy.recheckAfterDays != null) {
     console.log(`Recheck eligible:      ${seenUrlState.recheckEligible} old scan-history URL(s)`);
@@ -864,6 +1154,26 @@ async function main() {
   }
   console.log(`New offers added:      ${verifiedOffers.length}`);
 
+  // Trust validation summary (only when trust_filter is configured)
+  if (config.trust_filter && config.trust_filter.enabled !== false && verifiedOffers.length > 0) {
+    const trustHigh = verifiedOffers.filter(o => o.trustLevel === 'high').length;
+    const trustMedium = verifiedOffers.filter(o => o.trustLevel === 'medium').length;
+    const trustLow = verifiedOffers.filter(o => o.trustLevel === 'low').length;
+    console.log(`Trust validation:      ${trustHigh} high, ${trustMedium} medium, ${trustLow} low`);
+    // Flag breakdown
+    /** @type {Record<string, number>} */
+    const flagCounts = {};
+    for (const o of verifiedOffers) {
+      for (const f of (o.trustFlags || [])) {
+        flagCounts[f] = (flagCounts[f] || 0) + 1;
+      }
+    }
+    if (Object.keys(flagCounts).length > 0) {
+      const parts = Object.entries(flagCounts).map(([k, v]) => `${k}: ${v}`);
+      console.log(`Trust flags:           ${parts.join(', ')}`);
+    }
+  }
+
   if (agentHandoff.length > 0) {
     console.log(`Agent/WebSearch handoff: ${agentHandoff.length} compan${agentHandoff.length === 1 ? 'y' : 'ies'} not handled by zero-token providers`);
     for (const item of agentHandoff.slice(0, 25)) {
@@ -875,9 +1185,26 @@ async function main() {
     }
   }
 
-  if (errors.length > 0) {
-    console.log(`\nErrors (${errors.length}):`);
-    for (const e of errors) {
+  const unreachableTargets = errors.filter((e) => e.kind === 'slug_gone');
+  const networkTargets = errors.filter((e) => e.kind === 'network');
+  const otherErrors = errors.filter((e) => e.kind !== 'slug_gone' && e.kind !== 'network');
+
+  if (unreachableTargets.length > 0) {
+    const names = unreachableTargets.map((e) => e.company).join(', ');
+    console.log(`\n⚠️  ${unreachableTargets.length} target(s) unreachable (slug?): ${names} — run: node verify-portals.mjs`);
+  }
+  if (emptyTargets.length > 0) {
+    console.log(`🟡 ${emptyTargets.length} target(s) live but empty: ${emptyTargets.join(', ')}`);
+  }
+  if (networkTargets.length > 0) {
+    console.log(`\nNetwork errors (${networkTargets.length}):`);
+    for (const e of networkTargets) {
+      console.log(`  ✗ ${e.company}: ${e.error}`);
+    }
+  }
+  if (otherErrors.length > 0) {
+    console.log(`\nErrors (${otherErrors.length}):`);
+    for (const e of otherErrors) {
       console.log(`  ✗ ${e.company}: ${e.error}`);
     }
   }
@@ -885,7 +1212,10 @@ async function main() {
   if (verifiedOffers.length > 0) {
     console.log('\nNew offers:');
     for (const o of verifiedOffers) {
-      console.log(`  + ${o.company} | ${o.title} | ${o.location || 'N/A'}`);
+      const trustSuffix = o.trustScore != null && o.trustScore < 100
+        ? ` [Trust: ${o.trustScore}/100${o.trustFlags?.length ? ' — ' + o.trustFlags.join(', ') : ''}]`
+        : '';
+      console.log(`  + ${o.company} | ${o.title} | ${o.location || 'N/A'}${trustSuffix}`);
     }
     if (dryRun) {
       console.log('\n(dry run — run without --dry-run to save results)');
