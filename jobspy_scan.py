@@ -47,8 +47,9 @@ MOCK_JOB = {
 }
 
 SUPPORTED_SITES = [
-    "linkedin", "indeed",
-    # glassdoor removed — consistently returns API errors; google removed — poor CH coverage
+    "linkedin", "indeed", "google",
+    # glassdoor removed — consistently returns API errors
+    # google re-enabled 2026-07-09: aggregates company career pages + boards we don't reach
 ]
 
 
@@ -87,6 +88,9 @@ def scrape(config: dict) -> list:
                 country_indeed="switzerland",
                 description_format="markdown",
                 linkedin_fetch_description=False,  # skip per-job detail fetch; halves request count
+                # google board ignores search_term/location — needs its own literal query.
+                # "since last week" biases Google Jobs toward fresh postings.
+                google_search_term=f"{term} since last week",
             )
         except Exception as e:
             print(f"Warning: scrape failed for '{term}': {e}", file=sys.stderr)

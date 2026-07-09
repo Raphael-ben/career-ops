@@ -57,6 +57,29 @@ def load_config(config_path: str) -> dict:
     return profile.get("jobspy", {})
 
 
+def parse_age(raw: str) -> str:
+    """Extract the card's relative posting age ('3 days ago', 'Last week', …)
+    and return an ISO date. Returns '' if no age token found.
+    Only the card token is read — JD-text deadlines are never touched."""
+    import datetime
+    text = raw.strip().lower()
+    today = datetime.date.today()
+    m = re.match(r'^(\d+)\+?\s+(hour|day|week|month)s?\s+ago', text)
+    if m:
+        n, unit = int(m.group(1)), m.group(2)
+        days = {"hour": 0, "day": 1, "week": 7, "month": 30}[unit] * n
+        return (today - datetime.timedelta(days=days)).isoformat()
+    if text.startswith("yesterday"):
+        return (today - datetime.timedelta(days=1)).isoformat()
+    if text.startswith(("just now", "new")):
+        return today.isoformat()
+    if text.startswith("last week"):
+        return (today - datetime.timedelta(days=7)).isoformat()
+    if text.startswith("last month"):
+        return (today - datetime.timedelta(days=30)).isoformat()
+    return ""
+
+
 def clean_title(raw: str) -> str:
     """Strip jobs.ch card metadata from raw link text, leaving only the job title."""
     text = raw.strip()
@@ -73,16 +96,19 @@ def clean_title(raw: str) -> str:
     return re.sub(r'\s+', ' ', text).strip()
 
 
-def scrape_term(session, term: str) -> list:
-    """Fetch one search results page and extract job listings."""
+def scrape_term(session, term: str, domain: str = "www.jobs.ch",
+                source: str = "jobsch", region: str = "&region=Zurich",
+                default_location: str = "Zürich") -> list:
+    """Fetch one search results page and extract job listings.
+    Works for both JobCloud twins: jobs.ch and jobup.ch (same HTML)."""
     from scrapling import Selector
 
-    url = f"https://www.jobs.ch/en/vacancies/?term={quote_plus(term)}&region=Zurich"
+    url = f"https://{domain}/en/vacancies/?term={quote_plus(term)}{region}"
     try:
         resp = session.get(url, headers=HEADERS, timeout=15)
         resp.raise_for_status()
     except Exception as e:
-        print(f"Warning: jobs.ch request failed for '{term}': {e}", file=sys.stderr)
+        print(f"Warning: {domain} request failed for '{term}': {e}", file=sys.stderr)
         return []
 
     html = resp.text
@@ -112,7 +138,7 @@ def scrape_term(session, term: str) -> list:
 
             # Normalize to absolute URL, strip query params
             if href.startswith("/"):
-                href = "https://www.jobs.ch" + href
+                href = f"https://{domain}" + href
             href = href.split("?")[0].rstrip("/") + "/"
 
             if href in seen_hrefs:
@@ -137,9 +163,9 @@ def scrape_term(session, term: str) -> list:
                 "title": title,
                 "company": "",
                 "url": href,
-                "source": "jobsch",
-                "location": "Zürich",
-                "date_posted": "",
+                "source": source,
+                "location": default_location,
+                "date_posted": parse_age(raw),  # from the card's age token only
             })
         except Exception as e:
             print(f"Warning: failed to parse jobs.ch link: {e}", file=sys.stderr)
@@ -147,15 +173,15 @@ def scrape_term(session, term: str) -> list:
     # Regex fallback if Scrapling returned nothing (parser failure)
     if not jobs:
         for match in re.finditer(r'href="(/en/vacancies/detail/[^"?]+)', html):
-            href = "https://www.jobs.ch" + match.group(1).rstrip("/") + "/"
+            href = f"https://{domain}" + match.group(1).rstrip("/") + "/"
             if href not in seen_hrefs:
                 seen_hrefs.add(href)
                 jobs.append({
                     "title": term,
                     "company": "",
                     "url": href,
-                    "source": "jobsch",
-                    "location": "Zürich",
+                    "source": source,
+                    "location": default_location,
                     "date_posted": "",
                 })
 
@@ -172,14 +198,21 @@ def scrape(config: dict) -> list:
     session = requests.Session()
     all_jobs: list = []
 
-    for i, term in enumerate(search_terms):
-        if i > 0:
-            time.sleep(2)  # polite delay between terms
-        try:
-            jobs = scrape_term(session, term)
-            all_jobs.extend(jobs)
-        except Exception as e:
-            print(f"Warning: jobs.ch scrape failed for '{term}': {e}", file=sys.stderr)
+    # jobs.ch (Zürich-filtered) + its JobCloud twin jobup.ch (no region filter —
+    # Romandie-leaning but catches remote/multi-location roles jobs.ch misses)
+    targets = [
+        ("www.jobs.ch", "jobsch", "&region=Zurich", "Zürich"),
+        ("www.jobup.ch", "jobup", "", ""),
+    ]
+    for domain, source, region, default_loc in targets:
+        for i, term in enumerate(search_terms):
+            if i > 0:
+                time.sleep(2)  # polite delay between terms
+            try:
+                jobs = scrape_term(session, term, domain, source, region, default_loc)
+                all_jobs.extend(jobs)
+            except Exception as e:
+                print(f"Warning: {domain} scrape failed for '{term}': {e}", file=sys.stderr)
 
     # Deduplicate by URL across all terms
     seen: set = set()
