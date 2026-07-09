@@ -46,6 +46,7 @@ import json
 import subprocess
 import sys
 import urllib.request
+from urllib.parse import urlparse
 from pathlib import Path
 
 import yaml
@@ -57,9 +58,51 @@ HISTORY = HERE / "data" / "scan-history.tsv"
 PIPELINE = HERE / "data" / "pipeline.md"
 SCRAPERS = ["jobspy_scan.py", "jobs_ch.py", "stepstone_scan.py"]
 
-# Tavily results that are search/directory pages, not individual postings
+# Tavily results that are search/directory pages, not individual postings.
+# URL-path fragments (high-confidence NOT an individual posting).
 DIRECTORY_HINTS = ("/vacancies?", "/vacancies/?", "/occupations/", "/jobs?",
-                   "/search?", "/en/jobs/", "/jobs/in-")
+                   "/search?", "/en/jobs/", "/jobs/in-",
+                   # person profiles / social, not jobs
+                   "/profile/", "xing.com/profile", "linkedin.com/in/",
+                   "linkedin.com/posts/", "/consultant/", "/our-consultants",
+                   "/our-team", "/team/", "/people/", "/member/",
+                   # search / listing roll-ups
+                   "-stellen", "-jobs-in-", "/q-", "/skill/", "/companies/cities",
+                   # editorial / corporate marketing pages
+                   "/insights/", "/news/", "/blog/", "/media/", "/publications",
+                   "/publikationen", "/press", "/leadership", "/executive-board",
+                   "/management-team", "/our-leadership")
+
+# Whole domains that never yield an individual, applicable posting
+# (executive-search firms, job-board aggregators, social, strategy consultancies).
+DIRECTORY_DOMAINS = (
+    "egonzehnder.com", "kornferry.com", "spencerstuart.com", "heidrick.com",
+    "boyden.com", "russellreynolds.com", "amrop.com", "pedersenandpartners.com",
+    "stantonchase.com", "kellerexecutivesearch.com", "viavanta.ch",
+    "swisslinx.com", "morganphilips.com", "stellar-executive.ch", "hays.ch",
+    "roberthalf.com", "robertwalters.com", "pageexecutive.com", "michaelpage.ch",
+    "experteer.com", "experteer.ch", "randstad.ch", "careerplus.ch",
+    "approachpeople.com", "antal.com", "fintalent.com", "kienbaum.com",
+    "odgersberndtson.com", "accurservices.com", "youtube.com", "instagram.com",
+    "facebook.com", "hbr.org", "bcg.com", "bain.com", "mckinsey.com",
+    "deloitte.com", "accenture.com", "mergersandinquisitions.com",
+)
+
+
+def is_directory(url):
+    """True if the URL is a listing/profile/marketing page, not one posting."""
+    u = (url or "").lower()
+    if not u:
+        return True
+    if u.endswith(".pdf"):
+        return True
+    # LinkedIn: only /jobs/view/<id> is an individual posting; the rest are listings
+    if "linkedin.com/jobs/" in u and "/jobs/view/" not in u:
+        return True
+    if any(h in u for h in DIRECTORY_HINTS):
+        return True
+    host = urlparse(u).netloc
+    return any(host == d or host.endswith("." + d) for d in DIRECTORY_DOMAINS)
 
 
 def run_scraper(name):
@@ -114,8 +157,8 @@ def run_tavily(profile_cfg, portals_cfg):
             continue
         for res in results:
             url = res.get("url", "")
-            if not url or any(h in url for h in DIRECTORY_HINTS):
-                continue  # directory/search page, not an individual posting
+            if is_directory(url):
+                continue  # directory/profile/marketing page, not an individual posting
             jobs.append({"title": res.get("title", ""), "company": "",
                          "url": url, "source": "tavily",
                          "location": "", "date_posted": ""})
