@@ -141,7 +141,9 @@ def run_tavily(profile_cfg, portals_cfg):
             host, _, rest = query.partition(" ")
             include = [host[5:].split("/")[0]]
             query = rest
-        payload = {"api_key": key, "query": query, "search_depth": "advanced",
+        # "basic" = 1 credit/query (advanced = 2). We only harvest title+URL,
+        # so basic is equivalent — halves Tavily spend.
+        payload = {"api_key": key, "query": query, "search_depth": "basic",
                    "max_results": 8, "country": "switzerland"}
         if include:
             payload["include_domains"] = include
