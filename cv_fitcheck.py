@@ -46,6 +46,9 @@ except ImportError:
 
 SIDEBAR_X = 180   # main column starts right of the ~62mm sidebar
 MIN_FILL = 0.94   # below this the bottom looks empty -> EXPAND from humanized set
+MIN_BLANK = 8     # pt of bottom breathing room REQUIRED — text closer than this
+                  # to the page edge violates the margin (Microlino shipped at
+                  # -1pt because this bound was missing; reference-good is ~10pt)
 
 
 def main():
@@ -68,6 +71,12 @@ def main():
         print(f"BLOCKER: overflow — {pages} pages. Drop the lowest-priority WHOLE "
               f"bullet (Prépa -> Serpentine bullet 3 -> weakest PwC bullet), then "
               f"recompile. Do not shrink geometry.")
+        fail = True
+    elif blank < MIN_BLANK:
+        print(f"BLOCKER: overfull — only {blank:.0f}pt bottom blank (< {MIN_BLANK}pt). "
+              f"Text violates the bottom margin. SWAP one bullet for its shorter "
+              f"humanized variant, or drop the lowest-priority WHOLE bullet, then "
+              f"recompile. Never shrink fonts/geometry, never rewrite prose ad hoc.")
         fail = True
     elif fill < MIN_FILL:
         print(f"BLOCKER: underfilled — {100 * fill:.1f}% < {100 * MIN_FILL:.0f}% "
