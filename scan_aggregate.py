@@ -43,6 +43,7 @@ for _v in (_os.path.join(_os.path.dirname(_HERE), ".venv", "bin", "python3"),
 import argparse
 import datetime
 import json
+import re
 import subprocess
 import sys
 import urllib.request
@@ -50,13 +51,19 @@ from urllib.parse import urlparse
 from pathlib import Path
 
 import yaml
+from rapidfuzz import fuzz
 
 HERE = Path(__file__).resolve().parent
 PORTALS = HERE / "portals.yml"
 PROFILE = HERE / "config" / "profile.yml"
 HISTORY = HERE / "data" / "scan-history.tsv"
 PIPELINE = HERE / "data" / "pipeline.md"
-SCRAPERS = ["jobspy_scan.py", "jobs_ch.py", "stepstone_scan.py"]
+APPLICATIONS = HERE / "data" / "applications.md"
+SCRAPERS = ["jobspy_scan.py", "jobs_ch.py", "stepstone_scan.py",
+            "efinancialcareers_scan.py", "jobscout24_scan.py", "zuerijobs_scan.py"]
+
+# Statuses in applications.md that mean "don't resurface this role" for fuzzy dedup.
+APPLIED_STATUSES = {"applied", "interview", "offer", "responded"}
 
 # Tavily results that are search/directory pages, not individual postings.
 # URL-path fragments (high-confidence NOT an individual posting).
@@ -167,6 +174,34 @@ def run_tavily(profile_cfg, portals_cfg):
     return jobs
 
 
+def local_llm_verdict(row, cfg):
+    """Ask a local LLM (e.g. Ollama) whether a borderline row is worth keeping.
+
+    POSTs {model, prompt, stream:false} to cfg['endpoint'], 10s timeout.
+    "no" -> drop. "yes", a parse failure, or any exception -> keep (borderline
+    stays borderline either way — this can only shrink the bucket, never grow it).
+    # ponytail: interface only — prompt tuning when a model is actually pointed at it.
+    """
+    endpoint = cfg.get("endpoint", "")
+    model = cfg.get("model", "")
+    prompt = (
+        f"Job title: \"{row.get('title', '')}\" at company \"{row.get('company', '')}\". "
+        "Is this plausibly relevant to a Senior Manager/Lead-level strategy, M&A, "
+        "business development, applied AI, operations, or transformation role? "
+        "Answer with exactly one word: yes or no."
+    )
+    try:
+        req = urllib.request.Request(
+            endpoint,
+            data=json.dumps({"model": model, "prompt": prompt, "stream": False}).encode(),
+            headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            answer = json.loads(r.read()).get("response", "").strip().lower()
+        return not answer.startswith("no")
+    except Exception:  # noqa: BLE001 — unreachable/misconfigured model -> keep, never gate on it
+        return True
+
+
 def load_cfgs():
     portals = yaml.safe_load(PORTALS.read_text()) or {}
     profile = yaml.safe_load(PROFILE.read_text()) if PROFILE.exists() else {}
@@ -180,12 +215,92 @@ def load_cfgs():
 
 
 def load_history():
+    """Return (seen_urls, (title, company) pairs) from scan-history.tsv.
+
+    History rows are url\ttitle\tcompany\tsource\tdate\tstatus (see main()'s
+    writer below) — title/company feed the fuzzy-dedup corpus.
+    """
     seen = set()
+    pairs = []
     if HISTORY.exists():
         for line in HISTORY.read_text(errors="replace").splitlines():
-            if line.strip():
-                seen.add(line.split("\t")[0].strip())
-    return seen
+            if not line.strip():
+                continue
+            parts = line.split("\t")
+            seen.add(parts[0].strip())
+            if len(parts) >= 3:
+                pairs.append((parts[1].strip(), parts[2].strip()))
+    return seen, pairs
+
+
+def load_applications(path=None):
+    """Parse data/applications.md's tracker table → (role, company) pairs for
+    rows whose Status is Applied/Interview/Offer/Responded (see APPLIED_STATUSES).
+
+    Table columns: | # | Date | Company | Role | Score | Status | PDF | Report | Notes |
+    """
+    path = path or APPLICATIONS
+    pairs = []
+    if not path.exists():
+        return pairs
+    for line in path.read_text(errors="replace").splitlines():
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        cols = [c.strip() for c in line.strip("|").split("|")]
+        if len(cols) < 6:
+            continue
+        if cols[0] == "#" or re.fullmatch(r"-+", cols[0]):
+            continue  # header / separator row
+        company, role, status = cols[2], cols[3], cols[5]
+        if status.lower() in APPLIED_STATUSES:
+            pairs.append((role, company))
+    return pairs
+
+
+def normalize(s):
+    """Lowercase + strip cosmetic noise so near-identical postings compare equal:
+    gender tags (m/w/d), percent ranges (80-100%), punctuation, abbreviations.
+    """
+    s = (s or "").lower()
+    s = re.sub(r"\(\s*[mwfdx/]+\s*\)", " ", s)          # (m/w/d), (f/m/x), ...
+    s = re.sub(r"\d{1,3}\s*-\s*\d{1,3}\s*%", " ", s)     # 80-100%
+    s = re.sub(r"\d{1,3}\s*%", " ", s)                   # 100%
+    s = re.sub(r"\bsr\.?\b", "senior", s)
+    s = re.sub(r"\bjr\.?\b", "junior", s)
+    s = re.sub(r"\bmgr\.?\b", "manager", s)
+    s = re.sub(r"[^\w\s]", " ", s)                       # punctuation
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def is_dupe(row, static_corpus, accepted_this_run, threshold):
+    """Fuzzy near-duplicate check against prior history + this run's accepted rows.
+
+    Exact-URL dedup is a separate short-circuit upstream (run_seen/seen) — this
+    only fires on rows that already cleared that check and title_bucket.
+
+    Title and company are scored separately (both via token_set_ratio) and the
+    minimum of the two must clear the threshold — token_set_ratio on the plain
+    concatenation "{title} {company}" lets a long shared title (e.g. "Senior
+    Business Development Manager") swamp a short, completely different company
+    name, scoring >90 for postings at two unrelated companies. Requiring both
+    fields to independently match avoids that false-positive class.
+    """
+    title = normalize(row.get("title", ""))
+    company = normalize(row.get("company", ""))
+    if not title:
+        return False
+    for ot, oc in static_corpus + accepted_this_run:
+        if not ot:
+            continue
+        t_score = fuzz.token_set_ratio(title, ot)
+        # Missing company data on either side (e.g. Tavily rows) → don't gate
+        # on company, same "sparse data → keep permissive" stance as location_ok.
+        c_score = fuzz.token_set_ratio(company, oc) if (company and oc) else 100
+        if min(t_score, c_score) >= threshold:
+            return True
+    return False
 
 
 def title_bucket(title, pos, neg):
@@ -230,18 +345,72 @@ def pipeline_row(j):
             f"{title}{suffix} — via {j.get('source','')}, triage\n")
 
 
+def selftest():
+    """In-memory fuzzy-dedup assertions — no network, no real files touched."""
+    import tempfile
+
+    # exact URL dup dropped (upstream short-circuit — simulated here)
+    seen = {"https://example.com/job/1"}
+    assert "https://example.com/job/1" in seen
+
+    # fuzzy dup: same role/company, noisy formatting → dropped
+    base_title = normalize("Senior Business Development Manager")
+    base_company = normalize("Acme")
+    corpus = [(base_title, base_company)]
+    row_noisy = {"title": "Sr. Business Development Manager (m/w/d) 80-100%",
+                 "company": "Acme", "url": "https://example.com/job/2"}
+    assert is_dupe(row_noisy, corpus, [], 90), "fuzzy dup not detected"
+
+    # same title, different company → kept (title-only concatenation would
+    # false-positive here since the long shared title swamps a short company)
+    row_diff_co = {"title": "Senior Business Development Manager",
+                    "company": "Other Co", "url": "https://example.com/job/3"}
+    assert not is_dupe(row_diff_co, corpus, [], 90), "different company wrongly flagged"
+
+    # applications.md fixture: an Applied row's (role, company) dedupes a fuzzy match
+    fixture = (
+        "# Applications Tracker\n\n"
+        "| # | Date | Company | Role | Score | Status | PDF | Report | Notes |\n"
+        "|---|------|---------|------|-------|--------|-----|--------|-------|\n"
+        "| 1 | 2026-01-01 | Acme | Senior Business Development Manager | A/5 | Applied | ✅ | - | note |\n"
+        "| 2 | 2026-01-02 | Beta | Some Skipped Role | B/5 | SKIP | ✅ | - | note |\n"
+    )
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as fh:
+        fh.write(fixture)
+        fixture_path = Path(fh.name)
+    try:
+        pairs = load_applications(fixture_path)
+        assert pairs == [("Senior Business Development Manager", "Acme")], pairs
+        app_corpus = [(normalize(r), normalize(c)) for r, c in pairs]
+        row_applied = {"title": "Sr. Business Development Manager (m/w/d)",
+                       "company": "Acme", "url": "https://example.com/job/4"}
+        assert is_dupe(row_applied, app_corpus, [], 90), "applied role not dropped"
+    finally:
+        fixture_path.unlink()
+
+    print("selftest: OK")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--tavily", action="store_true",
                     help="also run portals.yml search_queries via Tavily REST")
     ap.add_argument("--date", default=datetime.date.today().isoformat())
+    ap.add_argument("--selftest", action="store_true",
+                    help="run in-memory fuzzy-dedup assertions, no network/files, then exit")
     args = ap.parse_args()
+    if args.selftest:
+        selftest()
+        return
     today = datetime.date.fromisoformat(args.date)
 
     portals, profile, pos, neg, allow, block = load_cfgs()
     max_age = int((profile.get("scan") or {}).get("max_age_days", 45))
-    seen = load_history()
+    fuzzy_threshold = float((profile.get("scan") or {}).get("fuzzy_dedup_threshold", 90))
+    seen, history_pairs = load_history()
+    applied_pairs = load_applications()
+    static_corpus = [(normalize(t), normalize(c)) for t, c in history_pairs + applied_pairs]
 
     jobs = []
     for s in SCRAPERS:
@@ -270,9 +439,45 @@ def main():
         run_seen.add(url)
         (passed if bucket == "pass" else borderline).append(j)
 
-    print(f"\nFunnel: raw={raw}  fresh(<={max_age}d)={len(fresh)}  "
-          f"location_ok={len(lpass)}  neg_dropped={dropped_neg}  "
-          f"NEW pass={len(passed)}  NEW borderline={len(borderline)}")
+    # Fuzzy dedup — after title_bucket so dropped rows never pay the fuzzy-match
+    # cost. Checks against scan-history.tsv + applications.md (static_corpus)
+    # plus rows already accepted earlier in this same run (accepted_norms).
+    fuzzy_dropped = 0
+    accepted_norms = []
+
+    def _fuzzy_keep(j):
+        nonlocal fuzzy_dropped
+        if is_dupe(j, static_corpus, accepted_norms, fuzzy_threshold):
+            fuzzy_dropped += 1
+            return False
+        accepted_norms.append((normalize(j.get("title", "")), normalize(j.get("company", ""))))
+        return True
+
+    passed = [j for j in passed if _fuzzy_keep(j)]
+    borderline = [j for j in borderline if _fuzzy_keep(j)]
+
+    # Local-LLM triage hook (interface only — see local_llm_verdict docstring).
+    # Disabled (default/absent) leaves this whole block a no-op, so the
+    # disabled path is byte-identical to pre-1.5 behavior, funnel line included.
+    llm_dropped = 0
+    local_llm_cfg = ((profile.get("triage") or {}).get("local_llm") or {})
+    llm_enabled = bool(local_llm_cfg.get("enabled"))
+    if llm_enabled:
+        kept = []
+        for j in borderline:
+            if local_llm_verdict(j, local_llm_cfg):
+                kept.append(j)
+            else:
+                llm_dropped += 1
+        borderline = kept
+
+    funnel = (f"\nFunnel: raw={raw}  fresh(<={max_age}d)={len(fresh)}  "
+              f"location_ok={len(lpass)}  neg_dropped={dropped_neg}  "
+              f"fuzzy_dropped={fuzzy_dropped}  ")
+    if llm_enabled:
+        funnel += f"llm_dropped={llm_dropped}  "
+    funnel += f"NEW pass={len(passed)}  NEW borderline={len(borderline)}"
+    print(funnel)
 
     if (passed or borderline) and not args.dry_run:
         with HISTORY.open("a") as fh:

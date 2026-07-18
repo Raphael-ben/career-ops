@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
 """
-stepstone_scan.py — stepstone.ch scraper for /jobhunter scan (Level 4c).
+stepstone_scan.py — StepStone scraper for /jobhunter scan (Level 4c).
 
 Same contract as jobs_ch.py: reads jobspy.search_terms from config/profile.yml,
 outputs a JSON array, ALWAYS exits 0 (empty list on failure/block).
 
-Stepstone sits behind bot protection; we fetch with curl_cffi Chrome
-impersonation (installed via scrapling[ai]).
-# ponytail: listing-page regex parse, no per-job detail fetch — if Stepstone
-# changes markup or hard-blocks, this degrades to [] and the scan continues.
+INVESTIGATION NOTE (2026-07-18): stepstone.ch is dead — the entire domain
+301-redirects unconditionally to hotelcareer.ch (a hospitality-only board, no
+BDM/corporate listings) regardless of path. This isn't a bot-block, the .ch
+site was decommissioned. The live Swiss-market channel is stepstone.de with a
+"/in-schweiz" location suffix on the search URL — verified to return real
+Swiss (and DACH-wide) listings for every search_terms entry tried. Listings
+are plain server-rendered HTML (no JSON-LD JobPosting data, no useful
+__PRELOADED_STATE__ job payload) — each result is an
+<article data-testid="job-item"> card with data-at="job-item-title" /
+-company-name / -location / -timeago children. We parse those directly.
+# ponytail: CSS-attribute parse, no per-job detail fetch — if StepStone
+# changes markup or blocks curl_cffi impersonation too, this degrades to
+# [] via the regex fallback / exception handler and the scan continues.
 
 Usage:
   python3 stepstone_scan.py            # live
@@ -23,17 +32,22 @@ if _os.path.exists(_VENV_PY) and _os.path.realpath(_sys.executable) != _os.path.
     _os.execv(_VENV_PY, [_VENV_PY] + _sys.argv)
 
 import argparse
+import datetime
 import json
 import re
 import sys
 import time
 from pathlib import Path
-from urllib.parse import quote_plus
+
+sys.path.insert(0, _HERE)
+import scan_http
+
+DOMAIN = "https://www.stepstone.de"
 
 MOCK_JOB = {
     "title": "Business Development Manager",
     "company": "",
-    "url": "https://www.stepstone.ch/stellenangebote--Example--12345-inline.html",
+    "url": "https://www.stepstone.de/stellenangebote--Example--12345-inline.html",
     "source": "stepstone",
     "location": "",
     "date_posted": "",
@@ -52,41 +66,104 @@ def load_terms(config_path="config/profile.yml"):
     return (profile.get("jobspy") or {}).get("search_terms", [])
 
 
-def scrape_term(term: str) -> list:
-    from curl_cffi import requests as cffi_requests
+def slugify(term: str) -> str:
+    """'Business Development Manager Switzerland' -> 'business-development-manager'.
+    Strips the Swiss location suffix our search_terms always carry (the
+    /in-schweiz URL segment already scopes the search to Switzerland)."""
+    t = term.strip().lower()
+    for suffix in ("switzerland", "zürich", "zurich"):
+        if t.endswith(suffix):
+            t = t[: -len(suffix)].strip()
+    t = re.sub(r"[^a-z0-9äöüß\s-]", " ", t)
+    return re.sub(r"\s+", "-", t).strip("-")
 
-    # Stepstone CH search; ag=age_1w server-side filters to postings ≤7 days old
-    kw = quote_plus(term.replace(" Switzerland", "").replace(" Zürich", ""))
-    url = f"https://www.stepstone.ch/work/{kw}?ag=age_1w"
-    try:
-        resp = cffi_requests.get(url, impersonate="chrome", timeout=20)
-        if resp.status_code != 200:
-            print(f"Warning: stepstone {resp.status_code} for '{term}'", file=sys.stderr)
-            return []
-        html = resp.text
-    except Exception as e:
-        print(f"Warning: stepstone request failed for '{term}': {e}", file=sys.stderr)
+
+def parse_age(raw: str) -> str:
+    """German relative-age token ('vor 3 Tagen', 'vor 1 Woche', 'Heute', …)
+    -> ISO date. Returns '' if no recognized token."""
+    text = raw.strip().lower()
+    today = datetime.date.today()
+    if text == "heute":
+        return today.isoformat()
+    if text == "gestern":
+        return (today - datetime.timedelta(days=1)).isoformat()
+    m = re.match(r"^vor\s+(\d+)\s+(stunde|tag|woche|monat)", text)
+    if m:
+        n, unit = int(m.group(1)), m.group(2)
+        days = {"stunde": 0, "tag": 1, "woche": 7, "monat": 30}[unit] * n
+        return (today - datetime.timedelta(days=days)).isoformat()
+    return ""
+
+
+def scrape_term(term: str) -> list:
+    from scrapling import Selector
+
+    slug = slugify(term)
+    url = f"{DOMAIN}/jobs/{slug}/in-schweiz"
+    resp = scan_http.get(url)
+    if resp is None or resp.status_code != 200:
+        code = resp.status_code if resp is not None else "no-response"
+        print(f"Warning: stepstone {code} for '{term}'", file=sys.stderr)
         return []
+    html = resp.text
 
     jobs, seen = [], set()
-    # Job links: /stellenangebote--Title-Location-Company--ID-inline.html
-    for m in re.finditer(
-            r'href="(/stellenangebote--([^"]+?)--\d+-inline\.html)[^"]*"', html):
-        href = "https://www.stepstone.ch" + m.group(1)
-        if href in seen:
-            continue
-        seen.add(href)
-        title = m.group(2).replace("-", " ").strip()  # slug → readable guess
-        if len(title) < 5:
-            continue
-        jobs.append({
-            "title": title[:150],
-            "company": "",
-            "url": href,
-            "source": "stepstone",
-            "location": "",
-            "date_posted": "",  # ag=age_1w keeps results ≤7 days old
-        })
+    try:
+        page = Selector(html)
+        cards = page.css('[data-testid="job-item"]')
+    except Exception:
+        cards = []
+
+    for card in cards:
+        try:
+            title_els = card.css('[data-at="job-item-title"]')
+            if not title_els:
+                continue
+            title_el = title_els[0]
+            href = title_el.attrib.get("href", "") or ""
+            title = title_el.get_all_text().strip()
+            if not href or not title or len(title) < 3:
+                continue
+            if href.startswith("/"):
+                href = DOMAIN + href
+            if href in seen:
+                continue
+            seen.add(href)
+
+            comp_els = card.css('[data-at="job-item-company-name"]')
+            loc_els = card.css('[data-at="job-item-location"]')
+            time_els = card.css('[data-at="job-item-timeago"]')
+            company = comp_els[0].get_all_text().strip() if comp_els else ""
+            location = loc_els[0].get_all_text().strip() if loc_els else ""
+            timeago = time_els[0].get_all_text().strip() if time_els else ""
+
+            jobs.append({
+                "title": title[:150],
+                "company": company,
+                "url": href,
+                "source": "stepstone",
+                "location": location,
+                "date_posted": parse_age(timeago),
+            })
+        except Exception as e:
+            print(f"Warning: failed to parse stepstone card: {e}", file=sys.stderr)
+
+    # Regex fallback if the CSS parser found no cards (markup change) but
+    # the page still has job links embedded.
+    if not jobs:
+        for m in re.finditer(r'href="(/stellenangebote--[^"?]+)"', html):
+            href = DOMAIN + m.group(1)
+            if href not in seen:
+                seen.add(href)
+                jobs.append({
+                    "title": term,
+                    "company": "",
+                    "url": href,
+                    "source": "stepstone",
+                    "location": "",
+                    "date_posted": "",
+                })
+
     return jobs
 
 

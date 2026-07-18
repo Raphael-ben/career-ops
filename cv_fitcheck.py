@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-cv_fitcheck.py — REAL page-fill gate for the RB CV.
+cv_fitcheck.py — REAL page-fill gate for the CV.
 
 Measures the ACTUAL rendered fill of the compiled PDF, not a character estimate.
 The previous char-heuristic version LIED: it reported 65/66 "full" while the
@@ -14,15 +14,18 @@ PROCESS THIS ENFORCES (mirrored in write-cv.md Step 9 / verify.md Step 0):
   2. Compile to PDF (pdflatex).
   3. Run this script on the PDF.
   4. ADJUST BY SELECTION, then recompile and re-measure — loop until PASS:
-       - overflow (>1 page) -> DROP the lowest-priority WHOLE bullet
-         (Prépa -> Serpentine bullet 3 -> weakest PwC bullet).
+       - overflow (>1 page) -> DROP the lowest-priority WHOLE bullet.
        - underfilled (<MIN_FILL) -> RESTORE a dropped humanized bullet, or swap
          in the fuller profile_bank variant of a bullet.
      NEVER invent prose, pad with em dashes, or stretch wording to hit the number.
 
+Optional --ats flag adds an ATS text-extraction gate on top of the fill gate
+(see USAGE below).
+
 USAGE:
-  python3 cv_fitcheck.py path/to/***REMOVED***_CV.pdf
-  exit 0 = full single page; exit 1 = overflow or underfilled (BLOCKER)
+  python3 cv_fitcheck.py path/to/<cv.pdf>
+  python3 cv_fitcheck.py path/to/<cv.pdf> --ats [--expect "STRING"]...
+  exit 0 = PASS all requested gates; exit 1 = BLOCKER on any gate
 """
 import os as _os
 import sys as _sys
@@ -35,6 +38,8 @@ for _v in (_os.path.join(_os.path.dirname(_HERE), ".venv", "bin", "python3"),
         _os.execv(_v, [_v] + _sys.argv)
         break
 
+import argparse
+import re
 import sys
 
 try:
@@ -50,14 +55,25 @@ MIN_BLANK = 8     # pt of bottom breathing room REQUIRED — text closer than th
                   # to the page edge violates the margin (Microlino shipped at
                   # -1pt because this bound was missing; reference-good is ~10pt)
 
+# ATS gate thresholds
+ATS_MIN_CHARS = 500     # below this, page text looks rasterized/unparseable
+ATS_MAX_TRANSITIONS = 3  # sidebar<->main block-order flips tolerated
 
-def main():
-    if len(sys.argv) < 2:
-        print("usage: cv_fitcheck.py <cv.pdf>", file=sys.stderr)
-        return 2
-    doc = fitz.open(sys.argv[1])
-    pages = doc.page_count
-    page = doc[0]
+EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+PHONE_RE = re.compile(r"\+\d[\d\s]{4,}\d")
+
+
+def normalize_ws(text):
+    """Join hyphen/newline line-wraps and collapse remaining whitespace to single
+    spaces, so extracted text can be substring-matched regardless of how the PDF
+    wrapped it across lines."""
+    text = re.sub(r"-\s*\n\s*", "", text)   # de-hyphenate wrapped words
+    text = re.sub(r"\s+", " ", text)        # collapse remaining whitespace/newlines
+    return text.strip()
+
+
+def check_fill(page, pages):
+    """Original real-rendered-fill gate. Returns (fail: bool)."""
     H = page.rect.height
     main = [w for w in page.get_text("words") if w[0] > SIDEBAR_X]
     low = max((w[3] for w in main), default=0)
@@ -69,8 +85,7 @@ def main():
     fail = False
     if pages > 1:
         print(f"BLOCKER: overflow — {pages} pages. Drop the lowest-priority WHOLE "
-              f"bullet (Prépa -> Serpentine bullet 3 -> weakest PwC bullet), then "
-              f"recompile. Do not shrink geometry.")
+              f"bullet, then recompile. Do not shrink geometry.")
         fail = True
     elif blank < MIN_BLANK:
         print(f"BLOCKER: overfull — only {blank:.0f}pt bottom blank (< {MIN_BLANK}pt). "
@@ -87,7 +102,87 @@ def main():
 
     if not fail:
         print(f"PASS: full single page ({100 * fill:.1f}% main-column fill).")
-    return 1 if fail else 0
+    return fail
+
+
+def check_column_transitions(page):
+    """Count how often consecutive extracted text blocks flip between sidebar
+    (x0 < SIDEBAR_X) and main column, in the natural order PyMuPDF extracts them.
+    A high count means extraction alternates columns, which scrambles ATS parsing."""
+    blocks = [b for b in page.get_text("blocks") if b[6] == 0 and b[4].strip()]
+    cols = ["sidebar" if b[0] < SIDEBAR_X else "main" for b in blocks]
+    return sum(1 for i in range(1, len(cols)) if cols[i] != cols[i - 1])
+
+
+def check_ats(page, expects):
+    """ATS text-extraction gate: plain-text yield, identity extractability, and
+    column-order integrity. Returns (fail: bool)."""
+    fail = False
+    raw_text = page.get_text()
+    norm_text = normalize_ws(raw_text)
+    char_count = len(raw_text.strip())
+    print(f"ats: extracted {char_count} chars of plain text")
+    if char_count < ATS_MIN_CHARS:
+        print(f"BLOCKER (ats): extracted text too short ({char_count} < {ATS_MIN_CHARS} "
+              f"chars) — page may be a rasterized image, unreadable by ATS parsers.")
+        fail = True
+
+    if expects:
+        for expect in expects:
+            expect_norm = normalize_ws(expect)
+            if expect_norm in norm_text:
+                print(f"ats: identity string found: {expect!r}")
+            else:
+                print(f"BLOCKER (ats): identity string NOT extractable: {expect!r}")
+                fail = True
+    else:
+        has_email = bool(EMAIL_RE.search(norm_text))
+        has_phone = bool(PHONE_RE.search(norm_text))
+        if not has_email:
+            print("BLOCKER (ats): no email-looking token extractable from page text.")
+            fail = True
+        if not has_phone:
+            print("BLOCKER (ats): no phone-looking token extractable from page text.")
+            fail = True
+        if has_email and has_phone:
+            print("ats: identity heuristic passed (email + phone extractable).")
+
+    transitions = check_column_transitions(page)
+    print(f"ats: sidebar<->main block transitions={transitions}")
+    if transitions > ATS_MAX_TRANSITIONS:
+        print(f"BLOCKER (ats): column integrity — {transitions} sidebar<->main "
+              f"transitions (> {ATS_MAX_TRANSITIONS}). Extraction order alternates "
+              f"columns; ATS parsers will scramble sidebar/main text.")
+        fail = True
+
+    if not fail:
+        print("PASS (ats): text extractable, identity present, column order stable.")
+    return fail
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Real rendered page-fill gate for a compiled CV PDF, "
+                    "with an optional ATS text-extraction gate.")
+    parser.add_argument("pdf", help="path to <cv.pdf>")
+    parser.add_argument("--ats", action="store_true",
+                         help="also run the ATS text-extraction gate")
+    parser.add_argument("--expect", action="append", default=[],
+                         help="identity string that must be extractable "
+                              "(repeatable); only used with --ats")
+    args = parser.parse_args()
+
+    doc = fitz.open(args.pdf)
+    pages = doc.page_count
+    page = doc[0]
+
+    fill_fail = check_fill(page, pages)
+
+    ats_fail = False
+    if args.ats:
+        ats_fail = check_ats(page, args.expect)
+
+    return 1 if (fill_fail or ats_fail) else 0
 
 
 if __name__ == "__main__":

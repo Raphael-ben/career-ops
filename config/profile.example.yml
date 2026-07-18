@@ -159,6 +159,40 @@ cover_letter:
 #   # default_sender_note: "the email used to send this message"
 #   # signature_name: "Jane Smith"
 
+# ── Scan behaviour (read by scan_aggregate.py) ──────────────────────────────
+#
+# max_age_days: drop postings older than this when a date is known (default 45).
+# fuzzy_dedup_threshold: rapidfuzz token_set_ratio cutoff (0-100) for treating
+# two postings as the same role — catches near-duplicates that differ only by
+# gender tags, percent ranges, or "Sr."/"Jr." formatting (default 90).
+# scan:
+#   max_age_days: 45
+#   fuzzy_dedup_threshold: 90
+
+# ── Borderline-bucket LLM triage (read by scan_aggregate.py) ────────────────
+#
+# triage.local_llm is an OPTIONAL interface-only hook: when enabled, every row
+# that lands in the "borderline" bucket (no positive-keyword title match) is
+# sent to a locally-hosted LLM (e.g. Ollama) for a one-line yes/no relevance
+# verdict before it's written to pipeline.md. "no" drops the row (counted as
+# llm_dropped in the funnel line). "yes", an unparseable answer, or any
+# request failure (model not running, endpoint unreachable, timeout) all keep
+# the row as borderline, unchanged — this can only shrink the borderline
+# bucket, never grow it, and a broken/absent local model degrades to
+# today's behavior automatically.
+#
+# enabled: false by default — the whole block is a no-op until you point it at
+# a real running model and flip this to true.
+# endpoint: the local inference server's generate endpoint (Ollama's default
+# shown below).
+# model: the model tag to request from that endpoint.
+#
+# triage:
+#   local_llm:
+#     enabled: false
+#     endpoint: http://localhost:11434/api/generate
+#     model: qwen3:8b
+
 # ── Auto-PDF threshold ──────────────────────────────────────────────────────
 #
 # Auto-PDF threshold during evaluation (used by `/career-ops pipeline` and
