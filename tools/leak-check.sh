@@ -2,7 +2,7 @@
 # leak-check.sh — PII leak verifier for job-hunter repos.
 #
 # Usage:
-#   leak-check.sh --worktree|--history [repo_path] [patterns_file]
+#   leak-check.sh --worktree|--history|--messages [repo_path] [patterns_file]
 #
 #   repo_path      defaults to "."
 #   patterns_file  defaults to $JOBHUNTER_PII_PATTERNS, else
@@ -23,6 +23,10 @@
 #               `strings` — because a tracked PDF/CV can carry PII in
 #               otherwise-uncompressed text runs that a naive binary-skip
 #               would miss.
+#   --messages  scans commit METADATA (author/committer names+emails) and
+#               commit MESSAGES across all refs. Blob scanners are blind
+#               to these by construction — a name quoted inside a commit
+#               message lives in the commit object, not any blob.
 #
 # Exit code: 1 if any match found, 0 if clean, 2 on usage/setup error.
 #
@@ -35,8 +39,8 @@ mode="${1:-}"
 repo="${2:-.}"
 patterns="${3:-${JOBHUNTER_PII_PATTERNS:-$HOME/Claude-code/job-hunter-data/pii-patterns.txt}}"
 
-if [[ "$mode" != "--worktree" && "$mode" != "--history" ]]; then
-  echo "Usage: $0 --worktree|--history [repo_path] [patterns_file]" >&2
+if [[ "$mode" != "--worktree" && "$mode" != "--history" && "$mode" != "--messages" ]]; then
+  echo "Usage: $0 --worktree|--history|--messages [repo_path] [patterns_file]" >&2
   exit 2
 fi
 
@@ -54,6 +58,17 @@ hits=0
 
 if [[ "$mode" == "--worktree" ]]; then
   matches="$(git -C "$repo" ls-files -z | xargs -0 grep -lIiEf "$patterns" 2>/dev/null || true)"
+  if [[ -n "$matches" ]]; then
+    echo "$matches"
+    hits=1
+  fi
+  exit "$hits"
+fi
+
+if [[ "$mode" == "--messages" ]]; then
+  # Commit metadata + full messages, all refs. %B = raw body incl. subject.
+  matches="$(git -C "$repo" log --all --format='%H %an <%ae> %cn <%ce>%n%B' \
+    | grep -iEf "$patterns" || true)"
   if [[ -n "$matches" ]]; then
     echo "$matches"
     hits=1
