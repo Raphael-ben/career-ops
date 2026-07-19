@@ -292,6 +292,8 @@ Same pattern with `modes/pro/write-cl.md`, `description: "write cover letter —
 
 ## Step 5 — Humanize (isolated subagent)
 
+This step is NEVER optional or skippable — verify Step 0 hard-fails without its report.
+
 Read `modes/pro/humanize.md`. Call the Agent tool with `subagent_type: "general-purpose"`, `description: "humanize — {Company} {Role}"`, `prompt` = the full mode-file content followed by:
 
 ```

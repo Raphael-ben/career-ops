@@ -22,6 +22,8 @@ cd - >/dev/null && {PYTHON} cv_fitcheck.py {output_folder}/{file_slug}_CV.pdf
 
 This gate is non-negotiable and cannot be satisfied by reasoning — it is a measured fill percentage.
 
+Before the sterile audit, the orchestrator MUST also confirm `{output_folder}/humanizer_report.json` exists and lists both `{file_slug}_CV.tex` and `{file_slug}_cover-letter.tex` (or a per-doc report exists for each). Missing report → automatic `fail`, no sterile audit runs. Return a `fail` verdict citing the missing file and send the package back to `pro/humanize.md` first — the humanize step is never optional or skippable and cannot be bypassed by reasoning about the document quality.
+
 ## Sterile context
 
 This mode receives ONLY: the JD text (`<jd>`), the profile-bank contents, the generated `{file_slug}_CV.tex`, the generated `{file_slug}_cover-letter.tex`, and today's date. No web access. No other context. No charitable interpretation via outside knowledge. This is intentional.

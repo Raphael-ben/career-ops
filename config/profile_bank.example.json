@@ -328,7 +328,8 @@
       { "id": "gpa_present_cv", "description": "The ETH MSc CV bullet must contain the GPA figure 5.5.", "check": "CV education bullet for edu_ethz must contain the string '5.5'; if missing -> BLOCKER", "applies_to": ["cv"] },
       { "id": "gpa_absent_cl", "description": "No GPA/numeric grade in the cover letter.", "check": "scan CLParagraph blocks for 'GPA' or a decimal next to /6 -> BLOCKER; keep only institution/degree", "applies_to": ["cover_letter"] },
       { "id": "current_role_present_tense", "description": "No past framing of the current role while end_status is current_indefinite.", "check": "flag 'left Acme', 'former Acme', or past-tense verbs about Acme; current roles must be present tense", "applies_to": ["cv", "cover_letter"] },
-      { "id": "language_match", "description": "Cover letter language matches the JD language.", "check": "CL language == classification.language; no mid-letter switching", "applies_to": ["cover_letter"] }
+      { "id": "language_match", "description": "Cover letter language matches the JD language.", "check": "CL language == classification.language; no mid-letter switching", "applies_to": ["cover_letter"] },
+      { "id": "humanizer_ran", "description": "the humanize mode must run on every CV and cover letter before verification", "check": "humanizer_report.json exists in {output_folder} and lists both documents (or per-doc reports exist); if absent → BLOCKER, verdict fail, send package back to the humanize step", "applies_to": ["cv", "cover_letter"] }
     ],
     "tolerances": {
       "cv_min_fill_pct": 94,
