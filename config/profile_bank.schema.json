@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Raphael's Profile Bank",
-  "description": "Single source of truth for all agent claims about Raphael's career and background.",
+  "title": "Profile Bank",
+  "description": "Single source of truth for all agent claims about a candidate's career and background, PLUS every person-specific CV/cover-letter/verifier/humanizer rule the modes-rb/* prompts used to hardcode. Task 2.2 rewrites the modes to be person-agnostic and read all of this from here. New keys added in schema v3 (candidate.file_slug/tagline, rules.bullet_counts/space_fill/education_display/extras/section_headings/language_level_labels/classification_defs/address_lookup, top-level humanize + verify) are OPTIONAL for backward compatibility with pre-v3 instances.",
   "type": "object",
   "required": ["candidate", "education", "experience", "rules"],
   "properties": {
@@ -10,6 +10,24 @@
       "required": ["name", "base", "languages", "contact"],
       "properties": {
         "name": { "type": "string" },
+        "file_slug": {
+          "type": "string",
+          "description": "Output filename base. Used for all generated artefacts: '{file_slug}_CV.tex', '{file_slug}_cover-letter.tex', and their PDFs. Replaces the hardcoded 'Firstname-Lastname' in every mode/script."
+        },
+        "tagline": {
+          "type": "object",
+          "description": "Sidebar tagline config. The tagline itself is generated per-role from the JD, but its formatting constraints are template-fixed personal data.",
+          "properties": {
+            "default": {
+              "type": "string",
+              "description": "Fallback positioning line when no role-tailored tagline is generated. May be empty string for candidates who always tailor."
+            },
+            "max_chars_per_line": {
+              "type": "integer",
+              "description": "Hard character cap per tagline line for this candidate's CV template column width (rb-lm: 58mm at \\large\\textbf holds ~22 chars before wrapping)."
+            }
+          }
+        },
         "base": { "type": "string" },
         "languages": {
           "type": "array",
@@ -27,8 +45,15 @@
           "properties": {
             "email": { "type": "string", "format": "email" },
             "phone": { "type": "string" },
-            "linkedin": { "type": "string", "format": "uri" },
-            "address": { "type": "string" }
+            "linkedin": { "type": "string" },
+            "address": { "type": "string" },
+            "city": { "type": "string", "description": "City component of the address, used for apply-form 'city' fields." },
+            "zip": { "type": "string", "description": "Postal code component, used for apply-form 'zip/postal' fields." },
+            "country": { "type": "string", "description": "Country component, used for apply-form 'country' fields." },
+            "work_authorization": {
+              "type": "string",
+              "description": "Verbatim answer for apply-form work authorization / right-to-work / visa fields (e.g. 'Swiss citizen, full right to work, no sponsorship required')."
+            }
           }
         }
       }
@@ -59,6 +84,11 @@
           "id": { "type": "string", "pattern": "^exp_[a-z_0-9]+$" },
           "company": { "type": "string" },
           "role": { "type": "string" },
+          "title_localized": {
+            "type": "object",
+            "description": "Per-language rendered job title for the CV/CL experience-block header, keyed by JD language code (en/de/fr). When present, the writer uses title_localized[<jd_lang>] instead of `role`; falls back to `role` when the language is absent. Prevents an English title (e.g. 'Engineer Intern') leaking into a non-English CV.",
+            "additionalProperties": { "type": "string" }
+          },
           "location": { "type": "string" },
           "start": { "type": "string", "pattern": "^\\d{4}-\\d{2}$" },
           "end": {
@@ -157,9 +187,155 @@
           "properties": {
             "departure_date": {
               "type": "string",
-              "format": "date",
-              "description": "PwC contract end date. Roles ending after today (incl. PwC) use present tense; roles ending before use past tense."
+              "description": "Contract end date of the most recent role. Roles ending on/after today use present tense; roles ending before use past tense."
+            },
+            "note": { "type": "string" }
+          }
+        },
+        "bullet_counts": {
+          "type": "array",
+          "description": "Per-experience-block bullet allocation rules for the CV writer (write-cv Step 3). One entry per experience block that has a fixed count rule.",
+          "items": {
+            "type": "object",
+            "required": ["block", "default"],
+            "properties": {
+              "block": { "type": "string", "description": "experience id, e.g. exp_pwc." },
+              "default": { "type": "integer", "description": "Default bullet count for this block." },
+              "default_max": { "type": "integer", "description": "Upper bound when a range is allowed (e.g. PwC 4-5 -> default 5, default_max 5, floor via reduce)." },
+              "reduce_to": { "type": "integer", "description": "Reduced bullet count when reduce_when fires." },
+              "reduce_when": { "type": "string", "description": "Condition (referencing classification_defs where possible) that triggers reduce_to." },
+              "always_include": { "type": "boolean", "description": "true = block is mandatory in every CV." },
+              "classification_note": { "type": "string", "description": "Human-readable disambiguation the writer must state explicitly." }
             }
+          }
+        },
+        "classification_defs": {
+          "type": "object",
+          "description": "Reusable classification definitions referenced by bullet_counts.reduce_when and space_fill conditions.",
+          "additionalProperties": true
+        },
+        "space_fill": {
+          "type": "object",
+          "description": "Single-page space-fill logic as data (write-cv Step 3 space-fill + Step 9). base_formula documents how base_count is summed; optional_blocks are the Chopard/Prepa-style conditional inclusions.",
+          "properties": {
+            "base_formula": { "type": "string" },
+            "fill_threshold": { "type": "integer", "description": "base_count threshold below which the last optional education block is pulled in." },
+            "fill_threshold_note": { "type": "string" },
+            "optional_blocks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["block", "condition", "bullets"],
+                "properties": {
+                  "block": { "type": "string", "description": "education or experience id to conditionally add." },
+                  "condition": { "type": "string", "description": "Inclusion condition expressed against classification + base_count." },
+                  "bullets": { "type": "integer" },
+                  "absolute": { "type": "boolean", "description": "true = condition is the ONLY gate; space-fill must never override it (Chopard)." },
+                  "note": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "education_display": {
+          "type": "object",
+          "description": "Education display rules (write-cv Step 3 education + write-cl hard rule 7 + humanize 5a).",
+          "properties": {
+            "cgpa_value": { "type": "string", "description": "The grade string, e.g. '5.5/6.0'." },
+            "cgpa_institution": { "type": "string", "description": "education id the CGPA belongs to." },
+            "cgpa_show_in_cv": { "type": "boolean" },
+            "cgpa_must_open_mba_bullet": { "type": "boolean", "description": "true = the degree's CV bullet must OPEN with the CGPA figure." },
+            "cgpa_never_in_cover_letter": { "type": "boolean" },
+            "no_individual_course_grades": { "type": "boolean" },
+            "mba_cv_bullet_canonical": { "type": "string", "description": "Canonical full text of the flagship-degree CV bullet." },
+            "mba_required_tokens": { "type": "array", "items": { "type": "string" }, "description": "Substrings the verifier requires in the degree bullet (e.g. ['5.5','LAW'])." },
+            "prepa_cv_bullet_canonical": { "type": "string", "description": "Canonical text for the conditional prep-school education bullet." },
+            "min_education_bullet_chars": { "type": "integer", "description": "Minimum rendered chars for any education bullet." }
+          }
+        },
+        "extras": {
+          "type": "array",
+          "description": "Conditional extra-curricular / sidebar items (write-cv Step 5). Order is priority order for space-filling.",
+          "items": {
+            "type": "object",
+            "required": ["item", "condition"],
+            "properties": {
+              "item": { "type": "string", "description": "Literal sidebar text." },
+              "condition": { "type": "string", "description": "'always', a classification predicate, or a space-fill predicate. May reference conditional_mentions." }
+            }
+          }
+        },
+        "section_headings": {
+          "type": "object",
+          "description": "Per-language section-heading labels for the CV template (write-cv Step 5). Keyed by logical section; each value maps CV language code (en/de/fr) to the exact heading string. Cover EVERY heading the template renders: professional_experience, education, foreign_languages, personal_skills, computer_skills, extracurricular, contact_details (the last overrides the template's hardcoded \\sidebarSection{CONTACT DETAILS}). 'extracurricular_banned' lists per-language strings the heading must never be.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "language_level_labels": {
+          "type": "object",
+          "description": "CV FOREIGN LANGUAGES sidebar labels (write-cv Step 5). Keyed by CV/JD language code (en/de/fr); each maps CEFR/native levels to the display label in that language.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        },
+        "address_lookup": {
+          "type": "object",
+          "description": "Company-address resolution config (write-cl Step 5 + notion-entry Step 2). The lookup PROCEDURE stays generic in the mode; the registry domains and city-centre zip fallbacks are market-specific personal data.",
+          "properties": {
+            "registry_domains": { "type": "array", "items": { "type": "string" }, "description": "Ordered authoritative registries to search (e.g. zefix.ch, local.ch)." },
+            "zip_mandatory": { "type": "boolean" },
+            "city_centre_zips": {
+              "type": "object",
+              "description": "Fallback postal codes by city when no street address is found.",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "humanize": {
+      "type": "object",
+      "description": "Person/house-style banned vocabulary for the humanizer + writers (humanize.md job-application bans, write-cl Banned phrases, framing banned_words/banned_bullet_openers). The 29 generic blader/humanizer patterns stay in the mode; only the concrete word/phrase LISTS live here.",
+      "properties": {
+        "banned_words": { "type": "array", "items": { "type": "string" }, "description": "Words banned anywhere in output (any language-neutral / English)." },
+        "banned_words_de": { "type": "array", "items": { "type": "string" }, "description": "German filler/AI-tell words." },
+        "banned_words_fr": { "type": "array", "items": { "type": "string" }, "description": "French filler/AI-tell words." },
+        "banned_bullet_openers": { "type": "array", "items": { "type": "string" }, "description": "Words no bullet or sentence may open with." },
+        "banned_phrases": { "type": "array", "items": { "type": "string" }, "description": "English banned phrases / constructions (cover-letter clichés + AI patterns)." },
+        "banned_phrases_de": { "type": "array", "items": { "type": "string" } },
+        "banned_phrases_fr": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "verify": {
+      "type": "object",
+      "description": "Verifier hard rules as data (verify.md standing rules + write-cv/write-cl hard rules). The verifier's quote-verification PROCEDURE and SUPPORTED/INFERRED classification stay generic in the mode; the person-specific blockers and numeric tolerances live here.",
+      "properties": {
+        "blockers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "description", "check"],
+            "properties": {
+              "id": { "type": "string" },
+              "description": { "type": "string" },
+              "check": { "type": "string", "description": "Concrete, mechanical check the verifier runs (what string/condition to look for and where)." },
+              "applies_to": { "type": "array", "items": { "type": "string", "enum": ["cv", "cover_letter"] } }
+            }
+          }
+        },
+        "tolerances": {
+          "type": "object",
+          "description": "Numeric gates. cv_min_fill_pct/cv_max_pages drive cv_fitcheck.py; word/line counts drive the writers.",
+          "properties": {
+            "cv_min_fill_pct": { "type": "number" },
+            "cv_max_pages": { "type": "integer" },
+            "cv_target_lines_min": { "type": "integer" },
+            "cv_target_lines_max": { "type": "integer" },
+            "cover_letter_min_words": { "type": "integer" },
+            "cover_letter_max_words": { "type": "integer" }
           }
         }
       }

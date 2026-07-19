@@ -1,4 +1,4 @@
-# Cover Letter Fill Spec — rb/write-cl
+# Cover Letter Fill Spec — pro/write-cl
 
 Compact syntax reference. Paragraph structure, standing rules, and language rules
 are in `write-cl.md`. This file covers only *how to format* the LaTeX output.
@@ -7,7 +7,7 @@ are in `write-cl.md`. This file covers only *how to format* the LaTeX output.
 
 ## Output process
 
-1. Read `cover-letter-template-rb-lm.tex`. Copy lines 1–173 (preamble) verbatim.
+1. Read `cover-letter-template-pro.tex`. Copy lines 1–173 (preamble) verbatim.
 2. Fill user variables (lines 57–80 of preamble) with job-specific values.
 3. Write the document body using the syntax below.
 
@@ -27,7 +27,11 @@ are in `write-cl.md`. This file covers only *how to format* the LaTeX output.
 | `\CLClosing` | Closing sentence | **Always empty string `{}`** — never put text here |
 | `\CLGreeting` | Valediction | `Mit freundlichen Grüssen,` (DE+swiss) · `Mit freundlichen Grüßen,` (DE) · `Yours sincerely,` (EN) · `Veuillez agréer l'expression de mes salutations distinguées,` (FR) |
 
-**Do not change:** `\CLName`, `\CLAddress`, `\CLPhone`, `\CLEmail` — Raphael's info is pre-filled.
+**Do not change:** `\CLName`, `\CLAddress`, `\CLPhone`, `\CLEmail` — the candidate's info (`profile_bank.candidate.*`) is pre-filled.
+
+**LaTeX-escape every identity value injected into a `%%FILL` marker** (name, address, phone,
+email) before writing it into the template — `&` → `\&`, `%` → `\%`, `#` → `\#`, `_` → `\_`,
+`{` → `\{`, `}` → `\}` (see "Special chars" below for the full table).
 
 ---
 

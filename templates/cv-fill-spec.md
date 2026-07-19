@@ -1,4 +1,4 @@
-# CV Fill Spec — rb/write-cv
+# CV Fill Spec — pro/write-cv
 
 Compact syntax reference. Selection rules, standing rules, and ATS injection logic
 are in `write-cv.md`. This file covers only *how to format* the LaTeX output.
@@ -7,7 +7,7 @@ are in `write-cv.md`. This file covers only *how to format* the LaTeX output.
 
 ## Output process
 
-1. Read `cv-template-rb-lm.tex`. Copy lines 1–282 (preamble) verbatim.
+1. Read `cv-template-pro.tex`. Copy lines 1–282 (preamble) verbatim.
 2. Fill user variables (lines 76–87 of preamble) with job-specific values.
 3. Write the document body from `\begin{document}` onward using the syntax below.
 
@@ -17,18 +17,30 @@ are in `write-cv.md`. This file covers only *how to format* the LaTeX output.
 
 | Command | Purpose | Fixed value / Notes |
 |---|---|---|
-| `\CVName` | Full name | `***REMOVED***` — always fixed |
+| `\CVName` | Full name | `profile_bank.candidate.name` — always fixed |
 | `\CVTagline` | 1–2 line positioning | Tailored per role; **≤ 22 chars/line** (58 mm sidebar @ `\large\textbf`) |
-| `\CVPhoto` | Photo filename | `cv-2.jpg` — always fixed (file is in the output folder) |
-| `\CVAddress` | Address (use `\\` for line break) | `***REMOVED*** 75\\***REMOVED***ürich` — fixed |
-| `\CVPhone` | Phone | `+41\,78\,621\,34\,68` — fixed |
-| `\CVEmail` | Email | `***REMOVED***` — fixed |
+| `\CVPhoto` | Photo filename | `profile_bank.photo_path` — always fixed (file is in the output folder) |
+| `\CVAddress` | Address (use `\\` for line break) | `profile_bank.candidate.address` — fixed |
+| `\CVPhone` | Phone | `profile_bank.candidate.phone` — fixed |
+| `\CVEmail` | Email | `profile_bank.candidate.email` — fixed |
 | `\photoScale` | Photo scale | `1.0` — leave unchanged |
 | `\photoXshift` | Photo x-shift | `0pt` — leave unchanged |
 | `\photoYshift` | Photo y-shift | `0pt` — leave unchanged |
 
 **Tagline character limit is strict.** Count characters before writing. Abbreviate if needed
 ("Prog. Manager" instead of "Program Manager" if necessary).
+
+**LaTeX-escape every identity value injected into a `%%FILL` marker** (name, address, phone,
+email, tagline, photo path) before writing it into the template. Mapping:
+
+| Char | Escape |
+|---|---|
+| `&` | `\&` |
+| `%` | `\%` |
+| `#` | `\#` |
+| `_` | `\_` |
+| `{` | `\{` |
+| `}` | `\}` |
 
 ---
 

@@ -1,3 +1,12 @@
 python-jobspy>=0.1.0
 pyyaml>=6.0
 rapidfuzz>=3.0
+pymupdf>=1.24.0
+curl_cffi>=0.7.0
+requests>=2.31.0
+# scrapling[ai] is intentionally NOT listed here: python-jobspy pins
+# markdownify<0.14.0 while scrapling[ai]>=0.4 requires markdownify>=1.2.0 —
+# a genuine, unresolvable conflict if solved jointly in one `pip install -r`
+# (pip backtracks into ancient python-jobspy sdists and crashes building on
+# Python 3.12, which dropped stdlib distutils). Installed as a separate
+# `pip install "scrapling[ai]>=0.4"` step in setup.sh instead.

@@ -21,6 +21,12 @@ jds/*
 !jds/.gitkeep
 interview-prep/story-bank.md
 interview-prep/*-*.md
+config/profile_bank.json
+config/profile_bank_*.json
+data/*.launchd.log
+data/scan.launchd.stamp
+data/triage-verdicts.json
+.mcp.json
 
 # User config and customization (never auto-updated)
 config/profile.yml

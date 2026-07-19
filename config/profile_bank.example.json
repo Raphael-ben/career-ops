@@ -1,0 +1,342 @@
+{
+  "_meta": {
+    "version": 3,
+    "last_updated": "2026-07-18",
+    "note": "FICTIONAL example persona 'Alex Muster' — a generic 2-employer career. Populates every v3 schema key so a new user can see the full shape. All names, addresses, phone, and email are invented. Copy this to config/profile_bank.json and replace with your own data."
+  },
+  "candidate": {
+    "name": "Alex Muster",
+    "file_slug": "Alex-Muster",
+    "tagline": {
+      "default": "Product & Platform Engineering",
+      "max_chars_per_line": 22
+    },
+    "base": "Bern, Switzerland",
+    "languages": [
+      { "language": "German", "level": "native" },
+      { "language": "English", "level": "C2" },
+      { "language": "French", "level": "B2" }
+    ],
+    "contact": {
+      "email": "alex.muster@example.com",
+      "phone": "+41 79 000 00 00",
+      "linkedin": "https://www.linkedin.com/in/alex-muster-example",
+      "address": "Musterstrasse 12, 3011 Bern, Switzerland",
+      "city": "Bern",
+      "zip": "3011",
+      "country": "Switzerland",
+      "work_authorization": "Swiss citizen, full right to work, no sponsorship required"
+    }
+  },
+  "education": [
+    {
+      "id": "edu_ethz",
+      "institution": "ETH Zürich",
+      "degree": "MSc Computer Science",
+      "location": "Zürich, Switzerland",
+      "start": "2016-09",
+      "end": "2018-09",
+      "notes": "Overall GPA 5.5/6.0. Focus on distributed systems and machine learning. Master's thesis on fault-tolerant stream processing, graded 6.0.",
+      "keywords": ["computer science", "distributed systems", "machine learning", "stream processing"]
+    },
+    {
+      "id": "edu_bsc",
+      "institution": "University of Bern",
+      "degree": "BSc Computer Science",
+      "location": "Bern, Switzerland",
+      "start": "2013-09",
+      "end": "2016-07",
+      "notes": "Minor in economics. Teaching assistant for the introductory programming course.",
+      "keywords": ["computer science", "economics", "teaching assistant"]
+    },
+    {
+      "id": "edu_gym",
+      "institution": "Gymnasium Kirchenfeld — Matura",
+      "degree": "Swiss Matura (mathematics and natural sciences profile)",
+      "location": "Bern, Switzerland",
+      "start": "2009-08",
+      "end": "2013-06",
+      "notes": "Signals academic selectivity in the Swiss context. Mention only when space allows or role is Bern/Switzerland-facing.",
+      "keywords": ["Matura", "mathematics", "natural sciences", "Switzerland"]
+    }
+  ],
+  "experience": [
+    {
+      "id": "exp_acme",
+      "company": "Acme Software AG",
+      "role": "Senior Product Manager",
+      "title_localized": { "en": "Senior Product Manager", "de": "Senior Produktmanager", "fr": "Chef de produit senior" },
+      "location": "Bern, Switzerland",
+      "start": "2021-03",
+      "end": null,
+      "end_status": "current_indefinite",
+      "summary": "Owns the payments platform roadmap for a Swiss B2B SaaS company. Leads a cross-functional squad of 6 engineers and designers.",
+      "achievements": [
+        {
+          "id": "ach_acme_roadmap",
+          "text": "Defined and shipped the payments platform roadmap, taking three major releases from discovery to GA across an 18-month horizon.",
+          "keywords": ["product roadmap", "platform", "payments", "delivery"],
+          "surface_in": ["strategy", "tech", "operations", "general"],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_acme_growth",
+          "text": "Grew monthly active merchants from 400 to 3,200 by prioritising onboarding friction removal and self-serve integration.",
+          "keywords": ["growth", "activation", "self-serve", "onboarding"],
+          "surface_in": ["strategy", "tech", "general"],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_acme_team",
+          "text": "Led a cross-functional squad of six, running discovery, prioritisation, and delivery cadences.",
+          "keywords": ["team leadership", "cross-functional", "agile delivery"],
+          "surface_in": ["strategy", "operations", "general"],
+          "confidence": "high"
+        }
+      ],
+      "tools_methods": ["SQL", "Figma", "Jira", "Amplitude"]
+    },
+    {
+      "id": "exp_bytec",
+      "company": "ByteCraft GmbH",
+      "role": "Software Engineer",
+      "title_localized": { "en": "Software Engineer", "de": "Software-Entwickler", "fr": "Ingénieur logiciel" },
+      "location": "Zürich, Switzerland",
+      "start": "2018-10",
+      "end": "2021-02",
+      "end_status": "completed",
+      "summary": "Backend engineer on a high-throughput logistics platform. Grew from junior contributor to service owner.",
+      "achievements": [
+        {
+          "id": "ach_bytec_service",
+          "text": "Built and owned the routing microservice handling 12M events per day, cutting p99 latency by 40 percent.",
+          "keywords": ["microservices", "backend", "latency", "scalability"],
+          "surface_in": ["tech", "operations", "industrial"],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_bytec_pipeline",
+          "text": "Designed the event pipeline and on-call runbooks adopted across three teams.",
+          "keywords": ["data pipeline", "observability", "on-call", "reliability"],
+          "surface_in": ["tech", "operations"],
+          "confidence": "high"
+        }
+      ],
+      "tools_methods": ["Go", "PostgreSQL", "Kafka", "Kubernetes"]
+    },
+    {
+      "id": "exp_webshop",
+      "company": "WebShop Startup",
+      "role": "Working Student, Engineering",
+      "title_localized": { "en": "Working Student, Engineering", "de": "Werkstudent, Engineering", "fr": "Étudiant salarié, Ingénierie" },
+      "location": "Bern, Switzerland",
+      "start": "2015-02",
+      "end": "2016-06",
+      "end_status": "completed",
+      "summary": "Conditional inclusion only — early-stage / startup roles. Part-time engineering while studying.",
+      "achievements": [
+        {
+          "id": "ach_webshop_frontend",
+          "text": "Built the customer-facing storefront in a small founding team, shipping the first paid checkout flow.",
+          "keywords": ["frontend", "startup", "checkout", "e-commerce"],
+          "surface_in": ["tech", "general"],
+          "confidence": "high"
+        },
+        {
+          "id": "ach_webshop_ownership",
+          "text": "Owned deployment and monitoring for a two-person engineering team.",
+          "keywords": ["ownership", "deployment", "startup"],
+          "surface_in": ["tech", "general"],
+          "confidence": "medium"
+        }
+      ],
+      "tools_methods": ["JavaScript", "React", "Node.js"]
+    }
+  ],
+  "skills_master": {
+    "technical": ["Go", "Python", "SQL", "JavaScript", "React", "Kubernetes", "Kafka", "distributed systems", "machine learning"],
+    "domain": ["product management", "platform strategy", "payments", "logistics", "growth", "roadmapping", "discovery"],
+    "soft": ["cross-functional leadership", "stakeholder management", "written communication", "mentoring", "structured problem solving"],
+    "tools": ["Jira", "Figma", "Amplitude", "Notion", "PostgreSQL", "Grafana"]
+  },
+  "rules": {
+    "never_mention": ["jQuery", "trainee (for exp_bytec)"],
+    "conditional_mentions": [
+      {
+        "entity": "exp_webshop",
+        "surface_only_when": ["tech", "general"],
+        "reason": "Early working-student role. Surface only for startup/early-stage or space-fill contexts; omit for senior platform roles."
+      },
+      {
+        "entity": "edu_gym",
+        "surface_only_when": ["general"],
+        "reason": "Mention only when space allows or the role is Switzerland-facing."
+      },
+      {
+        "entity": "oss_maintainer",
+        "surface_only_when": ["tech", "operations", "general"],
+        "reason": "Open-source maintainer line — surface for engineering roles that value community/tooling contributions."
+      }
+    ],
+    "framing": [
+      {
+        "rule": "no_jquery",
+        "enforce_on": ["cv", "cover_letter"],
+        "explanation": "Never write 'jQuery'. Describe the work as 'frontend JavaScript' instead."
+      },
+      {
+        "rule": "bytec_not_junior",
+        "enforce_on": ["cv", "cover_letter"],
+        "explanation": "exp_bytec grew to service owner. Use the title 'Software Engineer', never 'Junior' or 'Trainee'."
+      },
+      {
+        "rule": "single_page_cv",
+        "enforce_on": ["cv"],
+        "explanation": "Output must always fit a single page. Trim bullets before expanding."
+      },
+      {
+        "rule": "ats_mirroring",
+        "enforce_on": ["cv", "cover_letter"],
+        "explanation": "Mirror the job ad language exactly for ATS keyword matching."
+      }
+    ],
+    "tense": {
+      "departure_date": "2099-12-31",
+      "note": "Alex is in an open-ended current role (exp_acme). It uses present tense; completed roles use past tense."
+    },
+    "bullet_counts": [
+      {
+        "block": "exp_acme",
+        "default": 4,
+        "default_max": 5,
+        "reduce_to": 3,
+        "reduce_when": "page overflow only — drop the weakest bullet",
+        "always_include": true,
+        "classification_note": "Current role always 4-5 bullets; trim to 3 only to resolve overflow."
+      },
+      {
+        "block": "exp_bytec",
+        "default": 3,
+        "reduce_to": 2,
+        "reduce_when": "role_type in classification_defs.non_technical",
+        "always_include": true,
+        "classification_note": "3 bullets for engineering/platform/technical roles; 2 for pure product/strategy roles."
+      },
+      {
+        "block": "exp_webshop",
+        "default": 2,
+        "always_include": false,
+        "classification_note": "Included only when the startup/early-stage classification applies (see conditional_mentions). Absolute — space-fill never overrides."
+      }
+    ],
+    "classification_defs": {
+      "non_technical": ["product management (non-engineering)", "strategy", "general management"],
+      "non_technical_note": "These trim the engineering role (exp_bytec) to 2 bullets. Platform/backend/infra roles keep 3.",
+      "startup_when": ["startup", "scale-up", "early-stage"]
+    },
+    "space_fill": {
+      "base_formula": "base_count = Acme_bullets + ByteCraft_bullets + 1 (edu_ethz) + 1 (edu_bsc)",
+      "fill_threshold": 12,
+      "fill_threshold_note": "At max standard allocation (5+3+1+1=10) the CV scores below target without the Matura line. The Matura is excluded only when the WebShop role (2 bullets) is also included (10+2=12).",
+      "optional_blocks": [
+        {
+          "block": "exp_webshop",
+          "condition": "classification in classification_defs.startup_when",
+          "bullets": 2,
+          "absolute": true,
+          "note": "Non-startup roles always exclude it — no space-fill override."
+        },
+        {
+          "block": "edu_gym",
+          "condition": "company_is_swiss OR (base_count + webshop_bullets_if_added) < 12",
+          "bullets": 1,
+          "absolute": false,
+          "note": "Either Switzerland-facing OR base_count below fill_threshold triggers inclusion."
+        }
+      ]
+    },
+    "education_display": {
+      "cgpa_value": "5.5/6.0",
+      "cgpa_institution": "edu_ethz",
+      "cgpa_show_in_cv": true,
+      "cgpa_must_open_mba_bullet": true,
+      "cgpa_never_in_cover_letter": true,
+      "no_individual_course_grades": true,
+      "mba_cv_bullet_canonical": "GPA 5.5/6.0; MSc Computer Science, ETH Zürich; focus on distributed systems and machine learning; thesis on fault-tolerant stream processing graded 6.0",
+      "mba_required_tokens": ["5.5", "thesis"],
+      "prepa_cv_bullet_canonical": "Swiss Matura, mathematics and natural sciences profile; foundation in quantitative reasoning and structured analytical thinking",
+      "min_education_bullet_chars": 100
+    },
+    "extras": [
+      { "item": "Open-source maintainer", "condition": "always" },
+      { "item": "Aviation -- PPL(A)", "condition": "industry in conditional_mentions[oss_maintainer].surface_only_when" },
+      { "item": "Trail running", "condition": "space_fill: include to bring the block to >=2 items" },
+      { "item": "Chess club", "condition": "space_fill: alongside Trail running if space allows" }
+    ],
+    "section_headings": {
+      "professional_experience": { "en": "PROFESSIONAL EXPERIENCE", "de": "BERUFSERFAHRUNG", "fr": "EXPÉRIENCE PROFESSIONNELLE" },
+      "education": { "en": "EDUCATION", "de": "AUSBILDUNG", "fr": "FORMATION" },
+      "foreign_languages": { "en": "FOREIGN LANGUAGES", "de": "SPRACHEN", "fr": "LANGUES" },
+      "personal_skills": { "en": "PERSONAL SKILLS", "de": "PERSÖNLICHE KOMPETENZEN", "fr": "COMPÉTENCES PERSONNELLES" },
+      "computer_skills": { "en": "COMPUTER SKILLS", "de": "IT-KENNTNISSE", "fr": "COMPÉTENCES INFORMATIQUES" },
+      "extracurricular": { "en": "INTERESTS", "de": "HOBBYS", "fr": "CENTRES D'INTÉRÊT" },
+      "contact_details": { "en": "CONTACT DETAILS", "de": "KONTAKT", "fr": "CONTACT" },
+      "extracurricular_banned": { "fr": ["ACTIVITÉS EXTRA-SCOLAIRES"] }
+    },
+    "language_level_labels": {
+      "en": { "native": "Mother tongue", "C2": "Bilingual", "C1": "Fluent", "B2": "Professional" },
+      "de": { "native": "Muttersprache", "C2": "Verhandlungssicher", "C1": "Fliessend", "B2": "Gut" },
+      "fr": { "native": "Langue maternelle", "C2": "Bilingue", "C1": "Courant", "B2": "Bon" }
+    },
+    "address_lookup": {
+      "registry_domains": ["zefix.ch", "local.ch"],
+      "zip_mandatory": true,
+      "city_centre_zips": {
+        "Bern": "3011",
+        "Zürich": "8001",
+        "Basel": "4051",
+        "Lausanne": "1003",
+        "Zug": "6300"
+      }
+    }
+  },
+  "humanize": {
+    "banned_words": ["leveraged", "utilized", "spearheaded", "harnessed", "fostered", "championed", "passionate", "excited", "thrilled", "eager", "dynamic", "synergies (as verb)"],
+    "banned_words_de": ["dynamisch", "genutzt", "begeistert", "im Kern", "letztlich"],
+    "banned_words_fr": ["dynamique"],
+    "banned_bullet_openers": ["leveraged", "utilized", "spearheaded", "harnessed", "fostered", "championed"],
+    "banned_phrases": [
+      "I am writing to apply",
+      "I am excited to apply",
+      "Please find attached",
+      "I look forward to hearing from you",
+      "Thank you for your consideration",
+      "I believe I would be a strong fit",
+      "passionate about",
+      "track record of",
+      "results-driven",
+      "at the intersection of"
+    ],
+    "banned_phrases_de": ["an der Schnittstelle von", "insbesondere in Bezug auf", "Ich bin überzeugt, dass ich der ideale Kandidat bin"],
+    "banned_phrases_fr": ["à l'interface de", "Je me réjouis de vous rencontrer", "qui allie"]
+  },
+  "verify": {
+    "blockers": [
+      { "id": "banned_terms", "description": "No never_mention term (e.g. jQuery) appears anywhere.", "check": "case-insensitive exact match of each rules.never_mention term; flag any occurrence", "applies_to": ["cv", "cover_letter"] },
+      { "id": "webshop_conditional", "description": "exp_webshop surfaces only for startup/early-stage roles.", "check": "if 'WebShop' present and classification not in [startup, scale-up, early-stage] -> BLOCKER", "applies_to": ["cv", "cover_letter"] },
+      { "id": "bytec_not_junior", "description": "exp_bytec never framed as junior/trainee.", "check": "scan for 'junior', 'trainee' near ByteCraft; verify the real title 'Software Engineer' is used", "applies_to": ["cv", "cover_letter"] },
+      { "id": "gpa_present_cv", "description": "The ETH MSc CV bullet must contain the GPA figure 5.5.", "check": "CV education bullet for edu_ethz must contain the string '5.5'; if missing -> BLOCKER", "applies_to": ["cv"] },
+      { "id": "gpa_absent_cl", "description": "No GPA/numeric grade in the cover letter.", "check": "scan CLParagraph blocks for 'GPA' or a decimal next to /6 -> BLOCKER; keep only institution/degree", "applies_to": ["cover_letter"] },
+      { "id": "current_role_present_tense", "description": "No past framing of the current role while end_status is current_indefinite.", "check": "flag 'left Acme', 'former Acme', or past-tense verbs about Acme; current roles must be present tense", "applies_to": ["cv", "cover_letter"] },
+      { "id": "language_match", "description": "Cover letter language matches the JD language.", "check": "CL language == classification.language; no mid-letter switching", "applies_to": ["cover_letter"] }
+    ],
+    "tolerances": {
+      "cv_min_fill_pct": 94,
+      "cv_max_pages": 1,
+      "cv_target_lines_min": 60,
+      "cv_target_lines_max": 66,
+      "cover_letter_min_words": 280,
+      "cover_letter_max_words": 360
+    }
+  }
+}
