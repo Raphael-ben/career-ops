@@ -1,191 +1,232 @@
+// @ts-check
 /**
- * liveness-api.mjs — zero-token ATS API rung for job-posting liveness.
+ * liveness-api.mjs — zero-token liveness check for ATS-hosted job postings.
  *
- * The cheap first rung of check-liveness.mjs (and scan --verify): map a posting
- * URL to the vendor's public JSON API and read liveness straight from it — no
- * browser, no LLM tokens. A definitive 404/410 (or Ashby "unlisted") is
- * authoritative; anything ambiguous (network error, non-200, malformed body,
- * non-ATS host) returns null so the caller falls back to the Playwright rung.
+ * Many postings live on ATS platforms (Greenhouse, Lever, Ashby, Workday, ...) that
+ * expose a public JSON endpoint. We can confirm whether a posting is still live by
+ * hitting that endpoint directly — no browser, no LLM tokens — and only fall back to
+ * the Playwright check (liveness-browser.mjs) for non-ATS pages or when the API is
+ * inconclusive. This is the cheap first rung of the liveness ladder.
  *
- * A false "expired" is worse than a slow check (it makes the user miss a real
- * job), so every uncertain path degrades to null rather than guessing expired.
+ * CONSERVATIVE BY DESIGN: a false "expired" is worse than the status quo (the user
+ * misses a real job). So on a definitive 404/410 we return `expired`, and for
+ * anything ambiguous (unknown ATS, redirect, 429/5xx, network/timeout) we return
+ * `null` (→ caller falls back to Playwright).
+ *
+ * Two endpoint shapes:
+ *   - Per-job (Greenhouse, Lever, Workday): the URL maps to a single-job endpoint,
+ *     so a 200 is itself proof the posting is live.
+ *   - Org-level (Ashby): the URL maps to the org's whole job board. A 200 only
+ *     proves the board exists, so the provider's `interpret` step parses the board
+ *     and confirms THIS posting is still listed before returning active/expired.
+ *     (Ashby pages are JS-rendered, so the browser/static rung sees only nav/footer
+ *     and false-reports live postings as expired — this API rung is authoritative.)
+ *
+ * SSRF-safe by construction: the request URL is built from a FIXED, hard-coded API
+ * host plus path segments extracted from the posting URL with a strict charset
+ * (no slashes / traversal), and server-side redirects are refused.
  */
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const LOCALE_RE = /^[a-z]{2}-[A-Z]{2}$/;      // Workday URL locale segment, e.g. en-US
-const FETCH_TIMEOUT_MS = 8_000;
-// Some ATS APIs (Ashby, SmartRecruiters) reject an empty/robotic UA.
-const API_HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  Accept: 'application/json',
-};
+const TIMEOUT_MS = 8_000;
+// Strict path-segment charset. Anything with a slash, dot-dot, or other char is
+// rejected before it can reach the fixed-host API URL template.
+const SAFE_SEGMENT = /^[A-Za-z0-9._-]+$/;
+
+// Most providers extract single path segments (SAFE_SEGMENT covers those directly).
+// Workday's job path is genuinely multi-segment (a location slug + a title slug,
+// e.g. "Toronto-ON-CAN/Agentic-AI-Engineer_R260010125"), so a `parts` value may
+// itself contain slashes. This still validates every individual segment against
+// the same strict charset (and rejects ".." in any of them) — it only relaxes
+// "no slash at all" to "no *unsafe* content between slashes", so the traversal/
+// injection guarantee is unchanged.
+function isSafeValue(v) {
+  if (typeof v !== 'string' || v.length === 0) return false;
+  // SAFE_SEGMENT's charset includes "." (some real segments use dots), so ".."
+  // alone passes that regex — same as the single-segment guard in
+  // resolveAtsApi below, the explicit `!includes('..')` check per segment is
+  // load-bearing, not redundant with the regex test.
+  return v.split('/').every((seg) => seg.length > 0 && SAFE_SEGMENT.test(seg) && !seg.includes('..'));
+}
+
+// Each ATS: detect its posting URL, then map to a public JSON API URL.
+// `match` returns the extracted path params (or null); `api` builds the FIXED-host URL.
+// Optional per-provider fields:
+//   `timeoutMs`  — override the default fetch timeout (slow/rate-limited APIs).
+//   `interpret`  — read the 200 response body to decide liveness (org-level APIs
+//                  where a 200 alone doesn't prove THIS posting is live).
+const ATS_PROVIDERS = [
+  {
+    id: 'greenhouse',
+    // boards.greenhouse.io/{board}/jobs/{id} · job-boards[.eu].greenhouse.io/{board}/jobs/{id}
+    match(u) {
+      if (!/(^|\.)greenhouse\.io$/.test(u.hostname)) return null;
+      const m = u.pathname.match(/^\/([^/]+)\/jobs\/(\d+)\/?$/);
+      return m ? { board: m[1], id: m[2] } : null;
+    },
+    api: ({ board, id }) => `https://boards-api.greenhouse.io/v1/boards/${board}/jobs/${id}`,
+  },
+  {
+    id: 'lever',
+    // jobs.(eu.)?lever.co/{slug}/{id}
+    match(u) {
+      const host = u.hostname.match(/^jobs\.((?:eu\.)?lever\.co)$/);
+      if (!host) return null;
+      const m = u.pathname.match(/^\/([^/]+)\/([^/?#]+)\/?$/);
+      return m ? { apiHost: `api.${host[1]}`, slug: m[1], id: m[2] } : null;
+    },
+    api: ({ apiHost, slug, id }) => `https://${apiHost}/v0/postings/${slug}/${id}`,
+  },
+  {
+    id: 'ashby',
+    // jobs.ashbyhq.com/{org}/{jobId}[/application]. Ashby's public posting API is
+    // ORG-level (the whole job board), not per-job — so `api` maps to the board and
+    // `interpret` confirms this {jobId} is still listed. Only {org} reaches the
+    // fixed-host URL; {jobId} is used solely to filter the parsed board (SAFE_SEGMENT
+    // still validates both).
+    match(u) {
+      if (u.hostname !== 'jobs.ashbyhq.com') return null;
+      const m = u.pathname.match(/^\/([^/]+)\/([^/]+)(?:\/application)?\/?$/);
+      return m ? { org: m[1], jobId: m[2] } : null;
+    },
+    api: ({ org }) => `https://api.ashbyhq.com/posting-api/job-board/${org}`,
+    // Ashby's posting-api has a server-side latency floor and rate-limits repeated
+    // unauthenticated hits (see providers/ashby.mjs). Give it more room than the ATS
+    // default so a slow-but-live board doesn't time out into a Playwright fallback.
+    timeoutMs: 20_000,
+    async interpret(res, { jobId }) {
+      let json;
+      try {
+        json = await res.json();
+      } catch {
+        return null; // unparseable body → inconclusive, let the browser decide
+      }
+      return classifyAshbyBoard(json, jobId);
+    },
+  },
+  {
+    id: 'workday',
+    // {tenant}.{shard}.myworkdayjobs.com[/{xx-XX}]/{site}/job/{jobPath...}
+    // Mirrors the tenant/shard/site detection in providers/workday.mjs, but for a
+    // single posting rather than the board-wide CXS search endpoint. Workday's
+    // per-job CXS endpoint (`/wday/cxs/{tenant}/{site}/job/{jobPath}`) is a
+    // genuinely PER-JOB API like Greenhouse/Lever — a 200 is itself proof the
+    // posting is live, confirmed against real tenants (BMO, TD, Manulife, CIBC):
+    // an existing posting returns 200, a garbage job id returns 404.
+    //
+    // jobPath is intentionally multi-segment (Workday encodes a location slug and
+    // a title slug as separate path parts, e.g.
+    // "Toronto-ON-CAN/Agentic-AI-Engineer_R260010125") — isSafeValue (not the
+    // single-segment SAFE_SEGMENT check other providers use directly) validates
+    // it component-by-component.
+    match(u) {
+      const m = `${u.hostname}${u.pathname}`.match(
+        /^([\w-]+)\.(wd[\w-]*)\.myworkdayjobs\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?([^/?#]+)\/job\/(.+?)\/?$/
+      );
+      if (!m) return null;
+      const [, tenant, shard, site, jobPath] = m;
+      return { tenant, shard, site, jobPath };
+    },
+    api: ({ tenant, shard, site, jobPath }) =>
+      `https://${tenant}.${shard}.myworkdayjobs.com/wday/cxs/${tenant}/${site}/job/${jobPath}`,
+  },
+];
 
 /**
- * Per-job liveness from an Ashby org job-board payload.
- * Ashby's posting API returns the whole org board, so we confirm the specific
- * job id ourselves. Live iff the job is present AND listed; otherwise expired.
- * Returns null for a malformed payload (no `jobs` array) → Playwright fallback.
+ * Decide liveness for one Ashby posting from its org's job-board API payload.
+ * Pure + deterministic (no I/O), mirroring classifyLiveness in liveness-core.mjs.
+ *
+ * The public board lists only currently-published postings, so a posting that is
+ * absent (or explicitly `isListed: false`) has been removed/unlisted → expired.
+ * A present, listed posting → active. An unexpected shape → null (inconclusive),
+ * so a future API change degrades to a Playwright fallback rather than a false
+ * "expired".
+ *
+ * @param {any} json - parsed job-board response, expected shape `{ jobs: [...] }`
+ * @param {string} jobId - the {jobId} from jobs.ashbyhq.com/{org}/{jobId}
+ * @returns {{ result: 'active' | 'expired', code: string, reason: string } | null}
  */
-export function classifyAshbyBoard(board, jobId) {
-  const jobs = board?.jobs;
-  if (!Array.isArray(jobs)) return null;
-  const job = jobs.find((j) => j?.id === jobId);
-  if (job && job.isListed) {
-    return { result: 'active', code: 'ashby_api_ok', reason: `Ashby board lists job ${jobId}` };
+export function classifyAshbyBoard(json, jobId) {
+  if (!json || !Array.isArray(json.jobs)) return null; // unexpected shape → fall back
+  const target = String(jobId).toLowerCase();
+  const job = json.jobs.find((j) => typeof j?.id === 'string' && j.id.toLowerCase() === target);
+  if (job && job.isListed !== false) {
+    return { result: 'active', code: 'ashby_api_ok', reason: 'Ashby posting is listed on the board (live)' };
   }
-  // Absent or present-but-unlisted both mean the posting is no longer public.
-  return { result: 'expired', code: 'ashby_api_unlisted', reason: `Ashby board no longer lists job ${jobId}` };
+  return { result: 'expired', code: 'ashby_api_unlisted', reason: 'Ashby posting not listed on the board — removed/unlisted' };
 }
 
 /**
- * Map a posting URL to its public ATS JSON API endpoint.
- * Returns null for non-ATS hosts, non-https URLs, board roots (no specific job),
- * or any shape we can't confidently resolve.
- *
- * Shape: { ats, apiUrl, parts, [interpret] }. Per-job endpoints (Greenhouse,
- * Lever, SmartRecruiters, Workday) are authoritative by HTTP status alone.
- * Ashby resolves to an org-level board, so it carries an `interpret` closure
- * that classifyAshbyBoard-filters the payload down to the one job id.
+ * Map a posting URL to its ATS API URL, or null if it isn't a known ATS posting
+ * (or any extracted segment fails the strict charset). Pure + deterministic.
+ * @param {string} rawUrl
+ * @returns {{ ats: string, apiUrl: string, parts: Record<string, string>, timeoutMs?: number, interpret?: (res: Response, parts: Record<string, string>) => Promise<{ result: 'active' | 'expired', code: string, reason: string } | null> } | null}
  */
-export function resolveAtsApi(url) {
+export function resolveAtsApi(rawUrl) {
   let u;
   try {
-    u = new URL(url);
+    u = new URL(rawUrl);
   } catch {
     return null;
   }
-  // https-only SSRF guard. The API targets are fixed public hosts, and a
-  // private/internal input host simply won't match any vendor below → null.
   if (u.protocol !== 'https:') return null;
-  const host = u.hostname.toLowerCase();
-  const seg = u.pathname.split('/').filter(Boolean);
-
-  // Greenhouse: boards.greenhouse.io/{org}/jobs/{numericId}
-  if (host === 'boards.greenhouse.io' || host === 'job-boards.greenhouse.io') {
-    const i = seg.indexOf('jobs');
-    const org = seg[i - 1];
-    const jobId = seg[i + 1];
-    if (i >= 1 && org && jobId && /^\d+$/.test(jobId)) {
-      return {
-        ats: 'greenhouse',
-        apiUrl: `https://boards-api.greenhouse.io/v1/boards/${org}/jobs/${jobId}`,
-        parts: { org, jobId },
-      };
-    }
-    return null;
+  for (const provider of ATS_PROVIDERS) {
+    const parts = provider.match(u);
+    if (!parts) continue;
+    // SSRF guard: every derived value must be safe — a single path segment for
+    // most providers, or (Workday) a slash-separated sequence of safe segments.
+    // isSafeValue enforces the same charset + no-".." rule either way.
+    if (!Object.values(parts).every(isSafeValue)) return null;
+    return { ats: provider.id, apiUrl: provider.api(parts), parts, timeoutMs: provider.timeoutMs, interpret: provider.interpret };
   }
-
-  // Lever: jobs[.eu].lever.co/{org}/{postingId} → api[.eu].lever.co/v0/postings/{org}/{id}
-  if (host === 'jobs.lever.co' || host.endsWith('.lever.co')) {
-    const org = seg[0];
-    const jobId = seg[1];
-    if (org && jobId) {
-      const apiHost = host.replace(/^jobs\./, 'api.');
-      return {
-        ats: 'lever',
-        apiUrl: `https://${apiHost}/v0/postings/${org}/${jobId}`,
-        parts: { org, jobId },
-      };
-    }
-    return null;
-  }
-
-  // Ashby: jobs.ashbyhq.com/{org}/{jobId}[/application] → org job-board API.
-  if (host === 'jobs.ashbyhq.com') {
-    const org = seg[0];
-    const jobId = seg[1];
-    if (org && jobId && UUID_RE.test(jobId)) {
-      return {
-        ats: 'ashby',
-        apiUrl: `https://api.ashbyhq.com/posting-api/job-board/${org}`,
-        parts: { org, jobId },
-        interpret: (board) => classifyAshbyBoard(board, jobId),
-      };
-    }
-    return null;
-  }
-
-  // SmartRecruiters: jobs.smartrecruiters.com/{Company}/{postingId}[-slug]
-  //   → api.smartrecruiters.com/v1/companies/{Company}/postings/{postingId}
-  if (host === 'jobs.smartrecruiters.com' || host === 'careers.smartrecruiters.com') {
-    const company = seg[0];
-    // Posting id is the leading digit run of the last segment (id-slug or bare id).
-    const idMatch = seg[1] && seg[1].match(/^(\d{6,})/);
-    if (company && idMatch) {
-      return {
-        ats: 'smartrecruiters',
-        apiUrl: `https://api.smartrecruiters.com/v1/companies/${company}/postings/${idMatch[1]}`,
-        parts: { org: company, jobId: idMatch[1] },
-      };
-    }
-    return null;
-  }
-
-  // Workday: {tenant}.{instance}.myworkdayjobs.com/[locale/]{site}/job/{...path}
-  //   → {origin}/wday/cxs/{tenant}/{site}/job/{...path}  (per-job GET, 200/404)
-  // ponytail: covers the standard hosted-page URL shape; exotic locale/site
-  // layouts fall through to null → Playwright, never a false expired.
-  if (host.endsWith('.myworkdayjobs.com')) {
-    const hp = host.split('.');
-    const tenant = hp[0];
-    const instance = hp[1];
-    let rest = seg;
-    if (rest[0] && LOCALE_RE.test(rest[0])) rest = rest.slice(1); // drop locale
-    const site = rest[0];
-    const j = rest.indexOf('job');
-    if (tenant && instance && site && j >= 1) {
-      const jobPath = rest.slice(j).join('/'); // "job/{Location}/{Title}_{ReqId}"
-      return {
-        ats: 'workday',
-        apiUrl: `https://${host}/wday/cxs/${tenant}/${site}/${jobPath}`,
-        parts: { org: tenant, site, jobId: rest.slice(j + 1).join('/') },
-      };
-    }
-    return null;
-  }
-
   return null;
 }
 
+/** True if `url` is an ATS posting we can check via API (lets callers stay lazy about the browser). */
+export function isAtsPosting(url) {
+  return resolveAtsApi(url) !== null;
+}
+
 /**
- * Zero-token liveness check via the ATS API rung.
- * @returns {Promise<{result,code,reason}|null>} active/expired verdict, or null
- *   (non-ATS host, network/timeout error, or inconclusive) → Playwright fallback.
+ * Zero-token liveness check via the posting's ATS API.
+ * @param {string} url
+ * @returns {Promise<{ result: 'active' | 'expired', code: string, reason: string } | null>}
+ *   null = not a known ATS posting, or inconclusive → caller should fall back to Playwright.
  */
 export async function checkLivenessViaApi(url) {
   const resolved = resolveAtsApi(url);
   if (!resolved) return null;
+  const { ats, apiUrl, parts, interpret, timeoutMs } = resolved;
 
-  let res;
+  // The timeout guards the whole classification (fetch + any `interpret` body read),
+  // since aborting the shared signal also tears down an in-flight res.json().
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs || TIMEOUT_MS);
   try {
-    res = await fetch(resolved.apiUrl, {
-      headers: API_HEADERS,
-      redirect: 'follow',
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    });
-  } catch {
-    // Network error or aborted timeout — inconclusive, not expired.
-    return null;
-  }
-
-  const status = res?.status ?? 0;
-  if (status === 404 || status === 410) {
-    return { result: 'expired', code: `${resolved.ats}_api_gone`, reason: `${resolved.ats} API HTTP ${status}` };
-  }
-  if (status !== 200) return null; // 403/429/5xx etc. — inconclusive → Playwright
-
-  if (resolved.interpret) {
-    // Org-level board (Ashby): parse and confirm the specific job id.
-    let body;
+    let res;
     try {
-      body = await res.json();
+      res = await fetch(apiUrl, {
+        method: 'GET',
+        headers: { 'user-agent': 'career-ops-liveness/1.0', accept: 'application/json' },
+        redirect: 'error', // refuse server-side redirects (SSRF + ambiguity guard)
+        signal: controller.signal,
+      });
     } catch {
-      return null;
+      return null; // network / timeout / redirect → inconclusive, let Playwright decide
     }
-    return resolved.interpret(body); // may be null (malformed) → Playwright
-  }
 
-  // Per-job endpoint: a 200 is the live posting itself.
-  return { result: 'active', code: `${resolved.ats}_api_ok`, reason: `${resolved.ats} API HTTP 200` };
+    if (res.status === 404 || res.status === 410) {
+      return { result: 'expired', code: `${ats}_api_gone`, reason: `ATS API ${res.status} — posting removed` };
+    }
+    if (res.status === 200) {
+      // Org-level APIs (Ashby) inspect the body to confirm THIS posting; per-job
+      // APIs (Greenhouse, Lever) treat a 200 as proof the posting is live.
+      if (interpret) return await interpret(res, parts);
+      return { result: 'active', code: `${ats}_api_ok`, reason: 'ATS API returns the posting (live)' };
+    }
+    return null; // 429/5xx/other → inconclusive, fall back to the browser check
+  } catch {
+    return null; // interpret abort / unexpected error → inconclusive
+  } finally {
+    clearTimeout(timer);
+  }
 }

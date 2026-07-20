@@ -3,17 +3,17 @@
 # This is the single source of truth for your personal data across all modes.
 
 candidate:
-  full_name: "Alex Muster"
-  email: "alex.muster@example.com"
+  full_name: "Jane Smith"
+  email: "jane@example.com"
   phone: "+1-555-0123"
   # Optional. Used by `/career-ops email` contact blocks in markets where WeChat
   # is an expected recruiting channel. Omit or leave blank if not applicable.
   wechat: ""
   location: "San Francisco, CA"
-  linkedin: "linkedin.com/in/alexmuster"
-  portfolio_url: "https://alexmuster.dev"
-  github: "github.com/alexmuster"
-  twitter: "https://x.com/alexmuster"
+  linkedin: "linkedin.com/in/janesmith"
+  portfolio_url: "https://janesmith.dev"
+  github: "github.com/janesmith"
+  twitter: "https://x.com/janesmith"
   # Optional profile photo for the PDF CV (opt-in, #264). Leave empty to omit it
   # entirely: US/UK and many-market ATS penalize photos, so the photoless layout
   # is the default. Set it only for DACH/European markets (Germany, Austria,
@@ -51,14 +51,14 @@ narrative:
   # Proof points — projects, articles, case studies with measurable impact
   proof_points:
     - name: "Project Alpha"
-      url: "https://alexmuster.dev/project-alpha"
+      url: "https://janesmith.dev/project-alpha"
       hero_metric: "Reduced inference latency 40%"
     - name: "Open Source Tool"
-      url: "https://github.com/alexmuster/tool"
+      url: "https://github.com/janesmith/tool"
       hero_metric: "2K+ GitHub stars"
   # Optional: dashboard/demo URL with credentials
   # dashboard:
-  #   url: "https://alexmuster.dev/demo"
+  #   url: "https://janesmith.dev/demo"
   #   password: "demo-2026"
 
 compensation:
@@ -75,6 +75,14 @@ location:
   # For remote roles outside your country:
   # onsite_availability: "1 week/month in any city"
 
+language:
+  # Human-facing output language for reports, tracker notes, PDFs, cover
+  # letters, outreach, and form answers. Use an ISO language code.
+  # This is separate from language.modes_dir: modes_dir selects market
+  # vocabulary/rules, while output selects the prose language.
+  output: en
+  # modes_dir: modes/de  # optional: use DACH market vocabulary while still writing in English
+
 # Optional follow-up cadence preferences for `node followup-cadence.mjs`.
 # CLI flags still win for one-off runs (for example `--applied-days 10`).
 # followup_cadence:
@@ -85,48 +93,44 @@ location:
 #   responded_subsequent_days: 3
 #   interview_thankyou_days: 1
 
+# Controls which model tier evaluates your offers. Valid values:
+#   economy  -- cheapest/fastest model, no extended thinking. Best for high-volume scanning.
+#   standard -- balanced model, no extended thinking. Default if this key is absent.
+#   premium  -- most capable model, adaptive extended thinking. Best for high-stakes offers.
+# See the tier -> model mapping table in modes/_shared.md.
+spend_tier: standard
+
 cv:
   output_format: "html" # "html" (default) or "latex"
   # (Optional) Canva resume design ID for visual CV generation via /career-ops pdf.
   # Find it in your Canva design URL: https://www.canva.com/design/DAxxxxxxx/...
   # The ID starts with "D" and is 11 characters long.
   # canva_resume_design_id: "DAxxxxxxxxx"
+  # Which CV template to use by default. Value is the kebab-case name of a file
+  # in templates/ named cv-template.<name>.html (e.g. "modern" ->
+  # templates/cv-template.modern.html). Leave unset/commented to use the built-in
+  # templates/cv-template.html. You can also pick per-generation just by asking
+  # (e.g. "use the modern template").
+  # template: modern
 
-# ── JobSpy scan config (read by jobspy_scan.py) ─────────────────────────────
+# ── Culture Screen ───────────────────────────────────────────────────────────
 #
-# search_terms should mirror your main target roles / portals.yml
-# title_filter.positive entries — same intent, different mechanism.
-# jobspy:
-#   search_terms:
-#     - "Senior Backend Engineer"
-#     - "Staff Software Engineer"
-#   location: "San Francisco, CA"
-#   results_wanted: 15
-#   sleep_between_terms: 3.0
-#   hours_old: 168
+# Enforces structural capping on the "Cultural signals" dimension during evaluation.
+#
+# culture_screen:
+#   # What you actively look for in a team culture (e.g. org size, meeting frequency, async-first).
+#   # If absent/commented, the dimension is scored qualitatively without a hard cap.
+#   require:
+#     - "Small, flat teams (under 15 engineers)"
+#     - "Async-first communication, low meeting overhead"
+#   # If true, the dimension is capped at 2/5 if the JD lacks any evidence for the required criteria.
+#   # If false (or absent), lack of evidence defaults to a neutral 3/5.
+#   deprioritize_if_absent: true
 
-# ── Application Tracker ─────────────────────────────────────────────────────
-#
-# Used by `/career-ops tracker` and the tracker-entry step that fires after a
-# confirmed application submission. Controls where each application gets
-# recorded, on top of the always-written data/applications.md row.
-#
-# type: none (default) | notion | obsidian
-#   none     — data/applications.md only. Zero setup, works out of the box.
-#   notion   — also creates a page in your Notion applications database, using
-#              the notion sub-keys below. Requires the Notion MCP/connector to
-#              be connected. See docs/TRACKERS.md for setup.
-#   obsidian — not yet implemented; falls back to the "none" flow with a
-#              warning. See docs/TRACKERS.md for status.
-tracker:
-  type: none
-  # notion:
-  #   # Your Notion applications database id — the id segment in the
-  #   # database's Notion URL. See docs/TRACKERS.md for how to find it.
-  #   applications_db_id: ""
-  #   # The data source id for that database (Notion API `data_source_id`,
-  #   # distinct from the database id). See docs/TRACKERS.md.
-  #   data_source_id: ""
+# Optional user-owned LaTeX CV for `/career-ops latex-tex` (opt-in tailoring in place).
+# cv.md remains the default source of truth for evaluations and auto-pipeline.
+# latex:
+#   source: resume.tex
 
 # ── Cover Letter Settings ──────────────────────────────────────────────────
 #
@@ -138,6 +142,10 @@ cover_letter:
   # JD requests an immediate start. The user confirms the actual value before it
   # appears in the letter.
   notice_period_days: 30
+  # Which cover-letter template to use by default. Kebab-case name of a file in
+  # templates/ named cover-letter-template.<name>.html. Unset -> built-in
+  # templates/cover-letter-template.html.
+  # template: modern
 
   # Your current professional domain (used to detect domain gaps vs the JD).
   # Plain English, e.g. "digital media", "fintech", "healthcare IT".
@@ -193,41 +201,19 @@ cover_letter:
 #   # Use this when you want the email body to say "the email used to send this
 #   # message" instead of printing a concrete email address from candidate.email.
 #   # default_sender_note: "the email used to send this message"
-#   # signature_name: "Alex Muster"
+#   # signature_name: "Jane Smith"
 
-# ── Scan behaviour (read by scan_aggregate.py) ──────────────────────────────
+# ── Scan / JD extractor ─────────────────────────────────────────────────────
 #
-# max_age_days: drop postings older than this when a date is known (default 45).
-# fuzzy_dedup_threshold: rapidfuzz token_set_ratio cutoff (0-100) for treating
-# two postings as the same role — catches near-duplicates that differ only by
-# gender tags, percent ranges, or "Sr."/"Jr." formatting (default 90).
+# How the scan and JD-extraction steps read SPA job pages.
+#   mcp (default) — the browser MCP (browser_navigate + browser_snapshot). Works
+#                   out of the box; the snapshot is token-heavy.
+#   cli           — the headless `browser-extract.mjs` helper: renders the page
+#                   and returns compact JSON, cutting per-page tokens ~2–5×. Opt-in.
+#                   If the helper isn't available, the modes fall back to mcp
+#                   silently, so nothing breaks. `doctor` reports the active mode.
 # scan:
-#   max_age_days: 45
-#   fuzzy_dedup_threshold: 90
-
-# ── Borderline-bucket LLM triage (read by scan_aggregate.py) ────────────────
-#
-# triage.local_llm is an OPTIONAL interface-only hook: when enabled, every row
-# that lands in the "borderline" bucket (no positive-keyword title match) is
-# sent to a locally-hosted LLM (e.g. Ollama) for a one-line yes/no relevance
-# verdict before it's written to pipeline.md. "no" drops the row (counted as
-# llm_dropped in the funnel line). "yes", an unparseable answer, or any
-# request failure (model not running, endpoint unreachable, timeout) all keep
-# the row as borderline, unchanged — this can only shrink the borderline
-# bucket, never grow it, and a broken/absent local model degrades to
-# today's behavior automatically.
-#
-# enabled: false by default — the whole block is a no-op until you point it at
-# a real running model and flip this to true.
-# endpoint: the local inference server's generate endpoint (Ollama's default
-# shown below).
-# model: the model tag to request from that endpoint.
-#
-# triage:
-#   local_llm:
-#     enabled: false
-#     endpoint: http://localhost:11434/api/generate
-#     model: qwen3:8b
+#   extractor: mcp   # mcp (default) | cli
 
 # ── Auto-PDF threshold ──────────────────────────────────────────────────────
 #

@@ -1,14 +1,3 @@
-// RESTORED (Task 3.2, friend-install fix): plugins/ was never committed in
-// this fork's git history, so it was an untracked local dir shadowing what
-// doctor.mjs (v1.17.0, byte-identical to upstream) actually imports —
-// `discoverPlugins`/`pluginRoots`/`pluginStatus` were missing, crashing
-// `node doctor.mjs --json`. This file + its 3 deps (_net.mjs, _lock.mjs,
-// _registry.mjs) are vendored verbatim from upstream tag `career-ops-v1.17.0`
-// (exact version match with doctor.mjs) rather than hand-rolled stubs, so the
-// full contract (incl. test-all.mjs section 49) stays intact. Bundled plugin
-// dirs (apify/gmail/notion/_template) were NOT restored — nothing in this
-// repo enables config/plugins.yml, so discoverPlugins legitimately finds zero
-// manifests; add them back only if a plugin is actually enabled.
 // @ts-check
 /**
  * plugins/_engine.mjs — the career-ops plugin engine.
