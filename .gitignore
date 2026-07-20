@@ -68,3 +68,4 @@ template-revamp/
 data/fill-request.json
 data/fill-response.json
 .venv/
+data/*.log
