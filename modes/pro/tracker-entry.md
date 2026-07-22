@@ -126,16 +126,13 @@ Salary Currency:          {CHF | EUR | USD | GBP | Other}
 
 Leave blank (do not set): CV, Cover Letter, First ITW, Available From, Rejection date, Rejection reason, first answer date, Current Salary, Number of applications this month.
 
-**Page body** — use `notion-update-page` with `insert_content` after creation. This is where the full JD lives:
+**Page body** — use `notion-update-page` with `insert_content` after creation. This covers the header/role/framing sections only — **do NOT paste the Job Description or upload PDFs yourself**, that is Step 4b below:
 
 ```markdown
 ## {Company} — {Role title}
 **Score:** {X.X}/5 — Applied {YYYY-MM-DD}
 **ATS:** {Platform}
 **URL:** [{job posting URL}]({job posting URL})
-
-## Job Description
-{Full JD text — every section verbatim: overview, responsibilities, qualifications, requirements, details. No summarising, no truncation.}
 
 ## Role
 {1–2 paragraph role summary from report}
@@ -148,13 +145,25 @@ Leave blank (do not set): CV, Cover Letter, First ITW, Available From, Rejection
 
 ## Comp
 {comp analysis from report if available}
-
-## PDFs
-Upload from:
-`career-ops/output/{folder}/`
 ```
 
-If the report does not exist (apply started without pipeline context), omit Role / CV framing / Key gaps / Comp and write only the header, Job Description, and PDFs sections.
+If the report does not exist (apply started without pipeline context), omit Role / CV framing / Key gaps / Comp and write only the header.
+
+---
+
+## Step 4b — Finalize: PDFs + verbatim JD (Notion flow only, SCRIPT-owned)
+
+Pasting a long JD by hand is unreliable — LLM agents truncate or summarize it. This step is a deterministic script instead of a manual edit, and it also owns the PDF uploads (real files via the Notion File Upload API, never external links).
+
+Write the full JD text (verbatim, no summarizing) to `{output_folder}/jd.txt` if it isn't already saved there, then run:
+
+```bash
+{PYTHON} notion_finalize.py <page_url> --jd {output_folder}/jd.txt --cv {output_folder}/{file_slug}_CV.pdf --cl {output_folder}/{file_slug}_cover-letter.pdf
+```
+
+`<page_url>` is the URL of the page just created in Step 4. `{PYTHON}` resolves per `modes/_profile.md` (same resolution as Step 0). The script uploads both PDFs into the page body under a "Documents" heading and pastes the full JD under a "Job Description" heading, then verifies both and prints a PASS/FAIL summary.
+
+**The agent MUST NOT paste JD content into the page itself** — that responsibility now belongs entirely to this script. If `notion_finalize.py` exits non-zero, report the failure verbatim to the user (including the script's own error/setup message) and do **not** mark the tracker entry as complete — treat it the same as a failed Notion MCP call in Step 5 below (print the paste-able fallback block) and note that PDFs/JD still need manual attention.
 
 ---
 
@@ -187,11 +196,12 @@ If Expected Salary was captured, append: `Expected Salary: {amount} {currency}`.
 ## Rules
 
 - **Name is company only.** Never "Company — Role" or "Company - Position". The Position field holds the role title.
-- **Job description goes in the page body, not the property field** (the property truncates at ~2000 chars). Never summarise, never truncate the body copy.
+- **Job description goes in the page body, not the property field** (the property truncates at ~2000 chars), and it is written EXCLUSIVELY by `notion_finalize.py` in Step 4b — the agent never pastes or summarizes JD text into the page itself.
+- **PDFs are uploaded as real files by `notion_finalize.py`** in Step 4b, never as external links and never as a pasted local folder path.
 - **Location has no modifiers.** `{City}, {Country}` only — never "hybrid", "remote", "on-site", or parentheses.
 - **Zipcode is mandatory** when `address_lookup.zip_mandatory` — always run the lookup; never skip because it seems minor.
 - **Match Score is a decimal from the report, or blank.** Never convert a letter grade to a number.
 - **Never fill Expected Salary** unless the form explicitly asked and a specific number was submitted. Store it verbatim (ranges OK); never fabricate a midpoint. Never fill Salary Currency unless Expected Salary is set.
-- **Never write local file paths** into the CV / Cover Letter URL properties — those expect URLs. Note the local path in the page body (PDFs section) instead; upload the PDFs rather than pasting a folder path.
+- **Never write local file paths** into the CV / Cover Letter URL properties — those expect URLs; `notion_finalize.py` handles attachment via the body (and via the properties themselves if the schema type is `files`).
 - **RAV Disclosed is always `__NO__`.**
 - **One entry per submission.** If the candidate resubmits after a form error, create a second entry.
