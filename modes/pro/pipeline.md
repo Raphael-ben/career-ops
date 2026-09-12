@@ -162,6 +162,8 @@ If URL provided: fetch browserless — `{PYTHON} -c "from scrapling.fetchers imp
 
 If text provided: `source_url` is null.
 
+**Never stage the fetched JD under a shared/generic temp path** (e.g. a fixed `jd.txt` in the session scratchpad). Parallel pipeline runs share that directory, and a concurrent run will silently overwrite it between your write and your read — you then classify and write a CV against another job's JD. Keep the JD in context until Step 3.5 creates the output folder and write it straight to `output/{folder}/jd.txt`; if you must spill to disk first, make the filename unique to this run (include the company slug).
+
 ---
 
 ## Step 3 — Classify

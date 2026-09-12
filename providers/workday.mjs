@@ -125,6 +125,16 @@ function resolveEndpoint(entry) {
   // a non-Workday api: value doesn't shadow a valid careers_url.
   for (const url of [entry.api, entry.careers_url]) {
     if (typeof url !== 'string' || !url) continue;
+    // An api: that is ALREADY a CXS endpoint must be used verbatim. The
+    // careers_url regex below reads the first path segment as the site name,
+    // which for /wday/cxs/{tenant}/{site}/jobs is the literal "wday" — that
+    // rebuilds a 404 endpoint AND, since api: is tried first, shadows a valid
+    // careers_url. Match the CXS shape first.
+    const cxs = url.match(/^(https:\/\/([\w-]+)\.wd[\w-]*\.myworkdayjobs\.com)\/wday\/cxs\/[\w-]+\/([^/?#]+)\/jobs/);
+    if (cxs) {
+      const [, cxsOrigin, , cxsSite] = cxs;
+      return { api: url, jobBase: `${cxsOrigin}/${cxsSite}`, origin: cxsOrigin };
+    }
     const m = url.match(/^https:\/\/([\w-]+)\.(wd[\w-]*)\.myworkdayjobs\.com\/(?:[a-z]{2}-[A-Z]{2}\/)?([^/?#]+)/);
     if (!m) continue;
     const [, tenant, instance, site] = m;

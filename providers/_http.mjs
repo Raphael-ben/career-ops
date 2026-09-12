@@ -61,3 +61,40 @@ export function makeHttpCtx() {
     fetchText,
   };
 }
+
+export function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+// ponytail: 3 attempts, fixed-ish backoff. Retries only transient statuses
+// (429 + 5xx) and network errors; a 404 is an answer, not a hiccup.
+async function withRetry(fn, attempts = 3) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const status = err?.status;
+      if (status && status !== 429 && status < 500) throw err;
+      if (i === attempts - 1) break;
+      const retryAfter = Number(err?.retryAfter);
+      await sleep(Number.isFinite(retryAfter) && retryAfter > 0
+        ? Math.min(retryAfter * 1000, 15_000)
+        : 1000 * 2 ** i);
+    }
+  }
+  throw lastErr;
+}
+
+// ctx-first signature: providers pass their scan ctx through for transport
+// overrides. The http transport ignores it beyond ctx.fetchJson/fetchText.
+export function fetchJsonWithRetry(ctx, url, opts = {}) {
+  const f = typeof ctx?.fetchJson === 'function' ? ctx.fetchJson : fetchJson;
+  return withRetry(() => f(url, opts));
+}
+
+export function fetchTextWithRetry(ctx, url, opts = {}) {
+  const f = typeof ctx?.fetchText === 'function' ? ctx.fetchText : fetchText;
+  return withRetry(() => f(url, opts));
+}

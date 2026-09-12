@@ -129,8 +129,11 @@ def check_ats(page, expects):
 
     if expects:
         for expect in expects:
-            expect_norm = normalize_ws(expect)
-            if expect_norm in norm_text:
+            # Case-folded: CV templates routinely set the name in caps, so a
+            # case-sensitive match reports a false blocker on a name that is
+            # perfectly extractable.
+            expect_norm = normalize_ws(expect).casefold()
+            if expect_norm in norm_text.casefold():
                 print(f"ats: identity string found: {expect!r}")
             else:
                 print(f"BLOCKER (ats): identity string NOT extractable: {expect!r}")

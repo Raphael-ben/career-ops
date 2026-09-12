@@ -258,6 +258,46 @@ def load_applications(path=None):
     return pairs
 
 
+def load_blacklist(path=None):
+    """Parse data/blacklist.md -> set of normalized company names to skip.
+
+    Same file scan.mjs reads (its BLACKLIST_PATH), so both scan layers share one
+    do-not-apply list instead of drifting apart. Absent file = empty set = no
+    filtering, byte-identical to a pre-blacklist run.
+
+    Table shape: | Company | Since | Scope | Reason |
+    """
+    p = Path(path) if path else HERE / "data" / "blacklist.md"
+    if not p.exists():
+        return set()
+    out = set()
+    for line in p.read_text(encoding="utf-8").splitlines():
+        if not line.strip().startswith("|"):
+            continue
+        cells = [c.strip() for c in line.split("|")]
+        if len(cells) < 3:
+            continue
+        company = cells[1]
+        if not company or company.lower() == "company":
+            continue
+        if set(company) <= set("-: "):      # separator row
+            continue
+        out.add(normalize(company))
+    return out
+
+
+def blacklisted(company, blacklist):
+    """True if this posting's company is on the do-not-apply list.
+
+    Substring both ways so "Michael Page" catches "Michael Page International AG"
+    and a feed's short "Hays" catches a blacklist row "Hays Recruitment".
+    """
+    c = normalize(company)
+    if not c:
+        return False
+    return any(b and (b in c or c in b) for b in blacklist)
+
+
 def normalize(s):
     """Lowercase + strip cosmetic noise so near-identical postings compare equal:
     gender tags (m/w/d), percent ranges (80-100%), punctuation, abbreviations.
@@ -426,11 +466,17 @@ def main():
     fresh = [j for j in jobs if fresh_enough(j.get("date_posted"), max_age, today)]
     lpass = [j for j in fresh if location_ok(j.get("location"), allow, block)]
 
+    blacklist = load_blacklist()
+
     passed, borderline, run_seen = [], [], set()
     dropped_neg = 0
+    dropped_blacklist = 0
     for j in lpass:
         url = (j.get("url") or "").strip()
         if not url or url in seen or url in run_seen:
+            continue
+        if blacklisted(j.get("company"), blacklist):
+            dropped_blacklist += 1
             continue
         bucket = title_bucket(j.get("title"), pos, neg)
         if bucket == "drop":
@@ -473,6 +519,7 @@ def main():
 
     funnel = (f"\nFunnel: raw={raw}  fresh(<={max_age}d)={len(fresh)}  "
               f"location_ok={len(lpass)}  neg_dropped={dropped_neg}  "
+              f"blacklist_dropped={dropped_blacklist}  "
               f"fuzzy_dropped={fuzzy_dropped}  ")
     if llm_enabled:
         funnel += f"llm_dropped={llm_dropped}  "

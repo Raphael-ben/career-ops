@@ -37,7 +37,16 @@ function filterAchievements(achievements = []) {
     .map(({ surface_in: _s, keywords: _k, ...rest }) => rest);
 }
 
-const chopardEligible = classification.chopard_eligible ?? false;
+// The pipeline emits conditional_flags (derived from rules.conditional_mentions),
+// not a top-level chopard_eligible key — reading only the latter pinned this to
+// false on every run. Fall back to the bank's own surface_only_when rule so a
+// classification that forgets the flag still resolves correctly.
+const chopardRule = (bank.rules?.conditional_mentions ?? [])
+  .find(m => m.entity === 'Chopard');
+const chopardEligible =
+  classification.conditional_flags?.Chopard
+  ?? classification.chopard_eligible
+  ?? (chopardRule?.surface_only_when ?? []).some(t => tags.has(t));
 
 const experiences = (bank.experiences ?? bank.experience ?? []).map(exp => {
   const filtered = {
