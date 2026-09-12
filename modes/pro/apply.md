@@ -28,6 +28,8 @@ Watch for `career-ops/data/fill-request.json`. When it appears:
 
 Read the `url` field. Extract company name and role title from the URL and any recognisable ATS path patterns (e.g. `greenhouse.io/company`, `ashby.com/company/role`).
 
+**Pre-flight: verify not already applied.** Per the Notion-first already-applied rule in `modes/_custom.md`, check the Notion JOB OP database for this exact company + role before filling anything. If a Notion entry already shows Applied/Interview/Offer/Rejected, stop and surface that entry and its status instead of proceeding with the form.
+
 Search `career-ops/reports/` for a matching report:
 ```bash
 grep -ri "{company}" career-ops/reports/ -l

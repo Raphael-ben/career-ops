@@ -45,6 +45,8 @@ After successfully completing the pipeline for a job, mark its checkbox in `care
 
 **Triggered by Step 0's "all" path only.** Skip entirely for a specific URL, JD text, or single numbered entry.
 
+Before recommending any `pass`/`borderline` entry onward, cross-check it against the Notion JOB OP database per the Notion-first already-applied rule in `modes/_custom.md` — `data/applications.md` and scan-history dedup alone can lag the tracker.
+
 ### Read triage preferences
 
 Read `career-ops/config/profile.yml`. Extract `triage.preferences`. If the `triage:` block is missing, stop and show:

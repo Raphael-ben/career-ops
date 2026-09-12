@@ -87,4 +87,16 @@ Total new in pipeline:                  N+M
 → Run /jobhunter pipeline to evaluate new offers.
 ```
 
-List all new jobs (title, company, URL) grouped by source.
+List every new entry from this run (pass AND borderline), grouped by source, one line each:
+
+```
+- [Title — Company](url) · source · verdict reason
+```
+
+Render the job name as a markdown link to its URL — never a bare title when the URL is known.
+
+**Pre-assessment (mandatory, cheap first-glance).** For every new entry above, output a verdict glyph and a ≤8-word reason:
+
+- `✓` strong fit / `~` worth a look / `✗` likely skip
+
+Judge this ONLY from title, company, location, and source against `profile.yml` → `triage.preferences`. Do **not** fetch the JD and do **not** make any web calls for this step — it is a first glance, not a decision. The pipeline's LLM-triage step remains the real evaluation; this pass just gives the user a quick read before that happens. Borderline entries especially need this line, since they exist precisely because the keyword filter couldn't classify them.
