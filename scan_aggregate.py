@@ -385,6 +385,125 @@ def pipeline_row(j):
             f"{title}{suffix} — via {j.get('source','')}, triage\n")
 
 
+# ── REAPER — closes stale pipeline.md entries so it stops growing forever ──
+# data/pipeline.md is append-only (main()'s writer below never removes a
+# line) and nothing else ever closed a `- [ ]` for age, so it silently rotted
+# to 1000+ open entries. This bounds it: unchecked entries past
+# scan.pipeline_max_age_days (default 45) get flipped to `- [x] ... EXPIRED`.
+
+RESCUED_MARK = "⚑ RESCUED"
+_ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_SECTION_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_ROW_URL = re.compile(r"(https?://\S+)")
+
+
+def _row_date(parts):
+    """First ISO-date-looking token in a scan-history.tsv row's columns 1-5.
+
+    Two row layouts coexist in the real file (append-only history, multiple
+    writers over time): ATS/smartrecruiters rows put first_seen at column 1
+    (`url  date  portal  title  company  status`); linkedin/tavily rows put
+    it at column 4 (`url  title  company  portal  date  status`). Scanning
+    the range instead of trusting one fixed index handles both, plus the
+    assorted 3/7/11/12-column variants that show up in practice.
+    """
+    for tok in parts[1:6]:
+        tok = tok.strip()
+        if _ISO_DATE.match(tok):
+            return tok
+    return None
+
+
+def load_first_seen(history_path=None):
+    """url -> earliest known first_seen date from scan-history.tsv."""
+    path = Path(history_path) if history_path else HISTORY
+    out = {}
+    if not path.exists():
+        return out
+    for line in path.read_text(errors="replace").splitlines():
+        if not line.strip():
+            continue
+        parts = line.split("\t")
+        url = parts[0].strip()
+        if not url:
+            continue
+        date = _row_date(parts)
+        if not date:
+            continue
+        if url not in out or date < out[url]:
+            out[url] = date
+    return out
+
+
+def reap_pipeline(max_age_days, today=None, pipeline_path=None, history_path=None,
+                   dry_run=False):
+    """Close unchecked pipeline.md entries older than max_age_days.
+
+    Age resolution per entry (first hit wins, in order):
+      1. first_seen for its URL in scan-history.tsv (both layouts, see _row_date)
+      2. the date in its enclosing `## Scan YYYY-MM-DD` (or any header
+         carrying a YYYY-MM-DD) section, if one exists
+      3. undatable -> NEVER reaped, counted separately
+
+    A line containing RESCUED_MARK is always immune, regardless of age.
+    Reaped lines flip `- [ ]` -> `- [x]` and get ` — EXPIRED (aged out
+    {today})` appended; the rest of the line is untouched byte-for-byte.
+
+    Returns a stats dict: reaped / undatable / open_remaining (entries still
+    `- [ ]` after this pass, expired ones included). Writes nothing when
+    dry_run or when nothing changed.
+    """
+    path = Path(pipeline_path) if pipeline_path else PIPELINE
+    today = today or datetime.date.today()
+    first_seen = load_first_seen(history_path)
+
+    text = path.read_text() if path.exists() else ""
+    lines = text.splitlines(keepends=True)
+
+    section_date = None
+    reaped = undatable = open_remaining = 0
+    out_lines = []
+    for line in lines:
+        stripped = line.rstrip("\n")
+        if stripped.startswith("## "):
+            m = _SECTION_DATE.search(stripped)
+            section_date = m.group(0) if m else None
+            out_lines.append(line)
+            continue
+        if not stripped.startswith("- [ ]"):
+            out_lines.append(line)
+            continue
+        if RESCUED_MARK in stripped:
+            open_remaining += 1
+            out_lines.append(line)
+            continue
+        m = _ROW_URL.search(stripped)
+        url = m.group(1) if m else ""
+        date_str = first_seen.get(url) or section_date
+        age = None
+        if date_str:
+            try:
+                age = (today - datetime.date.fromisoformat(date_str)).days
+            except ValueError:
+                age = None
+        if age is None:
+            undatable += 1
+            open_remaining += 1
+            out_lines.append(line)
+        elif age > max_age_days:
+            reaped += 1
+            out_lines.append(f"- [x]{stripped[5:]} — EXPIRED (aged out "
+                              f"{today.isoformat()})\n")
+        else:
+            open_remaining += 1
+            out_lines.append(line)
+
+    if reaped and not dry_run:
+        path.write_text("".join(out_lines))
+
+    return {"reaped": reaped, "undatable": undatable, "open_remaining": open_remaining}
+
+
 def selftest():
     """In-memory fuzzy-dedup assertions — no network, no real files touched."""
     import tempfile
@@ -428,6 +547,69 @@ def selftest():
     finally:
         fixture_path.unlink()
 
+    # ── reaper fixtures — tmp files only, never touches real data/* ──
+    today = datetime.date(2026, 1, 1)
+    old_date = (today - datetime.timedelta(days=50)).isoformat()      # >45d
+    very_old_date = (today - datetime.timedelta(days=60)).isoformat()  # >45d
+    recent_date = (today - datetime.timedelta(days=10)).isoformat()    # <=45d
+
+    url_ats = "https://example.com/job/ats-old"       # TSV layout A, date col1
+    url_tavily = "https://example.com/job/tavily-new"  # TSV layout B, date col4
+    url_rescued = "https://example.com/job/rescued-old"  # TSV layout A, old, immune
+    url_hdr = "https://example.com/job/header-fallback"  # no TSV row, old header
+    url_undatable = "https://example.com/job/nowhere"    # no TSV row, no header date
+
+    tsv_fixture = (
+        "url\tfirst_seen\tportal\ttitle\tcompany\tstatus\n"
+        f"{url_ats}\t{old_date}\tsmartrecruiters\tTitle A\tCompany A\tadded\n"
+        f"{url_tavily}\tTitle B\tCompany B\ttavily\t{recent_date}\tborderline\n"
+        f"{url_rescued}\t{very_old_date}\tsmartrecruiters\tTitle E\tCompany E\tadded\n"
+    )
+    pipe_fixture = (
+        "# Pipeline\n\n"
+        f"## Scan {old_date}\n\n"
+        f"- [ ] {url_hdr} | Co F | Title F — via tavily, triage\n\n"
+        "## Pendientes\n\n"
+        f"- [ ] {url_undatable} | Co G | Title G\n\n"
+        f"## Scan {recent_date}\n\n"
+        f"- [ ] {url_ats} | Co A | Title A — via smartrecruiters, triage\n"
+        f"- [ ] {url_tavily} | Co B | Title B — via tavily, triage\n"
+        f"- [ ] {url_rescued} | Co E | {RESCUED_MARK} Title E — via smartrecruiters, triage\n"
+    )
+    with tempfile.NamedTemporaryFile("w", suffix=".tsv", delete=False) as fh:
+        fh.write(tsv_fixture)
+        tsv_path = Path(fh.name)
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as fh:
+        fh.write(pipe_fixture)
+        pipe_path = Path(fh.name)
+    try:
+        # both TSV layouts resolve correctly
+        fs = load_first_seen(tsv_path)
+        assert fs[url_ats] == old_date, fs
+        assert fs[url_tavily] == recent_date, fs
+        assert url_hdr not in fs and url_undatable not in fs
+
+        stats = reap_pipeline(45, today=today, pipeline_path=pipe_path,
+                               history_path=tsv_path)
+        out = pipe_path.read_text()
+        assert f"- [x] {url_ats}" in out and "EXPIRED (aged out 2026-01-01)" in out, out
+        assert f"- [ ] {url_tavily}" in out, "10d-old TSV entry must survive"
+        assert f"- [x] {url_hdr}" in out, "section-header fallback must close the old entry"
+        assert f"- [ ] {url_undatable}" in out, "undatable entry must never be reaped"
+        assert f"- [ ] {url_rescued}" in out and RESCUED_MARK in out, \
+            "⚑ RESCUED entry must be immune even though it's 60d old"
+        assert stats == {"reaped": 2, "undatable": 1, "open_remaining": 3}, stats
+
+        # dry-run: identical stats, but the file must be untouched
+        pipe_path.write_text(pipe_fixture)  # reset (previous run already reaped it)
+        dry_stats = reap_pipeline(45, today=today, pipeline_path=pipe_path,
+                                   history_path=tsv_path, dry_run=True)
+        assert dry_stats == {"reaped": 2, "undatable": 1, "open_remaining": 3}, dry_stats
+        assert pipe_path.read_text() == pipe_fixture, "dry-run must not write"
+    finally:
+        tsv_path.unlink()
+        pipe_path.unlink()
+
     print("selftest: OK")
 
 
@@ -439,6 +621,10 @@ def main():
     ap.add_argument("--date", default=datetime.date.today().isoformat())
     ap.add_argument("--selftest", action="store_true",
                     help="run in-memory fuzzy-dedup assertions, no network/files, then exit")
+    ap.add_argument("--reap", action="store_true",
+                    help="reap aged-out pipeline.md entries only (no scan), then exit")
+    ap.add_argument("--reap-dry-run", action="store_true",
+                    help="print what --reap would close, change nothing, then exit")
     args = ap.parse_args()
     if args.selftest:
         selftest()
@@ -448,6 +634,19 @@ def main():
     portals, profile, pos, neg, allow, block = load_cfgs()
     max_age = int((profile.get("scan") or {}).get("max_age_days", 45))
     fuzzy_threshold = float((profile.get("scan") or {}).get("fuzzy_dedup_threshold", 90))
+    pipeline_max_age = int((profile.get("scan") or {}).get("pipeline_max_age_days", 45))
+
+    if args.reap or args.reap_dry_run:
+        stats = reap_pipeline(pipeline_max_age, today=today, dry_run=args.reap_dry_run)
+        print(f"reap: reaped={stats['reaped']} undatable={stats['undatable']} "
+              f"open_remaining={stats['open_remaining']}" +
+              ("  (dry-run: nothing written)" if args.reap_dry_run else ""))
+        return
+
+    # REAPER — runs at the start of every scan too, so pipeline.md stays
+    # bounded without a separate step anyone has to remember to run.
+    reap_stats = reap_pipeline(pipeline_max_age, today=today, dry_run=args.dry_run)
+
     seen, history_pairs = load_history()
     applied_pairs = load_applications()
     static_corpus = [(normalize(t), normalize(c)) for t, c in history_pairs + applied_pairs]
@@ -523,7 +722,10 @@ def main():
               f"fuzzy_dropped={fuzzy_dropped}  ")
     if llm_enabled:
         funnel += f"llm_dropped={llm_dropped}  "
-    funnel += f"NEW pass={len(passed)}  NEW borderline={len(borderline)}"
+    funnel += f"NEW pass={len(passed)}  NEW borderline={len(borderline)}\n"
+    funnel += (f"Pipeline reaper: reaped={reap_stats['reaped']}  "
+               f"undatable={reap_stats['undatable']}  "
+               f"open_remaining={reap_stats['open_remaining']}")
     print(funnel)
 
     if (passed or borderline) and not args.dry_run:

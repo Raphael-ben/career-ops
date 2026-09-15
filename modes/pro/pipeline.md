@@ -17,25 +17,9 @@ Resolve `{DATA_DIR}` and `{PYTHON}` from `modes/_profile.md` (lines `DATA_DIR: .
 
 If a job URL or JD text was provided: use it. Go to Step 1.
 
-If nothing was provided:
-1. Read `career-ops/data/pipeline.md`
-2. Extract all unchecked items (`- [ ]`) — the pending URLs
-3. Display them:
+If nothing was provided: default scope is the **entire queue** — every `- [ ]` entry in `career-ops/data/pipeline.md`. Go to Step 0.5.
 
-```
-📋 Pending jobs in queue (career-ops/data/pipeline.md):
-
-  1. Company Name — Role Title
-     URL
-  ...
-
-Which job would you like to process? Enter a number, or paste a URL/JD text directly.
-```
-
-4. Wait for user selection.
-   - A number → use the corresponding URL. Go to Step 1.
-   - A pasted URL or JD text → use that directly. Go to Step 1.
-   - "all" / "process all" → go to Step 0.5.
+`scan_aggregate.py`'s reaper runs at the start of every scan and closes (`- [ ]` → `- [x] ... EXPIRED`) entries older than `config/profile.yml` `scan.pipeline_max_age_days` (default 45), so this queue stays bounded to recent inflow instead of growing forever — its counts (`reaped=N undatable=M open_remaining=K`) print in the scan summary, worth a glance before a full triage run.
 
 After successfully completing the pipeline for a job, mark its checkbox in `career-ops/data/pipeline.md` as done: `- [ ]` → `- [x]`.
 
@@ -43,7 +27,7 @@ After successfully completing the pipeline for a job, mark its checkbox in `care
 
 ## Step 0.5 — Triage pending entries
 
-**Triggered by Step 0's "all" path only.** Skip entirely for a specific URL, JD text, or single numbered entry.
+**Runs whenever Step 0 falls through to the full queue** (no URL/JD text/single entry was given directly) — this is now the default path, not an opt-in. Skip entirely when the user handed over a specific URL, JD text, or a single entry to process.
 
 Before recommending any `pass`/`borderline` entry onward, cross-check it against the Notion JOB OP database per the Notion-first already-applied rule in `modes/_custom.md` — `data/applications.md` and scan-history dedup alone can lag the tracker.
 
@@ -61,7 +45,7 @@ Minimum required:
     preferences: |
       Describe your target roles here. The LLM uses this to score each job.
 
-After adding the block, re-run /jobhunter pipeline and select 'all' to activate triage.
+After adding the block, re-run /jobhunter pipeline with no URL/JD to triage the full queue.
 ```
 
 ### Parse pending entries
@@ -74,9 +58,11 @@ From the `- [ ]` entries in Step 0, extract `{url}`, `{title}`, `{company}`. Lin
 
 Strip the leading `- [ ] `, split on ` | ` — field 0 url, 1 company, 2 title. If no ` | `, use the raw line as `title`, `"unknown"` company, `""` url. Build an indexed list.
 
-### Score entries (batches of 50)
+**`⚑ RESCUED` entries jump to the front.** If a title field starts with `⚑ RESCUED ` (a human pre-assessed it as a strong fit during a reaper backlog sweep — see `scan_aggregate.py`), move it to the front of the indexed list ahead of everything else before batching, so it lands in the first triage batch.
 
-For each batch of up to 50, call the Agent tool with `subagent_type: "general-purpose"`, `model: "haiku"`, `description: "triage batch {start}–{end} of {total}"`, and prompt:
+### Score entries (batches of ~40)
+
+For each batch of up to 40, call the Agent tool with `subagent_type: "general-purpose"`, `model: "haiku"`, `description: "triage batch {start}–{end} of {total}"`, and prompt:
 
 ```
 You are a job relevance screener for a specific candidate. Score each job below.
@@ -396,7 +382,7 @@ Report: output folder path; verifier verdict + warnings; PDF paths and page coun
 
 ## Step 10.5 — Triage feedback
 
-**Triggered only when Step 0.5 ran in this session** (queue mode, "all" path). Skip if no entries were scored, or if Step 0.5 produced 0 skip + 0 borderline.
+**Triggered only when Step 0.5 ran in this session** (full-queue mode, the default when no URL/JD/single entry was given). Skip if no entries were scored, or if Step 0.5 produced 0 skip + 0 borderline.
 
 ### Interaction A: Borderline review (skip if borderline_count = 0)
 

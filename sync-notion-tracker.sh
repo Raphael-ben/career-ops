@@ -34,7 +34,19 @@ cd "$REPO" || { echo "$(date '+%F %T') repo missing" >>"$LOG"; exit 1; }
 
 # ---------------------------------------------------------------------------
 # Resolve tracker config (DB id, data source id) from config/profile.yml.
-# Prefer yq if installed; fall back to a python3 + PyYAML one-liner.
+# Prefer yq if installed; fall back to grep/sed (no interpreter dependency).
+#
+# 2026-09-15 (#defect-C): the previous python3+PyYAML fallback silently
+# emptied both IDs for weeks (2026-09-07, 2026-09-14 runs both no-op'd as
+# "not configured") even though profile.yml was correctly populated. Cause:
+# this script's sanitized PATH resolves `python3` to a bare interpreter
+# (Homebrew's, no PyYAML installed — the repo's PyYAML lives only in
+# .venv/, which this PATH deliberately excludes), so `import yaml` raised
+# and the swallowed stderr (`2>/dev/null`) turned that failure into two
+# empty strings instead of a loud error. grep/sed has no module to be
+# missing, so it can't fail the same way. The two ids are flat, single-
+# occurrence scalar keys, so this is exact for the current shape; if
+# `tracker.notion` ever grows a second block, switch to a real yq install.
 # ---------------------------------------------------------------------------
 APPLICATIONS_DB_ID=""
 DATA_SOURCE_ID=""
@@ -43,14 +55,9 @@ if [[ -f "$PROFILE_YML" ]]; then
   if command -v yq >/dev/null 2>&1; then
     APPLICATIONS_DB_ID="$(yq -r '.tracker.notion.applications_db_id // ""' "$PROFILE_YML" 2>/dev/null)"
     DATA_SOURCE_ID="$(yq -r '.tracker.notion.data_source_id // ""' "$PROFILE_YML" 2>/dev/null)"
-  elif command -v python3 >/dev/null 2>&1; then
-    read -r APPLICATIONS_DB_ID DATA_SOURCE_ID <<<"$(python3 -c "
-import yaml, sys
-with open(sys.argv[1]) as f:
-    cfg = yaml.safe_load(f) or {}
-notion = ((cfg.get('tracker') or {}).get('notion') or {})
-print(notion.get('applications_db_id') or '', notion.get('data_source_id') or '')
-" "$PROFILE_YML" 2>/dev/null)"
+  else
+    APPLICATIONS_DB_ID="$(grep -m1 'applications_db_id:' "$PROFILE_YML" | sed -E 's/.*applications_db_id:[[:space:]]*"?([^"[:space:]]*)"?[[:space:]]*$/\1/')"
+    DATA_SOURCE_ID="$(grep -m1 'data_source_id:' "$PROFILE_YML" | sed -E 's/.*data_source_id:[[:space:]]*"?([^"[:space:]]*)"?[[:space:]]*$/\1/')"
   fi
 fi
 
@@ -91,6 +98,13 @@ Run the weekly JOB OP Notion -> jobhunter tracker sync. Work in career-ops (cwd)
    Canonical statuses: Evaluated, Applied, Responded, Interview, Offer, Rejected, Discarded, SKIP.
 3. Match each Notion page to a tracker row by Company (=Notion Name) + Role (=Position),
    case-insensitive, allowing obvious variants (AG suffix, punctuation).
+   MULTI-APPLICATION COMPANIES (#defect-C, found 2026-09-15): when a company has more
+   than one tracker row but only ONE Notion page, the page's structured Status/Position
+   reflect only ONE of the applications — a second application's outcome can be buried
+   as free text inside that same page's Rejection reason (e.g. "rejection received for
+   the SECOND application only: <role>..."). Before leaving any same-company tracker
+   row unmatched, read that company's Rejection reason (and Job description) text for a
+   second role name + outcome and reconcile it against the otherwise-unmatched row too.
 4. If the Notion Status maps to a DIFFERENT canonical status than the row currently has,
    UPDATE the Status column and append a dated note. Mapping:
      Applied     -> Applied
