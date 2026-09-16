@@ -112,6 +112,61 @@ def is_directory(url):
     return any(host == d or host.endswith("." + d) for d in DIRECTORY_DOMAINS)
 
 
+# Positive posting-signal gate — Tavily only (#tavily-junk). Tavily is a web
+# search, not a job feed: it ranks whatever page matches the query text, which
+# regularly includes corporate homepages, conference/exec-ed pages, and
+# consulting "industries" pages that happen to share vocabulary with a search
+# query like "Private Equity Value Creation Manager". DIRECTORY_HINTS/DOMAINS
+# above is a blocklist grown one offender at a time and always trails the next
+# junk shape; this is the opposite structure — default-deny, so a URL must
+# show an actual job-posting signal to survive. The scraper feeds (jobspy,
+# jobs.ch, stepstone, ...) never need this: every URL they emit already came
+# from a job-detail endpoint by construction.
+POSTING_PATH_HINTS = (
+    "/job/", "/jobs/", "/career/", "/careers/", "/vacanc", "/stelle",
+    "/position", "/offre", "/jobid", "jobid=", "/viewjob", "/postings/",
+)
+
+# Host suffixes that are themselves a job board/ATS — any path beyond root
+# counts as a posting signal there even without a path token above. NOT
+# linkedin.com/indeed.com: both host huge non-posting surfaces (company
+# pages, profiles, articles) under paths that carry no job token, so those
+# two stay gated by POSTING_PATH_HINTS only ("/jobs/view/", "/viewjob").
+POSTING_HOST_SUFFIXES = (
+    "jobs.ch", "jobup.ch", "stepstone.de",
+    "stepstone.ch", "efinancialcareers.com", "efinancialcareers.ch",
+    "jobscout24.ch", "zueri.jobs", "myworkdayjobs.com",
+    "greenhouse.io", "job-boards.greenhouse.io", "lever.co",
+    "ashbyhq.com", "smartrecruiters.com",
+)
+
+
+def is_tavily_posting(url):
+    """Positive gate: keep a Tavily URL only if it looks like an individual
+    job posting. Everything else (homepage, agenda/event/program/course/
+    exec-ed page, a company's generic /industries//services/ marketing page,
+    a bare LinkedIn company page) is dropped, even if it already passed
+    is_directory() — this is a stricter, Tavily-only second gate, not a
+    replacement for it.
+    """
+    u = (url or "").lower()
+    if not u:
+        return False
+    if any(h in u for h in POSTING_PATH_HINTS):
+        return True
+    parsed = urlparse(u)
+    host = parsed.netloc
+    path = parsed.path.strip("/")
+    if not path:
+        return False  # homepage / bare root — never a posting
+    if any(host == d or host.endswith("." + d) for d in POSTING_HOST_SUFFIXES):
+        return True
+    # jobs.<company> / careers.<company> subdomains, any path beyond root
+    if host.startswith("jobs.") or host.startswith("careers."):
+        return True
+    return False
+
+
 def run_scraper(name):
     """Run a scraper, return its JSON list. Never raises — [] on failure."""
     try:
@@ -129,6 +184,51 @@ def run_scraper(name):
         return []
 
 
+ATS_FULL_CHECKPOINT = HERE / "data" / "cache" / "ats-full-checkpoint.json"
+
+
+def run_ats_full(profile_cfg, dry_run=False):
+    """Optional stage: `node scan-ats-full.mjs` — a reverse-ATS keyword sweep of
+    the full public Greenhouse/Lever/Ashby/Workday/iCIMS datasets, filtered by
+    portals.yml's own title_filter/location_filter (no company list needed, so
+    it finds postings at companies not in portals.yml at all).
+
+    Gated by profile.yml scan.ats_full (default true). Unlike run_scraper(),
+    this writes data/pipeline.md and data/scan-history.tsv ITSELF — same
+    contract, same functions the other scrapers feed through set-status
+    upstream of — so there's no offers list to merge back into main()'s
+    funnel; we just diff scan-history.tsv's line count to report a matches
+    count. subprocess.run's own `timeout` is the hard cap (no `timeout(1)`
+    binary needed); a cap hit or non-zero exit is tolerated — scan-ats-full.mjs
+    checkpoints its own progress and `--resume` (used automatically once a
+    checkpoint exists) continues the interrupted sweep next run.
+    """
+    cfg = (profile_cfg.get("scan") or {})
+    if not cfg.get("ats_full", True):
+        return 0
+    cap = int(cfg.get("ats_full_cap_seconds", 900))
+    before = len(HISTORY.read_text(errors="replace").splitlines()) if HISTORY.exists() else 0
+    args = ["node", str(HERE / "scan-ats-full.mjs")]
+    if ATS_FULL_CHECKPOINT.exists():
+        args.append("--resume")
+    if dry_run:
+        args.append("--dry-run")
+    try:
+        proc = subprocess.run(args, capture_output=True, text=True,
+                               timeout=cap, cwd=str(HERE))
+        if proc.returncode != 0:
+            print(f"  [ats-full] exited {proc.returncode}: "
+                  f"{proc.stderr.strip()[-300:]}", file=sys.stderr)
+    except subprocess.TimeoutExpired:
+        print(f"  [ats-full] hit the {cap}s cap — checkpoint saved, "
+              f"--resume picks it up next run", file=sys.stderr)
+    except Exception as e:  # noqa: BLE001 — best-effort, never blocks the rest of the scan
+        print(f"  [ats-full] failed: {e}", file=sys.stderr)
+        return 0
+    after = len(HISTORY.read_text(errors="replace").splitlines()) if HISTORY.exists() else 0
+    return max(0, after - before)
+
+
 def run_tavily(profile_cfg, portals_cfg):
     """Run portals.yml search_queries via Tavily REST. Zero agent tokens."""
     key = ((profile_cfg.get("tavily") or {}).get("api_key") or "").strip()
@@ -137,6 +237,8 @@ def run_tavily(profile_cfg, portals_cfg):
               "(agent MCP fallback per rb/scan.md)", file=sys.stderr)
         return []
     jobs = []
+    tavily_kept = 0
+    tavily_dropped_nonposting = 0
     queries = [q for q in (portals_cfg.get("search_queries") or [])
                if q.get("enabled", True)]
     print(f"  [tavily] {len(queries)} queries", file=sys.stderr)
@@ -168,9 +270,15 @@ def run_tavily(profile_cfg, portals_cfg):
             url = res.get("url", "")
             if is_directory(url):
                 continue  # directory/profile/marketing page, not an individual posting
+            if not is_tavily_posting(url):
+                tavily_dropped_nonposting += 1
+                continue
+            tavily_kept += 1
             jobs.append({"title": res.get("title", ""), "company": "",
                          "url": url, "source": "tavily",
                          "location": "", "date_posted": ""})
+    print(f"  [tavily] tavily_kept={tavily_kept} "
+          f"tavily_dropped_nonposting={tavily_dropped_nonposting}", file=sys.stderr)
     return jobs
 
 
@@ -610,6 +718,40 @@ def selftest():
         tsv_path.unlink()
         pipe_path.unlink()
 
+    # ── Tavily positive posting-gate fixtures ──
+    # Real junk offenders pulled from data/scan-history.tsv's 2026-09-15/16
+    # tavily rows (#tavily-junk) — homepages, conference/exec-ed/course pages,
+    # consulting "industries" pages, a bare LinkedIn company page.
+    tavily_junk = [
+        "https://www.imiplc.com",
+        "https://www.aptiv.com",
+        "https://www.givaudan.com",
+        "https://china.ahk.de",
+        "https://alterdomus.com/services/private-equity-solutions",
+        "https://www.grantthornton.com/services/advisory-services/business-consulting",
+        "https://www.ashrae.org/technical-resources/supplier-provided-learning/supplier-webinars",
+        "https://www.ey.com/en_ch/industries/private-equity/value-creation",
+        "https://www.alexandergroup.com/industries/manufacturing/packaging",
+        "https://www.legic.com/connectconference",
+        "https://www.terrapinn.com/exhibition/solar-storage-live-zurich/Agenda.stm",
+        "https://www.linkedin.com/company/dwyeromega",
+        "https://www.privateequitymarketeer.com/private-equity-events",
+        "https://www.aaltoee.fi/en/themes/marketing-and-sales",
+        "https://www.bbs.unibo.it/en/master-fulltime/analytics-and-ai-for-marketing",
+        "https://www.3plogistics.com/events-2026",
+        "https://www.sid.org.sg/Web/Web/Events/Event_Display.aspx?EventKey=SC8160926",
+    ]
+    for u in tavily_junk:
+        assert not is_tavily_posting(u), f"tavily positive gate should drop: {u}"
+
+    tavily_real = [
+        "https://acme.wd1.myworkdayjobs.com/en-US/External/job/Zurich/Senior-Manager_R12345",
+        "https://www.jobs.ch/en/vacancies/detail/00001a2b-3c4d-5e6f-0001-a2b3c4d5e6f7/",
+        "https://www.linkedin.com/jobs/view/4012345678",
+    ]
+    for u in tavily_real:
+        assert is_tavily_posting(u), f"tavily positive gate should keep: {u}"
+
     print("selftest: OK")
 
 
@@ -646,6 +788,12 @@ def main():
     # REAPER — runs at the start of every scan too, so pipeline.md stays
     # bounded without a separate step anyone has to remember to run.
     reap_stats = reap_pipeline(pipeline_max_age, today=today, dry_run=args.dry_run)
+
+    # Runs (and writes pipeline.md/scan-history.tsv) FIRST, before load_history()
+    # reads them — so its own rows are in `seen`/static_corpus and the scraper
+    # loop below can't re-add the same URL a second time this run.
+    ats_full_new = run_ats_full(profile, dry_run=args.dry_run)
+    print(f"  ats-full: {ats_full_new} new rows", file=sys.stderr)
 
     seen, history_pairs = load_history()
     applied_pairs = load_applications()
@@ -716,7 +864,8 @@ def main():
                 llm_dropped += 1
         borderline = kept
 
-    funnel = (f"\nFunnel: raw={raw}  fresh(<={max_age}d)={len(fresh)}  "
+    funnel = (f"\nats-full: {ats_full_new} new rows (writes pipeline.md/scan-history.tsv directly)\n"
+              f"Funnel: raw={raw}  fresh(<={max_age}d)={len(fresh)}  "
               f"location_ok={len(lpass)}  neg_dropped={dropped_neg}  "
               f"blacklist_dropped={dropped_blacklist}  "
               f"fuzzy_dropped={fuzzy_dropped}  ")
