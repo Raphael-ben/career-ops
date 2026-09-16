@@ -461,6 +461,25 @@ def title_bucket(title, pos, neg):
     return "borderline"
 
 
+CH_SIGNAL_TOKENS = (
+    "schweiz", "switzerland", "suisse", "svizzera", "zürich", "zurich",
+    "basel", "bern", "zug", "winterthur", "luzern", "lucerne", "st. gallen",
+    "st.gallen", "schaffhausen", "aargau", "baar", "rotkreuz", "glattbrugg",
+    "kloten", "opfikon",
+)
+CH_URL_TOKENS = (".ch/", "jobs.ch", "jobup.ch", "jobscout24.ch", "zueri.jobs",
+                 "/in-schweiz", "switzerland", "schweiz", "zurich", "zuerich")
+
+
+def has_ch_signal(title, url):
+    """Any Switzerland evidence in title or URL — used to keep a location-less
+    row from passing on title match alone."""
+    t = (title or "").lower()
+    u = (url or "").lower()
+    return (any(tok in t for tok in CH_SIGNAL_TOKENS)
+            or any(tok in u for tok in CH_URL_TOKENS))
+
+
 def location_ok(loc, allow, block):
     l = (loc or "").strip().lower()
     if not l:
@@ -615,6 +634,22 @@ def reap_pipeline(max_age_days, today=None, pipeline_path=None, history_path=Non
 def selftest():
     """In-memory fuzzy-dedup assertions — no network, no real files touched."""
     import tempfile
+
+    # location: German "…Schweiz" pseudonym regions must be blockable even
+    # though they substring-match the CH allow token (Märkische Schweiz
+    # borderline incident 2026-09-16) — block is checked before allow.
+    _blk = ["märkische schweiz", "brandenburg"]
+    assert not location_ok("Buckow (Märkische Schweiz)", ["schweiz"], _blk)
+    assert location_ok("Zürich, Schweiz", ["schweiz"], _blk)
+    assert title_bucket("Assistenzarzt Innere Medizin", [], ["assistenzarzt"]) == "drop"
+
+    # tavily no-location demotion: a title-positive Tavily row with no
+    # location and no CH signal anywhere must NOT pass outright (Coca-Cola
+    # HBC Nigeria incident 2026-09-16) — it goes to borderline for triage.
+    assert not has_ch_signal("Marketing Execution Lead, Key Accounts",
+                             "https://www.aggregatorjobs.com/view/12345")
+    assert has_ch_signal("Key Account Manager Zürich", "https://x.com/1")
+    assert has_ch_signal("Sales Lead", "https://www.jobs.ch/en/vacancies/detail/abc/")
 
     # exact URL dup dropped (upstream short-circuit — simulated here)
     seen = {"https://example.com/job/1"}
@@ -829,6 +864,13 @@ def main():
         if bucket == "drop":
             dropped_neg += 1
             continue
+        # A location-less row (Tavily/aggregator) can't earn an outright pass
+        # on title alone — without any CH signal in title or URL it may be
+        # anywhere on earth (Coca-Cola HBC Nigeria, 2026-09-16). Demote to
+        # borderline so triage judges it instead.
+        if (bucket == "pass" and not (j.get("location") or "").strip()
+                and not has_ch_signal(j.get("title"), url)):
+            bucket = "borderline"
         run_seen.add(url)
         (passed if bucket == "pass" else borderline).append(j)
 
