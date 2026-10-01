@@ -21,3 +21,21 @@ Playwright" rule in CLAUDE.md/AGENTS.md.
   local venv, or the `scrapling` MCP `get`/`fetch` tools. No PlaywrightFetcher,
   no StealthyFetcher (both launch browsers).
 - If blocked: note "(JD fetch failed — paste manually from {url})" and move on.
+
+## Clickable job links everywhere
+
+Whenever a job is mentioned by name in ANY output (scan summaries,
+pre-assessments, triage, tracker views, evaluation reports, apply flows),
+render the name as a markdown link to the job ad URL: `[Title — Company](url)`.
+Never print a bare job title when its URL is known.
+
+## Notion-first already-applied check
+
+Before treating any job as new/unapplied (triage, evaluate, apply), ALWAYS
+also check the Notion JOB OP database via the Notion MCP (search the data
+source whose id is in `config/profile.yml` → `tracker.notion.data_source_id`)
+by company name (and role if ambiguous), in addition to `data/applications.md`
+and scan-history fuzzy dedup. A Notion entry with status Applied/Interview/
+Offer/Rejected means NOT new — surface the existing entry and its status
+instead. If the Notion MCP is unavailable in the session, say so explicitly
+and fall back to `data/applications.md`.
