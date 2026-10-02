@@ -72,7 +72,7 @@ ATS-optimized, keyword-injected from the JD. Single-page, clean for parsers.
 /jobhunter humanize
 ```
 
-Removes AI writing patterns from the LaTeX CV and cover letter. Applies 29 rules.
+Removes AI writing patterns from the LaTeX CV and cover letter. Applies 30 rules.
 Does not change facts, metrics, or structure — only phrasing.
 
 ### Step 5 — Apply
