@@ -1,14 +1,14 @@
 # Mode: pro/humanize — Job Application Humanizer
 
-> Adapted from [blader/humanizer](https://github.com/blader/humanizer) — LaTeX-specific fork with 29 rules tuned for job application CVs and cover letters.
+> Adapted from [blader/humanizer](https://github.com/blader/humanizer) — LaTeX-specific fork with 30 rules tuned for job application CVs and cover letters.
 > Original work Copyright (c) 2025 Siqi Chen, MIT License.
 
 ## Purpose
-Remove AI writing patterns from CV and cover letter LaTeX content. This mode is self-contained — all 29 humanization rules are embedded below. No external skill is required.
+Remove AI writing patterns from CV and cover letter LaTeX content. This mode is self-contained — all 30 humanization rules are embedded below. No external skill is required.
 
 ## Resolution — machine paths and profile bank
 
-Resolve `{DATA_DIR}` and `{PYTHON}` from `modes/_profile.md` (lines `DATA_DIR: ...` / `PYTHON: ...`). If absent, `{DATA_DIR}` defaults to the repo's `config/` and `{PYTHON}` to `python3`. The **profile bank** is `{DATA_DIR}/config/profile_bank.json` (fallback: repo `config/profile_bank.json`). The concrete banned-word/phrase LISTS below come from `profile_bank.humanize.*`; the 29 conceptual patterns are person-agnostic and stay in this file. `{file_slug}` = `profile_bank.candidate.file_slug`.
+Resolve `{DATA_DIR}` and `{PYTHON}` from `modes/_profile.md` (lines `DATA_DIR: ...` / `PYTHON: ...`). If absent, `{DATA_DIR}` defaults to the repo's `config/` and `{PYTHON}` to `python3`. The **profile bank** is `{DATA_DIR}/config/profile_bank.json` (fallback: repo `config/profile_bank.json`). The concrete banned-word/phrase LISTS below come from `profile_bank.humanize.*`; the 30 conceptual patterns are person-agnostic and stay in this file. `{file_slug}` = `profile_bank.candidate.file_slug`.
 
 ---
 
@@ -39,7 +39,7 @@ Resolve `{DATA_DIR}` and `{PYTHON}` from `modes/_profile.md` (lines `DATA_DIR: .
 
 ---
 
-## Job-application-specific bans (in addition to the 29 patterns below)
+## Job-application-specific bans (in addition to the 30 patterns below)
 
 These are data-driven. Read the lists from the profile bank and ban every entry, in whatever language the document is written:
 
@@ -58,7 +58,7 @@ These are data-driven. Read the lists from the profile bank and ban every entry,
 
 ## Language-agnostic enforcement (CRITICAL)
 
-All 29 patterns and bans above describe **concepts**, not English words. Apply them to any language — German, French, or English — by detecting the equivalent phrasing. The rules fire on the concept regardless of language. The concrete word lists in `profile_bank.humanize.*_de` / `*_fr` are seeds, not the full set — also catch the conceptual equivalents below.
+All 30 patterns and bans above describe **concepts**, not English words. Apply them to any language — German, French, or English — by detecting the equivalent phrasing. The rules fire on the concept regardless of language. The concrete word lists in `profile_bank.humanize.*_de` / `*_fr` are seeds, not the full set — also catch the conceptual equivalents below.
 
 ### German-language patterns to watch (most common AI tells in DE cover letters)
 
@@ -79,15 +79,15 @@ All 29 patterns and bans above describe **concepts**, not English words. Apply t
 
 ---
 
-## 29 Humanization Patterns
+## 30 Humanization Patterns
 
-Apply all of these. Source: blader/humanizer SKILL.md v2.5.1, based on Wikipedia's "Signs of AI writing" guide.
+Apply all of these. Source: blader/humanizer SKILL.md v2.5.1 (numbering), with rule deltas ported through v3.1.0 (upstream 225a6f3), based on Wikipedia's "Signs of AI writing" guide.
 
 ### Content Patterns
 
 **1. Significance inflation** — Words: stands/serves as, is a testament/reminder, vital/significant/crucial/pivotal/key role, underscores/highlights its importance, reflects broader, symbolizing, contributing to, setting the stage for, marks a shift, key turning point, evolving landscape, indelible mark. Fix: state the fact directly.
 
-**2. Notability name-dropping** — Words: independent coverage, local/national media outlets, active social media presence. Fix: cite specifically or remove.
+**2. Notability name-dropping** — Words: independent coverage, local/national media outlets, active social media presence. Fix: cite specifically or remove. Also (upstream #2 widening): a sentence after a bullet or example that names what it already showed ("This shows my ability to...", "This experience taught me...", "The result was clear:"), and dramatic one-line closers ("That distinction matters."). Fix: cut it unless it adds a new fact.
 
 **3. Superficial -ing analyses** — Words: highlighting, underscoring, emphasizing, ensuring, reflecting, symbolizing, contributing to, cultivating, fostering, encompassing, showcasing (tacked on to add fake depth). Fix: remove the dangling participle or replace with a concrete fact.
 > Before: "led the integration, contributing to a 20% efficiency gain, highlighting the team's…"
@@ -137,6 +137,8 @@ Apply all of these. Source: blader/humanizer SKILL.md v2.5.1, based on Wikipedia
 
 **29. Fragmented headers / filler openers** — A heading/bullet opener followed by a generic sentence that restates it before the real content. Fix: remove the filler sentence.
 
+**30. Re-explaining what the reader already knows** (upstream v3.1.0 #26; numbered 30 here to avoid the #26 collision) — Every sentence must add something the reader does not already have, from the text or from the job ad they are answering. Watch for: restating the JD's own requirements, the company's own description, or the role title back to the reader as framing ("As your posting requires X, ...", "A role that demands X and Y needs ..."); a background sentence before the point. Fix: cut the restatement and lead with the candidate's own evidence (what was done, with which result); cite a JD requirement only as a short pointer to that evidence, never as a source of new claims. Do not add claims to replace what you cut.
+
 ### Communication Patterns
 
 **20. Chatbot artifacts** — I hope this helps, Of course!, Certainly!, Would you like, let me know, here is a…. Fix: remove entirely.
@@ -151,7 +153,7 @@ Apply all of these. Source: blader/humanizer SKILL.md v2.5.1, based on Wikipedia
 
 **24. Excessive hedging** — Fix: one hedge word maximum per claim.
 
-**25. Generic positive conclusions** — the future looks bright, exciting times lie ahead, journey toward excellence, major step in the right direction. Fix: specific facts or plans.
+**25. Generic positive conclusions** — the future looks bright, exciting times lie ahead, journey toward excellence, major step in the right direction. Fix: specific facts or plans. Also (upstream #25 widening): text that describes itself instead of its subject — how the letter or CV was assembled, sourced, or laid out ("this letter outlines", "as detailed below", "the following paragraphs show"). Fix: cut and start with the content.
 
 ---
 
@@ -161,7 +163,7 @@ Apply all of these. Source: blader/humanizer SKILL.md v2.5.1, based on Wikipedia
 2. Identify all text regions (bullets and cover letter paragraphs)
 3. For each text region:
    a. Apply hard constraints filter first (mark anything that would change facts/structure as off-limits)
-   b. Scan against all 29 patterns + the `profile_bank.humanize.*` bans
+   b. Scan against all 30 patterns + the `profile_bank.humanize.*` bans
    c. Rewrite only the flagged phrases; leave everything else identical
 4. Final pass: "What still reads as obviously AI-generated?" — fix any remaining tells
 5. **Cover-letter-specific checks (run after pattern pass):**
@@ -184,7 +186,7 @@ After writing the humanized `.tex` files, write `humanizer_report.json` to the s
   "flags_found": 0,
   "rewrites_applied": 0,
   "changes": [
-    { "document": "{file_slug}_CV.tex", "pattern": "<pattern name from the 29-pattern list>", "before": "<original>", "after": "<rewritten>" }
+    { "document": "{file_slug}_CV.tex", "pattern": "<pattern name from the 30-pattern list>", "before": "<original>", "after": "<rewritten>" }
   ],
   "summary": "<one sentence: how many flags, what was changed, any patterns with zero hits>"
 }
