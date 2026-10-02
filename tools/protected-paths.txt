@@ -1,0 +1,44 @@
+# protected-paths.txt -- fork-owned files the update guard must never lose.
+# One path per line, relative to the career-ops root. '#' starts a comment.
+# tools/update-guard.sh hashes each line before an update and restores any
+# changed/missing file from the pre-update snapshot commit afterwards.
+# Needed because update-system.mjs's local-paths mechanism cannot protect
+# files under updater-owned directories (templates/, tools/, modes/, ...).
+
+# --- fork prompt layer (modes/pro) ---
+modes/pro/apply.md
+modes/pro/humanize.md
+modes/pro/pipeline.md
+modes/pro/scan.md
+modes/pro/tracker-entry.md
+modes/pro/verify.md
+modes/pro/write-cv.md
+modes/pro/write-cl.md
+modes/_custom.md
+
+# --- fork scan / tooling scripts ---
+scan_aggregate.py
+scan_http.py
+cv_fitcheck.py
+jobs_ch.py
+jobspy_scan.py
+stepstone_scan.py
+efinancialcareers_scan.py
+jobscout24_scan.py
+zuerijobs_scan.py
+notion_finalize.py
+sync-notion-tracker.sh
+generate-latex-pro.mjs
+
+# --- guard + leak tooling ---
+tools/leak-check.sh
+tools/update-guard.sh
+tools/protected-paths.txt
+
+# --- profile bank schema ---
+config/profile_bank.schema.json
+config/profile_bank.example.json
+
+# --- pro LaTeX templates (lived under updater-owned templates/; pruned in v1.32) ---
+templates/cv-template-pro.tex
+templates/cover-letter-template-pro.tex

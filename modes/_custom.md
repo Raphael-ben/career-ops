@@ -39,3 +39,15 @@ and scan-history fuzzy dedup. A Notion entry with status Applied/Interview/
 Offer/Rejected means NOT new — surface the existing entry and its status
 instead. If the Notion MCP is unavailable in the session, say so explicitly
 and fall back to `data/applications.md`.
+
+## System updates — ALWAYS via tools/update-guard.sh, never bare update-system.mjs apply
+
+`bash tools/update-guard.sh` is the only sanctioned update path. It encodes 5 known
+updater failure modes: (1) stale baseline from the commit-subject grep wrongly
+preserving changed files, (2) VERSION lagging the release, (3) the PRUNE step
+deleting fork-only files under updater-owned dirs (e.g. `templates/*-pro.tex`),
+(4) partial-checkout drift of multi-file units, (5) interface lag on preserved
+system files. It snapshots the tree, hashes `tools/protected-paths.txt`, applies,
+restores any damaged protected file, stamps VERSION, and runs a smoke suite.
+`--repair-only` re-verifies and restores from the last snapshot. Add new
+fork-owned files to `tools/protected-paths.txt`.

@@ -302,3 +302,6 @@ node_modules
 !documents/.gitkeep
 !documents/README.md
 data/agent-inbox.md
+
+# update-guard working state
+.update-guard/
