@@ -216,6 +216,42 @@ def run_ats_full(profile_cfg, dry_run=False):
     try:
         proc = subprocess.run(args, capture_output=True, text=True,
                                timeout=cap, cwd=str(HERE))
+        # A career-ops update that changes scan-ats-full.mjs defaults (e.g. v1.32.0
+        # added bamboohr to SOURCES) makes the old checkpoint incompatible, and
+        # --resume then fails on EVERY run forever. Re-pass the checkpoint's own
+        # settings so the interrupted sweep finishes (keeping its unwritten
+        # offers[]); once it completes the checkpoint is gone and new defaults apply.
+        if proc.returncode != 0 and "different settings" in proc.stderr:
+            try:
+                cp = json.loads(ATS_FULL_CHECKPOINT.read_text())
+                args += ["--ats", ",".join(cp["ats"])]
+                if cp.get("limit") is not None:
+                    args += ["--limit", str(cp["limit"])]
+                if cp.get("includeUndated"):
+                    args.append("--include-undated")
+                print(f"  [ats-full] checkpoint predates current defaults (career-ops "
+                      f"update?) — resuming with its settings: --ats {','.join(cp['ats'])}",
+                      file=sys.stderr)
+            except Exception:  # noqa: BLE001 — unreadable checkpoint: start fresh
+                print("  [ats-full] unreadable incompatible checkpoint — deleting, "
+                      "starting fresh", file=sys.stderr)
+                ATS_FULL_CHECKPOINT.unlink(missing_ok=True)
+                args.remove("--resume")
+            proc = subprocess.run(args, capture_output=True, text=True,
+                                   timeout=cap, cwd=str(HERE))
+        # Any other checkpoint refusal (e.g. "company dataset changed since the
+        # checkpoint" once the 24h ats-companies cache refetches between weekly
+        # runs) would also fail on every run forever. No way to salvage it:
+        # drop the checkpoint (its unwritten offers are lost) and sweep fresh.
+        if (proc.returncode != 0 and "--resume" in args
+                and "checkpoint" in proc.stderr):
+            print(f"  [ats-full] checkpoint not resumable "
+                  f"({proc.stderr.strip()[-160:]}) — deleting it, sweeping fresh",
+                  file=sys.stderr)
+            ATS_FULL_CHECKPOINT.unlink(missing_ok=True)
+            args = ["node", str(HERE / "scan-ats-full.mjs")] + (["--dry-run"] if dry_run else [])
+            proc = subprocess.run(args, capture_output=True, text=True,
+                                   timeout=cap, cwd=str(HERE))
         if proc.returncode != 0:
             print(f"  [ats-full] exited {proc.returncode}: "
                   f"{proc.stderr.strip()[-300:]}", file=sys.stderr)
@@ -786,6 +822,40 @@ def selftest():
     ]
     for u in tavily_real:
         assert is_tavily_posting(u), f"tavily positive gate should keep: {u}"
+
+    # ats-full checkpoint recovery (2026-10-06): a stale checkpoint must never
+    # wedge the stage. Fake node via a scripted stderr sequence; temp paths only.
+    import tempfile, types
+    global ATS_FULL_CHECKPOINT, HISTORY
+    saved = (ATS_FULL_CHECKPOINT, HISTORY, subprocess.run)
+    tmp = Path(tempfile.mkdtemp())
+    ATS_FULL_CHECKPOINT, HISTORY = tmp / "cp.json", tmp / "h.tsv"
+    calls = []
+
+    def scripted(*errs):
+        it = iter(errs)
+        def run(a, **k):
+            calls.append(list(a))
+            e = next(it, "")
+            return types.SimpleNamespace(returncode=1 if e else 0, stdout="", stderr=e)
+        return run
+    cfg = {"scan": {"ats_full_cap_seconds": 5}}
+    settings = "Error: checkpoint was written with different settings"
+    changed = "Error: icims company dataset changed since the checkpoint"
+    try:
+        # old-defaults checkpoint → resumed with its own settings
+        ATS_FULL_CHECKPOINT.write_text(json.dumps({"ats": ["greenhouse"], "limit": 200, "includeUndated": True}))
+        subprocess.run = scripted(settings); calls.clear(); run_ats_full(cfg)
+        assert len(calls) == 2 and calls[1][-5:] == ["--ats", "greenhouse", "--limit", "200", "--include-undated"], calls
+        # dataset changed → checkpoint dropped, fresh sweep
+        subprocess.run = scripted(changed); calls.clear(); run_ats_full(cfg)
+        assert len(calls) == 2 and "--resume" not in calls[1] and not ATS_FULL_CHECKPOINT.exists(), calls
+        # chained: settings retry then dataset changed → fresh sweep with default sources
+        ATS_FULL_CHECKPOINT.write_text(json.dumps({"ats": ["greenhouse"], "limit": None, "includeUndated": False}))
+        subprocess.run = scripted(settings, changed); calls.clear(); run_ats_full(cfg)
+        assert len(calls) == 3 and "--resume" not in calls[2] and "--ats" not in calls[2] and not ATS_FULL_CHECKPOINT.exists(), calls
+    finally:
+        ATS_FULL_CHECKPOINT, HISTORY, subprocess.run = saved
 
     print("selftest: OK")
 
