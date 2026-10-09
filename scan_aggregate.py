@@ -478,10 +478,15 @@ def is_dupe(row, static_corpus, accepted_this_run, threshold):
     for ot, oc in static_corpus + accepted_this_run:
         if not ot:
             continue
+        # Missing company on either side (jobs.ch never has one, Tavily/triage
+        # rows often don't) → no verdict possible, keep. Treating it as a 100%
+        # company match let a token-subset title alone ("key account manager")
+        # drop ~190 distinct postings per scan (2026-10-09); exact-URL dedup
+        # upstream still catches true reposts.
+        if not (company and oc):
+            continue
         t_score = fuzz.token_set_ratio(title, ot)
-        # Missing company data on either side (e.g. Tavily rows) → don't gate
-        # on company, same "sparse data → keep permissive" stance as location_ok.
-        c_score = fuzz.token_set_ratio(company, oc) if (company and oc) else 100
+        c_score = fuzz.token_set_ratio(company, oc)
         if min(t_score, c_score) >= threshold:
             return True
     return False
@@ -704,6 +709,19 @@ def selftest():
     row_diff_co = {"title": "Senior Business Development Manager",
                     "company": "Other Co", "url": "https://example.com/job/3"}
     assert not is_dupe(row_diff_co, corpus, [], 90), "different company wrongly flagged"
+
+    # missing company on either side → no fuzzy verdict possible, keep (2026-10-09:
+    # 199/199 fuzzy drops in one scan had no company to compare and only 10 were
+    # the same title — "Business Development Manager" at South Pole was dropped
+    # against a nameless historic "business development manager")
+    row_no_co = {"title": "Business Development Manager", "company": "?",
+                 "url": "https://example.com/job/4"}
+    assert not is_dupe(row_no_co, [(normalize("Business Development Manager"), "")], [], 90), \
+        "nameless title-only match wrongly flagged"
+    row_co = {"title": "Business Development Manager", "company": "South Pole",
+              "url": "https://example.com/job/5"}
+    assert not is_dupe(row_co, [(normalize("Business Development Manager"), "")], [], 90), \
+        "match against nameless history row wrongly flagged"
 
     # applications.md fixture: an Applied row's (role, company) dedupes a fuzzy match
     fixture = (
