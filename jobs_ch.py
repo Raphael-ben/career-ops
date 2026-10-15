@@ -103,7 +103,7 @@ def scrape_term(session, term: str, domain: str = "www.jobs.ch",
     Works for both JobCloud twins: jobs.ch and jobup.ch (same HTML)."""
     from scrapling import Selector
 
-    url = f"https://{domain}/en/vacancies/?term={quote_plus(term)}{region}"
+    url = f"https://{domain}/en/vacancies/?term={quote_plus(re.sub(r"\s+(switzerland|schweiz|zürich|zurich)$", "", term, flags=re.I))}{region}"
     try:
         resp = session.get(url, headers=HEADERS, timeout=15)
         resp.raise_for_status()

@@ -84,7 +84,7 @@ def parse_age(raw: str) -> str:
 def scrape_term(term: str) -> list:
     from scrapling import Selector
 
-    url = f"{DOMAIN}/en/jobs/?SearchWhat={quote_plus(term)}"
+    url = f"{DOMAIN}/en/jobs/?SearchWhat={quote_plus(re.sub(r"\s+(switzerland|schweiz|zürich|zurich)$", "", term, flags=re.I))}"
     resp = scan_http.get(url)
     if resp is None or resp.status_code != 200:
         code = resp.status_code if resp is not None else "no-response"

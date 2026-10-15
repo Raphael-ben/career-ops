@@ -82,7 +82,7 @@ def slugify(term: str) -> str:
     /jobs/{slug} pages are keyword-only (global scope), so the suffix would
     otherwise become part of the search keyword and return nothing."""
     t = term.strip().lower()
-    for suffix in ("switzerland", "zürich", "zurich"):
+    for suffix in ("switzerland", "schweiz", "zürich", "zurich"):
         if t.endswith(suffix):
             t = t[: -len(suffix)].strip()
     t = re.sub(r"[^a-z0-9äöüß&\s-]", " ", t)

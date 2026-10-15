@@ -77,7 +77,7 @@ def clean_query(term: str) -> str:
     (verified: 'Business Development' finds 11 hits, 'Business Development
     Switzerland' finds 0)."""
     t = term.strip()
-    for suffix in ("switzerland", "zürich", "zurich"):
+    for suffix in ("switzerland", "schweiz", "zürich", "zurich"):
         if t.lower().endswith(suffix):
             t = t[: -len(suffix)].strip()
     return t

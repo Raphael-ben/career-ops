@@ -71,7 +71,7 @@ def slugify(term: str) -> str:
     Strips the Swiss location suffix our search_terms always carry (the
     /in-schweiz URL segment already scopes the search to Switzerland)."""
     t = term.strip().lower()
-    for suffix in ("switzerland", "zürich", "zurich"):
+    for suffix in ("switzerland", "schweiz", "zürich", "zurich"):
         if t.endswith(suffix):
             t = t[: -len(suffix)].strip()
     t = re.sub(r"[^a-z0-9äöüß\s-]", " ", t)

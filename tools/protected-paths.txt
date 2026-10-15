@@ -26,6 +26,7 @@ stepstone_scan.py
 efinancialcareers_scan.py
 jobscout24_scan.py
 zuerijobs_scan.py
+jobfishing_scan.py
 notion_finalize.py
 sync-notion-tracker.sh
 generate-latex-pro.mjs

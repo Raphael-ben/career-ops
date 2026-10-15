@@ -60,7 +60,8 @@ HISTORY = HERE / "data" / "scan-history.tsv"
 PIPELINE = HERE / "data" / "pipeline.md"
 APPLICATIONS = HERE / "data" / "applications.md"
 SCRAPERS = ["jobspy_scan.py", "jobs_ch.py", "stepstone_scan.py",
-            "efinancialcareers_scan.py", "jobscout24_scan.py", "zuerijobs_scan.py"]
+            "efinancialcareers_scan.py", "jobscout24_scan.py", "zuerijobs_scan.py",
+            "jobfishing_scan.py"]  # no-op ([]) until `jobfishing_scan.py --login` is run
 
 # Statuses in applications.md that mean "don't resurface this role" for fuzzy dedup.
 APPLIED_STATUSES = {"applied", "interview", "offer", "responded"}
