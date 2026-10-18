@@ -93,8 +93,8 @@ export function findBankEntry(entries, name, startYear, nameKey) {
 }
 
 export function isCurrent({ end_status, end }, today) {
+  if (!['current_indefinite', 'contract_ending'].includes(end_status)) return false;
   if (!end) return true;
-  if (end_status === 'completed') return false;
   const [y, mo, d] = end.split('-').map(Number);
   const last = d ?? new Date(Date.UTC(y, mo, 0)).getUTCDate(); // YYYY-MM = end of that month
   return `${y}-${String(mo).padStart(2, '0')}-${String(last).padStart(2, '0')}` >= today;

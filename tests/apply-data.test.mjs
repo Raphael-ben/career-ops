@@ -117,6 +117,8 @@ test('isCurrent treats YYYY-MM end as end of month and null end as open', () => 
   assert.equal(isCurrent({ end_status: 'contract_ending', end: '2026-10' }, '2026-10-18'), true);
   assert.equal(isCurrent({ end_status: 'current_indefinite', end: null }, '2026-10-18'), true);
   assert.equal(isCurrent({ end_status: 'completed', end: '2027-01' }, '2026-10-18'), false);
+  assert.equal(isCurrent({ end_status: 'completed', end: null }, '2026-10-18'), false);
+  assert.equal(isCurrent({ end_status: 'weird', end: '2027-01' }, '2026-10-18'), false);
   assert.equal(isCurrent({ end_status: 'contract_ending', end: '2026-05-31' }, '2026-10-18'), false);
 });
 
