@@ -293,7 +293,7 @@
     if (!isPlaceholder(cur)) { r.skipped.push({ field, wanted, reason: `page has "${cur}"` }); return; }
     const res = await selectListbox(id, wanted);
     if (res.ok) r.filled.push(field);
-    else r.unmatchedOptions.push({ field, label, kind: 'listbox', targetId: id, wanted: source, source, options: res.options });
+    else r.unmatchedOptions.push({ field, label, kind: 'listbox', targetId: id, wanted, source, options: res.options });
   }
 
   async function rulePrompt(r, field, label, id, query, exact, single = true) {
@@ -415,7 +415,7 @@
         await guard(r, `${tag}: School`, e.school, () => ruleText(r, `${tag}: School`, id(n, c.school), e.school));
         await guard(r, `${tag}: Degree`, e.degreeText, async () => {
           const bid = id(n, c.degree);
-          if (e.degreeCode) { await ruleListbox(r, `${tag}: Degree`, 'Degree', bid, e.degreeCode); return; }
+          if (e.degreeCode) { await ruleListbox(r, `${tag}: Degree`, 'Degree', bid, e.degreeCode, e.degreeText); return; }
           // No code: read the tenant's options (an exact degreeText hit still fills) and hand them over.
           const btn = byId(bid);
           r.seen.add(bid);
@@ -462,16 +462,21 @@
     const step = W.stepOf([...document.querySelectorAll('[data-automation-id]')].map((e) => e.getAttribute('data-automation-id')));
     if (!step) return { step: null, filled: [], skipped: [], unmatchedOptions: [] };
     const r = newReport(step);
-    if (step === 'myInfo') await fillMyInfo(r, data);
+    const section = async (name, fn) => {
+      try { await fn(); } catch (e) { r.skipped.push({ field: name, wanted: '', reason: 'error: ' + (e && e.message || e) }); }
+    };
+    if (step === 'myInfo') await section('My Information', () => fillMyInfo(r, data));
     else {
-      await fillWork(r, data);
-      await fillEducation(r, data);
-      await fillSkills(r, data);
-      await guard(r, 'LinkedIn', data.candidate.linkedin, () => ruleText(r, 'LinkedIn', M.linkedin, data.candidate.linkedin));
-      await guard(r, 'Uploads', '', () => fillUploads(r, data, files));
+      await section('Work Experience', () => fillWork(r, data));
+      await section('Education', () => fillEducation(r, data));
+      await section('Skills', () => fillSkills(r, data));
+      await section('LinkedIn', () => guard(r, 'LinkedIn', data.candidate.linkedin, () => ruleText(r, 'LinkedIn', M.linkedin, data.candidate.linkedin)));
+      await section('Uploads', () => guard(r, 'Uploads', '', () => fillUploads(r, data, files)));
     }
-    const root = document.querySelector(auto(M.steps[step]));
-    if (root) sweepRequired(r, root);
+    await section('Required sweep', async () => {
+      const root = document.querySelector(auto(M.steps[step]));
+      if (root) sweepRequired(r, root);
+    });
     const { seen, ...report } = r;
     return report;
   }

@@ -62,3 +62,9 @@ test('parseHaikuResponse keeps null and survives junk', () => {
     assert.ok(typeof r.why === 'string' && r.why.length > 0);
   }
 });
+
+test('duplicate options are deduped in the enum', () => {
+  const body = JSON.parse(H.buildHaikuRequest({ ...entry, options: ['MS', 'MS', 'MBA'] }, 'k').init.body);
+  const enumVals = body.output_config.format.schema.properties.choice.anyOf.find((v) => v.enum).enum;
+  assert.deepEqual(enumVals, ['MS', 'MBA']);
+});

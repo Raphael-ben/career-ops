@@ -1,13 +1,14 @@
 // Haiku assist: build the Messages API request and parse a single-choice answer. Classic script.
 (function () {
   function buildHaikuRequest(entry, apiKey) {
+    const options = [...new Set(entry.options)];
     const prompt = [
       'A job application form has a field with no exact match for our value.',
       `Field: ${entry.label}`,
       `Wanted value: ${entry.wanted}`,
       `Source line: ${entry.source}`,
       'Options:',
-      ...entry.options,
+      ...options,
       '',
       'Pick the one option a recruiter would treat as the same thing, copied verbatim, or null if none fits.',
     ].join('\n');
@@ -22,7 +23,7 @@
           schema: {
             type: 'object',
             properties: {
-              choice: { anyOf: [{ type: 'string', enum: entry.options }, { type: 'null' }] },
+              choice: { anyOf: [{ type: 'string', enum: options }, { type: 'null' }] },
               why: { type: 'string' },
             },
             required: ['choice', 'why'],

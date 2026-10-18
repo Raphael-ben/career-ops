@@ -46,6 +46,9 @@ async function onPick(ev) {
 async function fillStep() {
   warn('');
   $('report').textContent = '';
+  const pkgLine = $('pkg').textContent;
+  $('fill').disabled = true;
+  $('pkg').textContent = 'Filling… (this can take a minute)';
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.url) throw new Error('No active tab');
@@ -65,6 +68,9 @@ async function fillStep() {
     renderReport(res.result);
   } catch (e) {
     warn(`Fill failed: ${e.message}`);
+  } finally {
+    $('pkg').textContent = pkgLine;
+    $('fill').disabled = false;
   }
 }
 
@@ -84,12 +90,14 @@ function renderReport(report) {
     root.appendChild(d);
     return d;
   };
-  if (!report || report.step === null) { add('Nothing to fill on this step.'); return; }
+  if (report == null) { warn('Fill returned no report — check the page console'); return; }
+  if (report.step === null) { add('Nothing to fill on this step.'); return; }
   add(`Filled ${report.filled.length} field(s) on ${report.step}.`);
   for (const s of report.skipped) add(`Skipped: ${s.field}`, `wanted: ${s.wanted} — ${s.reason}`);
   for (const u of report.unmatchedOptions) {
     const row = add(`No option match: ${u.label || u.field}`, `wanted: ${u.wanted}\noptions: ${u.options.join(' | ')}`);
     row.querySelector('.hint').style.whiteSpace = 'pre-wrap';
+    if (!u.options.length) continue;
     const btn = document.createElement('button');
     btn.textContent = 'Ask Haiku';
     if (!hasKey) { btn.disabled = true; btn.title = 'Set an API key in Settings'; }
@@ -116,6 +124,7 @@ async function askHaiku(entry, row) {
       return;
     }
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    btn.disabled = true; // keep disabled while applyOption runs
     const [out] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: (e, c) => globalThis.CareerOpsFill.applyOption(e, c),

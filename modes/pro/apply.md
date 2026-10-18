@@ -28,11 +28,13 @@ If it exits 1 (no CV `.tex`, or a company name the bank cannot match), stop and 
 
 Tell the candidate:
 
-1. Open the Workday step in Brave and open the Career-ops panel.
-2. Pick the package folder in the panel.
-3. Press "Fill this step". The panel fills what it can and reports what it left: type those fields yourself, or press "Ask Haiku" next to a field for a draft answer.
-4. Check the page, then press Save and Continue yourself.
-5. Repeat on the My Experience step (work and education blocks are filled from `apply.json`).
+1. One-time setup: open `brave://extensions`, turn on Developer mode, remove the old "Claude Apply Assistant", and Load unpacked from `career-ops/extension/`.
+2. One-time setup: paste the Anthropic API key under the panel's Settings. Never paste it in chat or in files.
+3. Open the Workday step in Brave and open the Career-ops panel.
+4. Pick the package folder in the panel. If the folder picker misbehaves, use "Or pick files" and select the package files instead.
+5. Press "Fill this step". The panel fills what it can and reports what it left: type those fields yourself. For an unmatched dropdown or search result (Degree, Field of Study, Skills), "Ask Haiku" only picks one of the page's own options; it never writes answers.
+6. Check the page, then press Save and Continue yourself.
+7. Repeat on the My Experience step (work and education blocks are filled from `apply.json`).
 
 Other steps and non-Workday forms are typed by hand. Never click Submit for the candidate.
 
@@ -43,6 +45,5 @@ Other steps and non-Workday forms are typed by hand. Never click Submit for the 
 When the candidate confirms submission:
 
 1. Update status in `career-ops/data/applications.md` from "Evaluated" to "Applied"
-2. Update Section G of the report with the final responses used
-3. Create the application-tracker entry — read and follow `career-ops/modes/pro/tracker-entry.md` exactly
-4. Suggest: `/jobhunter contact` for LinkedIn outreach
+2. Create the application-tracker entry — read and follow `career-ops/modes/pro/tracker-entry.md` exactly; the tracker note records the package folder used
+3. Suggest: `/jobhunter contact` for LinkedIn outreach
