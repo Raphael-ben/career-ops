@@ -24,6 +24,7 @@ test('buildHaikuRequest body', () => {
   const body = JSON.parse(H.buildHaikuRequest(entry, 'k').init.body);
   assert.equal(body.model, 'claude-haiku-5-5');
   assert.equal(body.max_tokens, 256);
+  assert.deepEqual(body.thinking, { type: 'disabled' });
   assert.equal(body.output_config.effort, 'low');
   assert.equal(body.output_config.format.type, 'json_schema');
   const schema = body.output_config.format.schema;

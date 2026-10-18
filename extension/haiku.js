@@ -14,6 +14,7 @@
     const body = {
       model: 'claude-haiku-5-5',
       max_tokens: 256,
+      thinking: { type: 'disabled' },
       output_config: {
         effort: 'low',
         format: {
