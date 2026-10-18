@@ -52,17 +52,19 @@
 
   // Technique 1: native setter + input/change/blur. Technique 2: focus/select + execCommand.
   // Verified after a short settle so a React re-render that reverts the value is caught.
-  async function setText(el, value, ok = (v) => norm(v) === norm(value)) {
+  // { blur: false } keeps focus (prompt inputs may clear unselected text on blur before Enter).
+  async function setText(el, value, ok = (v) => norm(v) === norm(value), { blur = true } = {}) {
     const want = String(value);
+    const leave = () => { if (blur) { el.dispatchEvent(new FocusEvent('blur', { bubbles: true })); el.blur(); } };
     el.focus();
     nativeSet(el, want);
     fire(el, 'input'); fire(el, 'change');
-    el.dispatchEvent(new FocusEvent('blur', { bubbles: true })); el.blur();
+    leave();
     await sleep(150);
     if (ok(el.value)) return true;
     el.focus(); el.select();
     document.execCommand('insertText', false, want);
-    el.blur();
+    leave();
     await sleep(150);
     return ok(el.value);
   }
@@ -99,13 +101,17 @@
   // ---- listbox (button opening [role=option]s) ----
   const btnText = (b) => (b.textContent || '').trim();
   const isPlaceholder = (t) => t === '' || /^select\b/i.test(t); // ponytail: English placeholder only; other tenant languages report "page has"
+  const listboxOf = (btn) => {
+    const ctl = btn.getAttribute('aria-controls') && byId(btn.getAttribute('aria-controls'));
+    return ctl || [...document.querySelectorAll('[role="listbox"]')].find(visible) || null;
+  };
   function openOptions(btn) {
     const lb = btn.getAttribute('aria-controls') && byId(btn.getAttribute('aria-controls'));
     return [...(lb || document).querySelectorAll(M.listboxOption)].filter(visible);
   }
   const optText = (o) => (o.textContent || '').trim();
-  async function closePopup() {
-    key(document.activeElement || document.body, 'Escape', 27);
+  async function closePopup(target = document.activeElement || document.body) {
+    key(target, 'Escape', 27);
     await sleep(200);
   }
 
@@ -113,26 +119,29 @@
     const btn = byId(buttonId);
     if (!btn) return { ok: false, options: [] };
     if (norm(btnText(btn)) === norm(text)) return { ok: true, options: [] };
-    safeClick(btn);
-    let opts = (await waitFor(() => { const o = openOptions(btn); return o.length ? o : null; }, 3000)) || [];
+    // Keys go to the open listbox, else the button; never to an input (Enter there starts a search).
+    const keyTarget = () => listboxOf(btn) || btn;
+    const typeKeys = (s) => { for (const ch of s) key(keyTarget(), ch, ch.toUpperCase().charCodeAt(0)); };
+    const open = async () => { btn.focus(); safeClick(btn); return (await waitFor(() => { const o = openOptions(btn); return o.length ? o : null; }, 3000)) || []; };
+    let opts = await open();
     let hit = W.pickOption(opts.map(optText), text);
     if (!hit && opts.length) {
       // Virtualised list: type-ahead the first letters, then re-read.
-      for (const ch of String(text).slice(0, 3)) key(document.activeElement || btn, ch, ch.toUpperCase().charCodeAt(0));
+      typeKeys(String(text).slice(0, 3));
       await sleep(400);
       opts = openOptions(btn);
       hit = W.pickOption(opts.map(optText), text);
     }
     const options = opts.map(optText);
-    if (!hit) { await closePopup(); return { ok: false, options }; }
+    if (!hit) { await closePopup(keyTarget()); return { ok: false, options }; }
     safeClick(opts.find((o) => optText(o) === hit));
     if (await waitFor(() => norm(btnText(btn)) === norm(hit), 1500)) return { ok: true, options };
     // Fallback: reopen if closed, type the option letters + Enter.
-    if (!openOptions(btn).length) { safeClick(btn); await waitFor(() => openOptions(btn).length, 2000); }
-    for (const ch of hit) key(document.activeElement || btn, ch, ch.toUpperCase().charCodeAt(0));
-    key(document.activeElement || btn, 'Enter', 13);
+    if (!openOptions(btn).length) await open();
+    typeKeys(hit);
+    key(keyTarget(), 'Enter', 13);
     const ok = !!(await waitFor(() => norm(btnText(btn)) === norm(hit), 1500));
-    if (!ok) await closePopup();
+    if (!ok) await closePopup(keyTarget());
     return { ok, options };
   }
 
@@ -141,20 +150,30 @@
   const chips = (input) => [...wrapperOf(input).querySelectorAll(auto(M.prompt.chip))].map((c) => (c.textContent || '').trim());
   const promptOpts = () => [...document.querySelectorAll(auto(M.prompt.option))].filter(visible);
 
+  // Resolves { opts } (result list), { chip } (Enter auto-selected a unique result) or null (text did not stick).
   async function search(input, query) {
     if (promptOpts().length) { await closePopup(); await waitFor(() => !promptOpts().length, 1000); }
-    if (!(await setText(input, query))) return null;
+    const before = chips(input);
+    if (!(await setText(input, query, undefined, { blur: false }))) return null;
     input.focus();
     key(input, 'Enter', 13);
-    return (await waitFor(() => { const o = promptOpts(); return o.length ? o : null; }, 4000)) || [];
+    return (await waitFor(() => {
+      const o = promptOpts();
+      if (o.length) return { opts: o };
+      const fresh = chips(input).find((c) => !before.includes(c));
+      return fresh ? { chip: fresh } : null;
+    }, 4000)) || { opts: [] };
   }
 
   async function promptSelect(inputId, query, exact) {
     const input = byId(inputId);
     if (!input) return { ok: false, options: [] };
     if (chips(input).some((c) => norm(c) === norm(exact))) return { ok: true, options: [], already: true };
-    let opts = await search(input, query);
-    if (opts === null) return { ok: false, options: [] };
+    const s = await search(input, query);
+    if (s === null) return { ok: false, options: [] };
+    // ponytail: a wrong auto-selected chip is reported (options = [chip]) but not removed; the user fixes it.
+    if (s.chip) return { ok: norm(s.chip) === norm(exact), options: [s.chip] };
+    let opts = s.opts;
     const hit = W.pickOption(opts.map(optText), exact);
     if (hit) {
       const el = opts.find((o) => optText(o) === hit);
@@ -169,7 +188,11 @@
     }
     if (!opts.length) {
       const shorter = W.shorterQuery(query);
-      if (shorter !== query) opts = (await search(input, shorter)) || [];
+      if (shorter !== query) {
+        const s2 = await search(input, shorter);
+        if (s2?.chip) return { ok: norm(s2.chip) === norm(exact), options: [s2.chip] };
+        opts = s2?.opts || [];
+      }
     }
     const options = opts.map(optText);
     await closePopup();
@@ -333,14 +356,25 @@
 
   const yearOf = (id) => { const v = byId(id)?.value?.trim(); return v ? Number(v) : ''; };
 
-  async function blocks(r, section, wanted, keyOf, pageKey, fillOne, label) {
+  // wantParts(w) / pageParts(n) -> [name, year]; key = W.workKey (same shape as W.eduKey).
+  async function blocks(r, section, wanted, wantParts, pageParts, fillOne, label) {
     const cfg = M[section];
-    const existing = W.blockNumbers(allIds(), cfg.prefix).map((n) => ({ n, key: pageKey(n) }));
-    const { pairs, toAdd, extra } = W.matchBlocks(existing, wanted.map(keyOf));
-    for (const n of extra) r.skipped.push({ field: `${label} block ${n}`, wanted: '', reason: 'extra block on page, left as is' });
+    const keyOf = ([nm, y]) => W.workKey(nm, y);
+    const existing = W.blockNumbers(allIds(), cfg.prefix).map((n) => { const p = pageParts(n); return { n, nm: norm(p[0]), y: p[1], key: keyOf(p) }; });
+    const want = wanted.map(wantParts);
+    const { pairs, toAdd, extra } = W.matchBlocks(existing, want.map(keyOf));
+    // A half-filled block (name but no year, or year but no name; e.g. a failed setDate) is reused, not duplicated.
+    const spare = new Set(extra);
+    const add = [];
     for (const w of toAdd) {
+      const [nm, y] = want[w];
+      const b = existing.find((e) => spare.has(e.n) && ((e.nm === norm(nm) && e.y === '') || (e.y === y && e.nm === '')));
+      if (b) { spare.delete(b.n); pairs.push({ n: b.n, wanted: w }); } else add.push(w);
+    }
+    for (const n of spare) r.skipped.push({ field: `${label} block ${n}`, wanted: '', reason: 'extra block on page, left as is' });
+    for (const w of add) {
       const n = await clickAdd(section);
-      if (n == null) { r.skipped.push({ field: `${label} ${w + 1}`, wanted: String(keyOf(wanted[w])), reason: 'Add button not found or no new block appeared' }); continue; }
+      if (n == null) { r.skipped.push({ field: `${label} ${w + 1}`, wanted: keyOf(want[w]), reason: 'Add button not found or no new block appeared' }); continue; }
       pairs.push({ n, wanted: w });
     }
     for (const { n, wanted: w } of pairs.sort((a, b) => a.wanted - b.wanted)) await fillOne(n, wanted[w]);
@@ -348,8 +382,8 @@
 
   async function fillWork(r, data) {
     const c = M.work, P = c.prefix, id = (n, f) => W.fieldId(P, n, f);
-    await blocks(r, 'work', data.work, (w) => W.workKey(w.company, w.startYear),
-      (n) => W.workKey(byId(id(n, c.company))?.value ?? '', yearOf(W.dateIds(P, n, c.start).year)),
+    await blocks(r, 'work', data.work, (w) => [w.company, w.startYear],
+      (n) => [byId(id(n, c.company))?.value ?? '', yearOf(W.dateIds(P, n, c.start).year)],
       async (n, w) => {
         const tag = `${w.company} (${w.startYear})`;
         for (const [name, f, v] of [['Job Title', c.title, w.title], ['Company', c.company, w.company], ['Location', c.location, w.location]]) {
@@ -374,8 +408,8 @@
 
   async function fillEducation(r, data) {
     const c = M.education, P = c.prefix, id = (n, f) => W.fieldId(P, n, f);
-    await blocks(r, 'education', data.education, (e) => W.eduKey(e.school, e.startYear),
-      (n) => W.eduKey(byId(id(n, c.school))?.value ?? '', yearOf(W.dateIds(P, n, c.first).year)),
+    await blocks(r, 'education', data.education, (e) => [e.school, e.startYear],
+      (n) => [byId(id(n, c.school))?.value ?? '', yearOf(W.dateIds(P, n, c.first).year)],
       async (n, e) => {
         const tag = e.school;
         await guard(r, `${tag}: School`, e.school, () => ruleText(r, `${tag}: School`, id(n, c.school), e.school));
@@ -386,7 +420,9 @@
           const btn = byId(bid);
           r.seen.add(bid);
           if (!btn) { r.skipped.push({ field: `${tag}: Degree`, wanted: e.degreeText, reason: 'field not on page' }); return; }
-          if (!isPlaceholder(btnText(btn))) return; // a value is set; nothing to compare against
+          const cur = btnText(btn);
+          if (norm(cur) === norm(e.degreeText)) return;
+          if (!isPlaceholder(cur)) { r.skipped.push({ field: `${tag}: Degree`, wanted: e.degreeText, reason: `page has "${cur}"` }); return; }
           const res = await selectListbox(bid, e.degreeText);
           if (res.ok) r.filled.push(`${tag}: Degree`);
           else r.unmatchedOptions.push({ field: `${tag}: Degree`, label: 'Degree', kind: 'listbox', targetId: bid, wanted: e.degreeText, source: e.degreeText, options: res.options });
@@ -402,8 +438,8 @@
     for (const s of (data.skills || []).slice(0, M.maxSkills)) {
       await guard(r, `Skill: ${s}`, s, async () => {
         const before = r.unmatchedOptions.length;
-        await rulePrompt(r, `Skill: ${s}`, 'Skill', M.skills, s, s, false);
-        if (r.unmatchedOptions.length > before) r.unmatchedOptions[before].field = `Skill "${s}" not in catalog`;
+        await rulePrompt(r, `Skill: ${s}`, 'Skill not in catalog', M.skills, s, s, false);
+        if (r.unmatchedOptions.length > before) r.unmatchedOptions[before].field = `skill "${s}"`;
       });
     }
   }
