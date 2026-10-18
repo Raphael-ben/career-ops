@@ -66,3 +66,26 @@ test('companyMatchesHost', () => {
   assert.equal(W.companyMatchesHost('Hitachi Energy', 'hitachienergy.wd3.myworkdayjobs.com'), true);
   assert.equal(W.companyMatchesHost('Salesforce', 'hitachienergy.wd3.myworkdayjobs.com'), false);
 });
+
+test('formatForClaude', () => {
+  const out = W.formatForClaude([
+    { field: 'degree', label: 'Degree', wanted: 'MBA', source: 'education[0].degree', options: ['BS', 'MS', 'MBA'] },
+    { field: 'skills', label: 'Skills', wanted: 'Python', source: 'skills[0]', options: [] },
+  ]);
+  assert.equal(out, [
+    'Workday unmatched options — pick one option per field, verbatim, or "none":',
+    '',
+    'Field: Degree (degree)',
+    'Wanted: MBA',
+    'Source: education[0].degree',
+    'Options:',
+    '- BS',
+    '- MS',
+    '- MBA',
+    '',
+    'Field: Skills (skills)',
+    'Wanted: Python',
+    'Source: skills[0]',
+    'Options: (none found on the page)',
+  ].join('\n'));
+});

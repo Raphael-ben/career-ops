@@ -50,9 +50,7 @@ extension/manifest.json
 extension/sidebar.html
 extension/sidebar.js
 extension/background.js
-extension/haiku.js
 extension/ats/workday.js
 extension/fill/workday-fill.js
 tests/apply-data.test.mjs
 tests/workday-map.test.mjs
-tests/haiku.test.mjs

@@ -88,8 +88,18 @@
     return first.length >= 3 && alnum(host).includes(first);
   }
 
+  function formatForClaude(unmatched) {
+    const blocks = unmatched.map((u) => [
+      `Field: ${u.label || u.field} (${u.field})`,
+      `Wanted: ${u.wanted}`,
+      `Source: ${u.source}`,
+      u.options.length ? ['Options:', ...u.options.map((o) => `- ${o}`)].join('\n') : 'Options: (none found on the page)',
+    ].join('\n'));
+    return ['Workday unmatched options — pick one option per field, verbatim, or "none":', ...blocks].join('\n\n');
+  }
+
   globalThis.CareerOpsWorkday = {
     map, stepOf, blockNumbers, fieldId, dateIds,
-    workKey: key, eduKey: key, matchBlocks, pickOption, shorterQuery, companyMatchesHost,
+    workKey: key, eduKey: key, matchBlocks, pickOption, shorterQuery, companyMatchesHost, formatForClaude,
   };
 })();

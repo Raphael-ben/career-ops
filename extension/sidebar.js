@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const W = globalThis.CareerOpsWorkday;
 let pkg = null; // { data, files }
-let hasKey = false;
+let lastReport = null;
 
 const warn = (msg) => { $('warn').textContent = msg || ''; };
 
@@ -46,6 +46,7 @@ async function onPick(ev) {
 async function fillStep() {
   warn('');
   $('report').textContent = '';
+  $('copyClaude').hidden = true;
   const pkgLine = $('pkg').textContent;
   $('fill').disabled = true;
   $('pkg').textContent = 'Filling… (this can take a minute)';
@@ -65,6 +66,7 @@ async function fillStep() {
       func: (data, files) => globalThis.CareerOpsFill.run(data, files),
       args: [pkg.data, pkg.files],
     });
+    lastReport = res.result;
     renderReport(res.result);
   } catch (e) {
     warn(`Fill failed: ${e.message}`);
@@ -97,60 +99,16 @@ function renderReport(report) {
   for (const u of report.unmatchedOptions) {
     const row = add(`No option match: ${u.label || u.field}`, `wanted: ${u.wanted}\noptions: ${u.options.join(' | ')}`);
     row.querySelector('.hint').style.whiteSpace = 'pre-wrap';
-    if (!u.options.length) continue;
-    const btn = document.createElement('button');
-    btn.textContent = 'Ask Haiku';
-    if (!hasKey) { btn.disabled = true; btn.title = 'Set an API key in Settings'; }
-    btn.onclick = () => askHaiku(u, row);
-    row.appendChild(btn);
   }
+  $('copyClaude').hidden = !report.unmatchedOptions.length;
 }
 
-async function askHaiku(entry, row) {
-  const btn = row.querySelector('button');
-  btn.disabled = true;
-  const note = (text) => {
-    const d = document.createElement('div');
-    d.className = 'hint';
-    d.textContent = text;
-    row.appendChild(d);
-  };
-  try {
-    const res = await chrome.runtime.sendMessage({ type: 'askHaiku', entry });
-    if (!res || res.error) { note(`Haiku error: ${res?.error || 'no response'}`); btn.disabled = false; return; }
-    if (res.choice === null) { note(`Haiku: no fitting option — ${res.why}`); return; }
-    if (W.pickOption(entry.options, res.choice) !== res.choice) {
-      note(`Haiku answered "${res.choice}", not an exact option — ignored.`);
-      return;
-    }
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    btn.disabled = true; // keep disabled while applyOption runs
-    const [out] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: (e, c) => globalThis.CareerOpsFill.applyOption(e, c),
-      args: [entry, res.choice],
-    });
-    if (out.result?.ok) note(`chosen by Haiku: ${res.choice} — ${res.why}`);
-    else { note(`Could not select "${res.choice}" on the page.`); btn.disabled = false; }
-  } catch (e) {
-    note(`Haiku failed: ${e.message}`);
-    btn.disabled = false;
-  }
-}
-
-async function refreshKey() {
-  const { anthropicKey } = await chrome.storage.local.get('anthropicKey');
-  hasKey = !!anthropicKey;
-  $('apiKey').value = '';
-  $('apiKey').placeholder = hasKey ? 'Key is set' : 'Not set';
+async function copyForClaude(report) {
+  await navigator.clipboard.writeText(W.formatForClaude(report.unmatchedOptions));
+  warn(`Copied ${report.unmatchedOptions.length} fields for Claude — paste them into the /jobhunter apply chat.`);
 }
 
 $('folder').addEventListener('change', onPick);
 $('pick').addEventListener('change', onPick);
 $('fill').addEventListener('click', fillStep);
-$('saveKey').addEventListener('click', async () => {
-  const v = $('apiKey').value.trim();
-  if (v) await chrome.storage.local.set({ anthropicKey: v });
-  await refreshKey();
-});
-refreshKey();
+$('copyClaude').addEventListener('click', () => copyForClaude(lastReport).catch((e) => warn(`Copy failed: ${e.message}`)));
