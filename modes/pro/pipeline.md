@@ -372,6 +372,8 @@ Note: verify.md Step 0 (the measured cv_fitcheck gate) runs with shell access be
 
 ## Step 9 — Summary
 
+First run `node apply-data.mjs output/{folder} {DATA_DIR}/config/profile_bank.json` (writes `apply.json` for the Workday panel). Include its summary line in the report; on exit 1, include the stderr line as a warning and continue (the CV and letter stay valid).
+
 Report: output folder path; verifier verdict + warnings; PDF paths and page counts; any standing rules triggered (conditional-mention blocks included/excluded, Swiss orthography applied, etc.). If `pass_with_warnings`, list warnings so the user can decide whether to fix manually.
 
 **Parallel upgrade reminder:** count `Applied` entries in `career-ops/data/applications.md` generated after the isolated-subagent refactor went live (Step 3.5 present, i.e. after 2026-05-04). When that count reaches 10 and this run has no verifier failures, append:
@@ -473,6 +475,7 @@ output/Company/YYYYMMDD_Company_Role/
 ├── {file_slug}_CV.pdf                  ← compiled (Step 6)
 ├── {file_slug}_cover-letter.tex        ← write-cl subagent (Step 4b)
 ├── {file_slug}_cover-letter.pdf        ← compiled (Step 6)
+├── apply.json  ← Step 9 (apply-data.mjs), read by the Workday panel
 └── verifier_report.json    ← verify subagent (Step 7)
 ```
 
