@@ -1,24 +1,21 @@
 {
   "manifest_version": 3,
-  "name": "Claude Apply Assistant",
-  "version": "1.0.0",
-  "description": "Fill job application forms with Claude Code",
-  "permissions": ["sidePanel", "activeTab", "scripting", "tabs"],
-  "host_permissions": ["<all_urls>", "http://localhost:7823/*"],
+  "name": "Career-ops Workday Filler",
+  "version": "2.0.0",
+  "description": "Fill Workday application steps from a career-ops apply.json package",
+  "permissions": ["sidePanel", "scripting", "tabs", "storage"],
+  "host_permissions": [
+    "https://*.myworkdayjobs.com/*",
+    "https://*.myworkdaysite.com/*",
+    "https://api.anthropic.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    }
-  ],
   "side_panel": {
     "default_path": "sidebar.html"
   },
   "action": {
-    "default_title": "Claude Apply"
+    "default_title": "Workday Filler"
   }
 }
