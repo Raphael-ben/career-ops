@@ -298,7 +298,8 @@ def run_ats_full(profile_cfg, dry_run=False, max_cap=None):
     portals.yml's own title_filter/location_filter (no company list needed, so
     it finds postings at companies not in portals.yml at all).
 
-    Gated by profile.yml scan.ats_full (default true). Unlike run_scraper(),
+    Gated by profile.yml scan.ats_full (default false: a sweep takes ~100 min
+    and would eat the whole scan deadline before any scraper starts). Unlike run_scraper(),
     this writes data/pipeline.md and data/scan-history.tsv ITSELF — same
     contract, same functions the other scrapers feed through set-status
     upstream of — so there's no offers list to merge back into main()'s
@@ -309,7 +310,7 @@ def run_ats_full(profile_cfg, dry_run=False, max_cap=None):
     checkpoint exists) continues the interrupted sweep next run.
     """
     cfg = (profile_cfg.get("scan") or {})
-    if not cfg.get("ats_full", True):
+    if not cfg.get("ats_full", False):
         return 0
     cap = int(cfg.get("ats_full_cap_seconds", 900))
     if max_cap is not None:  # overall scan deadline wins over the stage cap
@@ -1110,7 +1111,7 @@ def selftest():
             e = next(it, "")
             return types.SimpleNamespace(returncode=1 if e else 0, stdout="", stderr=e)
         return run
-    cfg = {"scan": {"ats_full_cap_seconds": 5}}
+    cfg = {"scan": {"ats_full": True, "ats_full_cap_seconds": 5}}
     settings = "Error: checkpoint was written with different settings"
     changed = "Error: icims company dataset changed since the checkpoint"
     try:

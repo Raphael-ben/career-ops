@@ -370,6 +370,7 @@ cover_letter:
 #                          # [] = none. Non-Swiss users: drop jobs_ch/jobscout24/zuerijobs.
 #   parallel_scrapers: true   # false runs the scrapers one by one (default true)
 #   deadline_seconds: 600     # total scan time budget in seconds (see scan_aggregate.py)
+#   ats_full: false           # reverse-ATS sweep stage (~100 min); default off, it would eat the deadline
 
 # JobSpy board scraper (jobspy_scan.py) — all keys optional.
 # jobspy:
