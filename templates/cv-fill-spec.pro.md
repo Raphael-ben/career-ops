@@ -7,19 +7,19 @@ are in `write-cv.md`. This file covers only *how to format* the LaTeX output.
 
 ## Output process
 
-1. Read `cv-template-pro.tex`. Copy lines 1–282 (preamble) verbatim.
-2. Fill user variables (lines 76–87 of preamble) with job-specific values.
+1. Read `cv-template-pro.tex`. Copy everything before `\begin{document}` (the preamble) verbatim.
+2. Fill the user variables (the `\CVName` … `\photoYshift` block of the preamble) with job-specific values.
 3. Write the document body from `\begin{document}` onward using the syntax below.
 
 ---
 
-## User variables (lines 76–87 of preamble)
+## User variables (preamble block starting at `\CVName`)
 
 | Command | Purpose | Fixed value / Notes |
 |---|---|---|
 | `\CVName` | Full name | `profile_bank.candidate.name` — always fixed |
 | `\CVTagline` | 1–2 line positioning | Tailored per role; **≤ 22 chars/line** (58 mm sidebar @ `\large\textbf`) |
-| `\CVPhoto` | Photo filename | `profile_bank.photo_path` — always fixed (file is in the output folder) |
+| `\CVPhoto` | Photo filename | profile.yml `cv.photo` (substitute `{DATA_DIR}`) — always fixed |
 | `\CVAddress` | Address (use `\\` for line break) | `profile_bank.candidate.address` — fixed |
 | `\CVPhone` | Phone | `profile_bank.candidate.phone` — fixed |
 | `\CVEmail` | Email | `profile_bank.candidate.email` — fixed |

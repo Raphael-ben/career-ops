@@ -7,13 +7,13 @@ are in `write-cl.md`. This file covers only *how to format* the LaTeX output.
 
 ## Output process
 
-1. Read `cover-letter-template-pro.tex`. Copy lines 1–173 (preamble) verbatim.
-2. Fill user variables (lines 57–80 of preamble) with job-specific values.
+1. Read `cover-letter-template-pro.tex`. Copy everything before `\begin{document}` (the preamble) verbatim.
+2. Fill the user variables (the `\CL…` block of the preamble) with job-specific values.
 3. Write the document body using the syntax below.
 
 ---
 
-## User variables (lines 57–80 of preamble)
+## User variables (preamble `\CL…` block)
 
 | Command | Purpose | Notes |
 |---|---|---|

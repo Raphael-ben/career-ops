@@ -1,6 +1,6 @@
 # Mode: pro/apply — Extension Application Assistant
 
-Guides a Workday application using the Career-ops side panel in Brave. The panel fills form fields from the package's `apply.json`; this mode finds that file and walks the candidate through the steps. No answers are generated here and nothing is polled.
+Guides a Workday application using the Career-ops side panel. The browser is profile.yml `apply.browser`: `brave` = Brave (the steps below say Brave); `playwright` or absent = a plain Playwright Chromium (same steps, `chrome://extensions` instead of `brave://extensions`). The panel fills form fields from the package's `apply.json`; this mode finds that file and walks the candidate through the steps. No answers are generated here and nothing is polled.
 
 **NEVER suggest clicking Submit.** Stop before final submission — the candidate makes the final call.
 
@@ -12,7 +12,7 @@ Resolve `{DATA_DIR}` and `{PYTHON}` from `modes/_profile.md` (lines `DATA_DIR: .
 
 ## Step 0 — Find the package
 
-**Pre-flight: verify not already applied.** Per the Notion-first already-applied rule in `modes/_custom.md`, check the Notion JOB OP database for this exact company + role before filling anything. If a Notion entry already shows Applied/Interview/Offer/Rejected, stop and surface that entry and its status instead of proceeding with the form.
+**Pre-flight: verify not already applied.** Check `data/applications.md` for this exact company + role; if profile.yml `tracker.type` is `notion`, also check the Notion JOB OP database per the Notion-first rule in `modes/_custom.md`. If an entry already shows Applied/Interview/Offer/Rejected, stop and surface that entry and its status instead of proceeding with the form.
 
 Find the package folder for this company + role in `output/` (`output/<Company>/<YYYYMMDD_Company_Role>/`). If `apply.json` is missing or older than the CV `.tex`, regenerate it:
 

@@ -184,7 +184,7 @@ node doctor.mjs --json                                  # onboardingNeeded must 
 node scan.mjs --dry-run
 ```
 
-Check in the `{PYTHON} scan_aggregate.py --dry-run` output that only the configured scrapers ran (branch B: jobspy only) and that the funnel is non-zero after the title filter. A zero funnel means the titles or location filter are too narrow: show the funnel, adjust with the friend (`node onboard-write.mjs --answers - --force --only portals` for title changes, then re-apply step 5's `location_filter`; town changes are a direct `location_filter.allow` edit), rerun. Errors → fix and rerun (`node scan.mjs --dry-run` too); never skip to Phase 9.
+Check in the `{PYTHON} scan_aggregate.py --dry-run` output that only the configured scrapers ran (branch B: jobspy only) and that the funnel is non-zero after the title filter. A zero funnel means the titles or location filter are too narrow: show the funnel, adjust with the friend by editing `portals.yml` directly: title changes = `title_filter.positive`/`negative`, town changes = `location_filter.allow`. Do NOT rerun `onboard-write.mjs --only portals`: it rebuilds `portals.yml` from `portals.example.yml` and wipes the pack's `search_queries` and `tracked_companies` (or the discovery results); if you ever do rerun it, re-apply ALL of Phase 7 step 5 afterwards. Then rerun the checks. Errors → fix and rerun (`node scan.mjs --dry-run` too); never skip to Phase 9.
 
 ## Phase 9 — Explainer and update briefing (print this block as is)
 
@@ -208,7 +208,10 @@ Costs: large pipeline batches can exhaust your Claude plan's monthly cap; run th
 Tavily credits run out on the free tier: HTTP 432 in the scan log means the web layer is off until renewal.
 
 Privacy: cv.md, config/, portals.yml, data/ and your data folder are gitignored. Never commit them,
-never share your data folder. Personal details are redacted from outbound LLM calls.
+never share your data folder. What leaves your machine: this Claude conversation (your CV, profile
+and job ads are sent to Claude, unredacted), Tavily search queries, Notion entries (if you chose
+Notion), and requests to the job boards. Personal-detail redaction applies only to the optional
+third-party LLM runners (OpenRouter / OpenAI / Gemini), not to Claude, Tavily or Notion.
 
 Updates: run `bash tools/update.sh` in the repo root once a month, or when the session-start message
 says your system is over 30 days old. Never run update-system.mjs apply directly.

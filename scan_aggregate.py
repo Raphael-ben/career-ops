@@ -1240,6 +1240,16 @@ def selftest():
     finally:
         subprocess.run = saved_run
 
+    # main(): an unknown scan.scrapers name stops the scan with one line, no traceback
+    import tempfile
+    with tempfile.NamedTemporaryFile("w", suffix=".yml", delete=False) as tf:
+        tf.write("scan:\n  scrapers: [nope]\n")
+    code = ("import sys, pathlib; sys.argv=['scan_aggregate.py','--dry-run']; import scan_aggregate as sa; "
+            f"sa.PROFILE=pathlib.Path({tf.name!r}); sa.main()")
+    r = subprocess.run([sys.executable, "-c", code], cwd=str(HERE), capture_output=True, text=True, timeout=120)
+    Path(tf.name).unlink()
+    assert r.returncode == 1 and "Traceback" not in r.stderr and "scan.scrapers: unknown 'nope'" in r.stderr, r.stderr[-500:]
+
     print("selftest: OK")
 
 
@@ -1328,7 +1338,11 @@ def main():
         jobs = json.load(open(args.inject))
         print(f"  inject: {len(jobs)} jobs from {args.inject}", file=sys.stderr)
     else:
-        jobs = run_scrapers(resolve_scrapers(profile), t0, deadline,
+        try:
+            names = resolve_scrapers(profile)
+        except ValueError as e:
+            sys.exit(str(e))  # message already starts with "scan.scrapers:"; no traceback
+        jobs = run_scrapers(names, t0, deadline,
                             parallel=(profile.get("scan") or {}).get("parallel_scrapers", True),
                             state=state)
     if args.tavily:

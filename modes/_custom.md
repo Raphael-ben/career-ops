@@ -1,4 +1,4 @@
-# _custom.md — Owner's procedural house rules (user layer, survives updates)
+# _custom.md — procedural house rules (user layer, survives updates)
 
 ## No Playwright outside the apply flow
 
@@ -15,7 +15,7 @@ Playwright" rule in CLAUDE.md/AGENTS.md.
   curl HTTP status check. NEVER browser-verify.
 - Anti-bot 403/challenge pages are NOT "dead" — treat non-404 as
   alive-inconclusive and defer the real confirmation to apply time, when the
-  posting opens in Brave anyway.
+  posting opens in the apply browser anyway.
 
 **JD fetching (pipeline/notion-entry):**
 - Primary: JD text already in session context.
@@ -31,8 +31,9 @@ pre-assessments, triage, tracker views, evaluation reports, apply flows),
 render the name as a markdown link to the job ad URL: `[Title — Company](url)`.
 Never print a bare job title when its URL is known.
 
-## Notion-first already-applied check
+## Notion-first already-applied check (only when profile.yml `tracker.type: notion`)
 
+Skip this section when `tracker.type` is anything else (`data/applications.md` + scan-history dedup are then the check).
 Before treating any job as new/unapplied (triage, evaluate, apply), ALWAYS
 also check the Notion JOB OP database via the Notion MCP (search the data
 source whose id is in `config/profile.yml` → `tracker.notion.data_source_id`)
@@ -42,9 +43,14 @@ Offer/Rejected means NOT new — surface the existing entry and its status
 instead. If the Notion MCP is unavailable in the session, say so explicitly
 and fall back to `data/applications.md`.
 
-## System updates — ALWAYS via tools/update-guard.sh, never bare update-system.mjs apply
+## System updates — depends on profile.yml `sharing.role`
 
-`bash tools/update-guard.sh` is the only sanctioned update path. It encodes 5 known
+**Friend (`sharing.role: friend`):** update ONLY with `bash tools/update.sh` from the
+repo root (it preserves this file). NEVER run `tools/update-guard.sh`,
+`update-system.mjs apply|rollback` or `npm run update` — a hook blocks them.
+
+**Owner (no `sharing` block, or `sharing.role: owner`):** ALWAYS via
+`bash tools/update-guard.sh`, never bare `update-system.mjs apply`. It encodes 5 known
 updater failure modes: (1) stale baseline from the commit-subject grep wrongly
 preserving changed files, (2) VERSION lagging the release, (3) the PRUNE step
 deleting fork-only files under updater-owned dirs (e.g. `templates/*-pro.tex`),
