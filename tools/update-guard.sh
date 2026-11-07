@@ -286,7 +286,8 @@ const walk = (f, from) => {
   if (seen.has(f)) return; seen.add(f);
   if (!existsSync(f)) { console.error("UNRESOLVED import " + f + " (from " + from + ")"); bad++; return; }
   if (!/\.m?js$/.test(f)) return;
-  for (const m of readFileSync(f, "utf8").matchAll(re)) walk(resolve(dirname(f), m[1] || m[2] || m[3]), f);
+  const src = readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, ""); // comments carry example imports
+  for (const m of src.matchAll(re)) walk(resolve(dirname(f), m[1] || m[2] || m[3]), f);
 };
 for (const f of process.argv.slice(1)) if (/\.mjs$/.test(f) && existsSync(f)) walk(resolve(f), "(entry)");
 process.exit(bad ? 1 : 0);
@@ -415,7 +416,7 @@ drift_check() {
       for(const q of p.search_queries||[]) Object.keys(q).forEach(x=>k.add(x));
       console.log([...k].join("\n"));' 2>/dev/null || true)"
     for key in $keys; do
-      [ "$key" = notes ] && continue
+      case "$key" in notes|careers_page) continue ;; esac  # careers_page: deliberately unread (dodges provider auto-detect for websearch entries)
       grep -qw -- "$key" ./*.mjs providers/*.mjs plugins/*.mjs scan_aggregate.py modes/*.md modes/pro/*.md 2>/dev/null \
         || DRIFT_WARNS+=("portals.yml key '$key' is read by no career-ops script or mode")
     done
