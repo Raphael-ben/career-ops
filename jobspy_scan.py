@@ -64,6 +64,26 @@ def load_config(config_path: str) -> dict:
     return profile.get("jobspy", {})
 
 
+_ISO2_TO_INDEED = {
+    "ch": "switzerland", "de": "germany", "at": "austria", "fr": "france",
+    "it": "italy", "us": "usa", "gb": "uk", "uk": "uk", "nl": "netherlands",
+    "es": "spain",
+}
+
+
+def indeed_country(config: dict) -> str:
+    """jobspy.country_indeed -> python-jobspy country name (default switzerland)."""
+    raw = str(config.get("country_indeed") or "switzerland").strip().lower()
+    return _ISO2_TO_INDEED.get(raw, raw)
+
+
+def selftest() -> None:
+    for given, want in {"CH": "switzerland", "germany": "germany", "US": "usa", "xx": "xx"}.items():
+        assert indeed_country({"country_indeed": given}) == want, (given, want)
+    assert indeed_country({}) == "switzerland"
+    print("selftest ok")
+
+
 def scrape(config: dict) -> list:
     import time
     from jobspy import scrape_jobs
@@ -85,7 +105,7 @@ def scrape(config: dict) -> list:
                 location=location,
                 results_wanted=results_wanted,
                 hours_old=hours_old,
-                country_indeed="switzerland",
+                country_indeed=indeed_country(config),
                 description_format="markdown",
                 linkedin_fetch_description=False,  # skip per-job detail fetch; halves request count
                 # google board ignores search_term/location — needs its own literal query.
@@ -131,8 +151,12 @@ def main() -> None:
         "--config", default="config/profile.yml",
         help="Path to profile.yml (default: config/profile.yml)"
     )
+    parser.add_argument("--selftest", action="store_true", help="Run built-in checks and exit")
     args = parser.parse_args()
 
+    if args.selftest:
+        selftest()
+        return
     if args.dry_run:
         print(json.dumps([MOCK_JOB]))
         return

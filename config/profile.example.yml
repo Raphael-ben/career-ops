@@ -371,6 +371,15 @@ cover_letter:
 #   parallel_scrapers: true   # false runs the scrapers one by one (default true)
 #   deadline_seconds: 600     # total scan time budget in seconds (see scan_aggregate.py)
 
+# JobSpy board scraper (jobspy_scan.py) — all keys optional.
+# jobspy:
+#   search_terms: ["Business Development Manager", "Key Account Manager"]
+#   location: "Zurich, Switzerland"   # free-text location passed to every board
+#   country_indeed: switzerland       # Indeed country (name or ISO-2: CH, DE, US, GB...); default switzerland
+#   results_wanted: 20                # per term and board (default 20)
+#   hours_old: 72                     # max posting age in hours (default 72)
+#   sleep_between_terms: 3.0          # seconds between terms (default 3.0)
+
 # ── Auto-PDF threshold ──────────────────────────────────────────────────────
 #
 # Auto-PDF threshold during evaluation (used by `/career-ops pipeline` and
