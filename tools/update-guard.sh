@@ -368,13 +368,24 @@ run_smoke() {
 # ---------------------------------------------------------------- drift
 
 # CLI/format surface the fork depends on, one fact per line. Diffed pre/post.
+# Every grep is `|| true`: a pattern that stops matching after an update is
+# drift to report, never a reason for set -e to kill the guard.
 surface() {
-  local f
-  for f in scan.mjs scan-ats-full.mjs; do
-    [ -f "$f" ] && grep -oE "'--[a-z0-9-]+'" "$f" | tr -d "'" | sort -u | sed "s#^#$f flag #"
-  done
-  [ -f scan.mjs ] && grep -oE "'url\\\\tfirst_seen[^']*'" scan.mjs | head -1 | sed 's#^#scan.mjs history-header #'
-  return 0
+  local f cols
+  {
+    for f in scan.mjs scan-ats-full.mjs; do
+      [ -f "$f" ] || continue
+      { grep -oE "'--[a-z0-9-]+'" "$f" || true; } | tr -d "'" | sed "s#^#$f flag #"
+    done
+    # first 5 scan-history columns (what scan_aggregate.load_history relies on);
+    # v1.39 moved them from a literal in scan.mjs to lib/scan-history-columns.mjs
+    if [ -f lib/scan-history-columns.mjs ]; then
+      cols="$({ sed -n '/SCAN_HISTORY_COLUMNS = /,/]);/p' lib/scan-history-columns.mjs | grep -oE "'[a-z_]+'" || true; } | tr -d "'" | head -5 | paste -sd' ' -)"
+    else
+      cols="$({ grep -oE "'url[\\]tfirst_seen[^']*'" scan.mjs || true; } | head -1 | tr -d "'" | awk '{gsub(/[\\]t/," "); print $1,$2,$3,$4,$5}')"
+    fi
+    printf 'scan-history first columns: %s\n' "${cols:-<not found>}"
+  } | sort -u
 }
 
 # HEURISTIC, grep-based, WARN only. Lists flags/keys the fork uses that the
@@ -471,17 +482,18 @@ do_update() {
 
   APPLYING=1   # from here on, any exit without DONE=1 rolls back
   log "applying update to v$REMOTE_VERSION (rollback target ${SNAPSHOT_SHA:0:8})"
-  if ! node update-system.mjs apply --confirm; then
-    log "apply --confirm failed; retrying without flag"
-    node update-system.mjs apply || { FIRST_FAIL="update-system.mjs apply failed"; exit 1; }
-  fi
+  # --force: take upstream for EVERY system file. The updater's "locally
+  # modified" detection uses a stale commit-subject baseline (gotcha #1/#5) and
+  # "preserves" pristine old upstream files -> interface lag. Fork-owned files
+  # are protected-paths and get restored from the snapshot right below.
+  node update-system.mjs apply --force --confirm || { FIRST_FAIL="update-system.mjs apply failed"; exit 1; }
 
   # Pre-repair: updater may have committed; manifest check is on the working tree.
   if ! repair_protected; then FIRST_FAIL="protected files could not be restored"; exit 1; fi
   stamp_version
   VERSION_AFTER="$(version_of)"
   remove_stray_baks
-  drift_check "$GUARD_DIR/surface.before"
+  drift_check "$GUARD_DIR/surface.before" || true
   run_smoke
   if [ "$SMOKE_FAILED" -ne 0 ]; then summary; exit 1; fi   # EXIT trap rolls back
   commit_repairs
@@ -492,6 +504,8 @@ do_update() {
 }
 
 main() {
+  set -E
+  trap '[ -n "$FIRST_FAIL" ] || FIRST_FAIL="guard error at line $LINENO: $BASH_COMMAND"' ERR
   trap on_exit EXIT
   trap 'exit 130' INT TERM
   case "${1:-}" in
