@@ -373,7 +373,11 @@ def load_history():
                 continue
             parts = line.split("\t")
             seen.add(parts[0].strip())
-            if len(parts) >= 3:
+            # scan.mjs writes url\tfirst_seen\tportal\ttitle\tcompany\t... instead
+            dated = bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", parts[1].strip())) if len(parts) > 1 else False
+            if dated and len(parts) >= 5:
+                pairs.append((parts[3].strip(), parts[4].strip()))
+            elif not dated and len(parts) >= 3:
                 pairs.append((parts[1].strip(), parts[2].strip()))
     return seen, pairs
 
@@ -786,6 +790,14 @@ def selftest():
         assert fs[url_ats] == old_date, fs
         assert fs[url_tavily] == recent_date, fs
         assert url_hdr not in fs and url_undatable not in fs
+        # fuzzy corpus reads title/company from BOTH layouts
+        g = globals()
+        saved_hist, g["HISTORY"] = g["HISTORY"], tsv_path
+        try:
+            _, hp = load_history()
+        finally:
+            g["HISTORY"] = saved_hist
+        assert ("Title A", "Company A") in hp and ("Title B", "Company B") in hp, hp
 
         stats = reap_pipeline(45, today=today, pipeline_path=pipe_path,
                                history_path=tsv_path)
