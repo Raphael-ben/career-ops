@@ -59,6 +59,14 @@ PROFILE = HERE / "config" / "profile.yml"
 HISTORY = HERE / "data" / "scan-history.tsv"
 PIPELINE = HERE / "data" / "pipeline.md"
 APPLICATIONS = HERE / "data" / "applications.md"
+# Scraper registry. Order matters: results are merged in THIS order (not
+# completion order) so dedup is reproducible with parallel runs.
+# Selection: profile.yml `scan.scrapers:` — a list of these script names.
+#   absent      -> every scraper below (default)
+#   []          -> none (only ats-full / Tavily / --inject feed the funnel)
+#   [a.py, b.py]-> only those; unknown names get one warning line and are ignored.
+# Non-Swiss users should drop the Swiss-only boards (jobs_ch.py, jobscout24_scan.py,
+# zuerijobs_scan.py). `scan.parallel_scrapers: false` runs them one by one.
 SCRAPERS = ["jobspy_scan.py", "jobs_ch.py", "stepstone_scan.py",
             "efinancialcareers_scan.py", "jobscout24_scan.py", "zuerijobs_scan.py",
             "jobfishing_scan.py"]  # no-op ([]) until `jobfishing_scan.py --login` is run
@@ -193,7 +201,9 @@ def scraper_timeout(start, deadline, now=None):
 
 
 def run_scraper(name, timeout=SCRAPER_CAP):
-    """Run a scraper, return its JSON list. Never raises — [] on failure."""
+    """Run a scraper. Never raises. Returns (jobs, log_lines, cut): log lines
+    are collected instead of printed so parallel runs never interleave;
+    cut=True when the subprocess timeout killed it."""
     try:
         proc = subprocess.run(
             [sys.executable, str(HERE / name)],
@@ -201,12 +211,70 @@ def run_scraper(name, timeout=SCRAPER_CAP):
             cwd=str(HERE),  # scrapers read cwd-relative config/profile.yml
         )
         if not proc.stdout.strip():
-            print(f"  [{name}] no output ({proc.stderr.strip()[-160:]})", file=sys.stderr)
-            return []
-        return json.loads(proc.stdout)
+            return [], [f"  [{name}] no output ({proc.stderr.strip()[-160:]})"], False
+        return json.loads(proc.stdout), [], False
+    except subprocess.TimeoutExpired:
+        return [], [f"  [{name}] cut: timed out after {timeout}s"], True
     except Exception as e:  # noqa: BLE001 — best-effort, partial results are fine
-        print(f"  [{name}] failed: {e}", file=sys.stderr)
-        return []
+        return [], [f"  [{name}] failed: {e}"], False
+
+
+def selected_scrapers(profile_cfg):
+    """profile.yml scan.scrapers -> registry-ordered list (see SCRAPERS comment)."""
+    sel = (profile_cfg.get("scan") or {}).get("scrapers")
+    if sel is None:
+        return list(SCRAPERS)
+    unknown = [s for s in sel if s not in SCRAPERS]
+    if unknown:
+        print(f"  warning: scan.scrapers: unknown {', '.join(map(str, unknown))} (ignored)",
+              file=sys.stderr)
+    return [s for s in SCRAPERS if s in sel]
+
+
+def run_scrapers(names, start, deadline, parallel=True, state=None):
+    """Run `names`, return their jobs merged in `names` order.
+
+    Each scraper's timeout = scraper_timeout() at submit time; ones that would
+    start with <= SCRAPER_FLOOR left are skipped. Parallel: one thread per
+    scraper, so wall time ~= the slowest one instead of the sum."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    state = {} if state is None else state
+    results = {}
+
+    def finish(name, res):  # main thread only -> whole blocks, no interleaving
+        got, lines, _ = res
+        for line in lines:
+            print(line, file=sys.stderr)
+        print(f"  {name}: {len(got)} jobs", file=sys.stderr)
+        results[name] = res
+
+    def skip(name):
+        print(f"  deadline: skipping {name}", file=sys.stderr)
+        state["deadline_hit"] = True
+
+    if parallel and names:
+        with ThreadPoolExecutor(max_workers=len(names)) as pool:
+            futs = {}
+            for s in names:
+                tmo = scraper_timeout(start, deadline)
+                if tmo is None:
+                    skip(s)
+                    continue
+                futs[pool.submit(run_scraper, s, tmo)] = s
+            for f in as_completed(futs):
+                finish(futs[f], f.result())
+    else:
+        for s in names:
+            tmo = scraper_timeout(start, deadline)
+            if tmo is None:
+                skip(s)
+                continue
+            finish(s, run_scraper(s, tmo))
+    cut = [s for s in names if s in results and results[s][2]]
+    if cut and remaining_budget(start, deadline, float("inf")) <= SCRAPER_FLOOR:
+        print(f"  deadline: cut {', '.join(cut)}", file=sys.stderr)
+        state["deadline_hit"] = True
+    return [j for s in names if s in results for j in results[s][0]]
 
 
 ATS_FULL_CHECKPOINT = HERE / "data" / "cache" / "ats-full-checkpoint.json"
@@ -1118,6 +1186,41 @@ def selftest():
             fh.write("\n## Scan 2026-11-02 (script layer)\n\n- [ ] https://a/9 | B | T9\n")
         assert [b[3] for b in unassessed_blocks(d, pp, lp)] == [["- [ ] https://a/9 | B | T9"]]
 
+    # ── scrapers: parallel == sequential output; slow one cut without blocking ──
+    import time as _t
+    names = ["jobspy_scan.py", "jobs_ch.py", "stepstone_scan.py", "zuerijobs_scan.py"]
+    ran, tmos = [], {}
+
+    def fake_run(a, **k):
+        n = Path(a[1]).name
+        ran.append(n); tmos[n] = k["timeout"]
+        if n == "zuerijobs_scan.py":           # slow: killed by its own timeout
+            _t.sleep(0.5)
+            raise subprocess.TimeoutExpired(a, k["timeout"])
+        _t.sleep(0.4 if n == "jobspy_scan.py" else 0.1)  # first finishes last
+        jobs = [{"url": f"https://{n}/{i}", "title": f"{n} {i}"} for i in range(2)]
+        return types.SimpleNamespace(returncode=0, stdout=json.dumps(jobs), stderr="")
+    saved_run = subprocess.run
+    try:
+        subprocess.run = fake_run
+        t = _t.monotonic(); seq = run_scrapers(names, t, 600, parallel=False)
+        t_seq = _t.monotonic() - t
+        assert tmos == {n: 420 for n in names}, tmos
+        t = _t.monotonic(); par = run_scrapers(names, t, 600, parallel=True)
+        t_par = _t.monotonic() - t
+        assert par == seq and len(par) == 6, (par, seq)
+        assert [j["url"] for j in par][:2] == ["https://jobspy_scan.py/0", "https://jobspy_scan.py/1"]
+        assert t_seq >= 1.0 and t_par < 0.8, (t_seq, t_par)   # max, not sum
+        # scan.scrapers selection
+        assert selected_scrapers({}) == SCRAPERS
+        assert selected_scrapers({"scan": {"scrapers": []}}) == []
+        two = selected_scrapers({"scan": {"scrapers": ["jobs_ch.py", "nope.py", "jobspy_scan.py"]}})
+        assert two == ["jobspy_scan.py", "jobs_ch.py"], two
+        ran.clear(); run_scrapers(two, _t.monotonic(), 600)
+        assert sorted(ran) == sorted(two), ran
+    finally:
+        subprocess.run = saved_run
+
     print("selftest: OK")
 
 
@@ -1205,15 +1308,10 @@ def main():
     if args.inject:
         jobs = json.load(open(args.inject))
         print(f"  inject: {len(jobs)} jobs from {args.inject}", file=sys.stderr)
-    for s in ([] if args.inject else SCRAPERS):
-        tmo = scraper_timeout(t0, deadline)
-        if tmo is None:
-            print(f"  deadline: skipping {s}", file=sys.stderr)
-            state["deadline_hit"] = True
-            continue
-        got = run_scraper(s, timeout=tmo)
-        print(f"  {s}: {len(got)} jobs", file=sys.stderr)
-        jobs.extend(got)
+    else:
+        jobs = run_scrapers(selected_scrapers(profile), t0, deadline,
+                            parallel=(profile.get("scan") or {}).get("parallel_scrapers", True),
+                            state=state)
     if args.tavily:
         got = run_tavily(profile, portals, start=t0, deadline=deadline, state=state)
         print(f"  tavily: {len(got)} results", file=sys.stderr)
