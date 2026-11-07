@@ -164,7 +164,7 @@ repair_protected() {
   done
   # re-verify
   local still=0
-  for p in "${RESTORED[@]}"; do
+  for p in ${RESTORED[@]+"${RESTORED[@]}"}; do
     line="$(grep -F "  $p" "$MANIFEST" | head -1)"
     printf '%s\n' "$line" | shasum -a 256 -c - >/dev/null 2>&1 || { loud "STILL FAILING after restore: $p"; still=1; }
   done
@@ -197,7 +197,7 @@ remove_stray_baks() {
 }
 
 commit_repairs() {
-  local paths=("${RESTORED[@]}")
+  local paths=(${RESTORED[@]+"${RESTORED[@]}"})  # bash 3.2: empty array + set -u
   [ -f VERSION ] && paths+=(VERSION)
   if [ "${#paths[@]}" -gt 0 ]; then
     git add -- "${paths[@]}" 2>/dev/null || true
@@ -240,7 +240,7 @@ on_exit() {
   local rc=$?
   if [ "$APPLYING" -eq 1 ] && [ "$DONE" -eq 0 ]; then
     APPLYING=0
-    rollback "${FIRST_FAIL:-update aborted (exit $rc) before the smoke went green}"
+    rollback "${FIRST_FAIL:-guard aborted after apply (exit $rc), see the error above}"
     exit 1
   fi
   exit "$rc"
