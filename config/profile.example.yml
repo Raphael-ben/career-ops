@@ -365,6 +365,11 @@ cover_letter:
 #                          # stopped; default 230. A broad ATS sweep probes every
 #                          # company in a source — raise this to let a large scan
 #                          # finish (bounded by the API route's 300s cap if deployed).
+#   scrapers: [jobspy, jobs_ch, stepstone, efinancialcareers, jobscout24, zuerijobs, jobfishing]
+#                          # which job-board scrapers scan_aggregate.py runs; absent = all,
+#                          # [] = none. Non-Swiss users: drop jobs_ch/jobscout24/zuerijobs.
+#   parallel_scrapers: true   # false runs the scrapers one by one (default true)
+#   deadline_seconds: 600     # total scan time budget in seconds (see scan_aggregate.py)
 
 # ── Auto-PDF threshold ──────────────────────────────────────────────────────
 #
@@ -418,3 +423,14 @@ cover_letter:
 #     cross_role_bucket: "all_EM_roles"
 #     applied_to: ["Senior Software Engineer"]
 #     last_apply_date: "2026-01-01"
+
+# ── Sharing / Apply / Language-warning keys (all optional) ──────────────────
+#
+# sharing:
+#   role: friend    # friend | owner. MUST be the FIRST key under `sharing:` (the friend-guard hook regex requires it).
+#
+# apply:
+#   browser: brave  # browser used by `/jobhunter apply` (brave | chrome | chromium)
+#
+# language:
+#   warned: false   # set true once the output-language warning has been shown, so it is not repeated

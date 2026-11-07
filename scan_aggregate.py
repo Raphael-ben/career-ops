@@ -61,10 +61,10 @@ PIPELINE = HERE / "data" / "pipeline.md"
 APPLICATIONS = HERE / "data" / "applications.md"
 # Scraper registry. Order matters: results are merged in THIS order (not
 # completion order) so dedup is reproducible with parallel runs.
-# Selection: profile.yml `scan.scrapers:` — a list of these script names.
+# Selection: profile.yml `scan.scrapers:` — short names or these script names.
 #   absent      -> every scraper below (default)
 #   []          -> none (only ats-full / Tavily / --inject feed the funnel)
-#   [a.py, b.py]-> only those; unknown names get one warning line and are ignored.
+#   [jobspy, jobs_ch] (or script filenames) -> only those; unknown name -> ValueError.
 # Non-Swiss users should drop the Swiss-only boards (jobs_ch.py, jobscout24_scan.py,
 # zuerijobs_scan.py). `scan.parallel_scrapers: false` runs them one by one.
 SCRAPERS = ["jobspy_scan.py", "jobs_ch.py", "stepstone_scan.py",
@@ -219,16 +219,28 @@ def run_scraper(name, timeout=SCRAPER_CAP):
         return [], [f"  [{name}] failed: {e}"], False
 
 
-def selected_scrapers(profile_cfg):
-    """profile.yml scan.scrapers -> registry-ordered list (see SCRAPERS comment)."""
-    sel = (profile_cfg.get("scan") or {}).get("scrapers")
+SCRAPER_NAMES = {"jobspy": "jobspy_scan.py", "jobs_ch": "jobs_ch.py",
+                 "stepstone": "stepstone_scan.py",
+                 "efinancialcareers": "efinancialcareers_scan.py",
+                 "jobscout24": "jobscout24_scan.py", "zuerijobs": "zuerijobs_scan.py",
+                 "jobfishing": "jobfishing_scan.py"}
+
+
+def resolve_scrapers(profile):
+    """profile.yml scan.scrapers -> script list (absent = all; [] = none).
+    Entries are short names (jobspy) or script filenames (jobspy_scan.py), in the
+    order given. Unknown entry -> ValueError listing the valid names."""
+    sel = (profile.get("scan") or {}).get("scrapers")
     if sel is None:
         return list(SCRAPERS)
-    unknown = [s for s in sel if s not in SCRAPERS]
-    if unknown:
-        print(f"  warning: scan.scrapers: unknown {', '.join(map(str, unknown))} (ignored)",
-              file=sys.stderr)
-    return [s for s in SCRAPERS if s in sel]
+    out = []
+    for n in sel:
+        f = SCRAPER_NAMES.get(n, n if n in SCRAPERS else None)
+        if f is None:
+            raise ValueError(f"scan.scrapers: unknown {n!r}; valid: "
+                             f"{', '.join(SCRAPER_NAMES)}")
+        out.append(f)
+    return out
 
 
 def run_scrapers(names, start, deadline, parallel=True, state=None):
@@ -1211,11 +1223,14 @@ def selftest():
         assert par == seq and len(par) == 6, (par, seq)
         assert [j["url"] for j in par][:2] == ["https://jobspy_scan.py/0", "https://jobspy_scan.py/1"]
         assert t_seq >= 1.0 and t_par < 0.8, (t_seq, t_par)   # max, not sum
-        # scan.scrapers selection
-        assert selected_scrapers({}) == SCRAPERS
-        assert selected_scrapers({"scan": {"scrapers": []}}) == []
-        two = selected_scrapers({"scan": {"scrapers": ["jobs_ch.py", "nope.py", "jobspy_scan.py"]}})
-        assert two == ["jobspy_scan.py", "jobs_ch.py"], two
+        # scan.scrapers selection (short names or script filenames)
+        assert resolve_scrapers({}) == SCRAPERS
+        assert resolve_scrapers({"scan": {"scrapers": []}}) == []
+        assert resolve_scrapers({"scan": {"scrapers": ["jobspy", "jobs_ch"]}}) == ["jobspy_scan.py", "jobs_ch.py"]
+        try: resolve_scrapers({"scan": {"scrapers": ["nope"]}}); assert False
+        except ValueError: pass
+        two = resolve_scrapers({"scan": {"scrapers": ["jobs_ch.py", "jobspy"]}})
+        assert two == ["jobs_ch.py", "jobspy_scan.py"], two
         ran.clear(); run_scrapers(two, _t.monotonic(), 600)
         assert sorted(ran) == sorted(two), ran
     finally:
@@ -1309,7 +1324,7 @@ def main():
         jobs = json.load(open(args.inject))
         print(f"  inject: {len(jobs)} jobs from {args.inject}", file=sys.stderr)
     else:
-        jobs = run_scrapers(selected_scrapers(profile), t0, deadline,
+        jobs = run_scrapers(resolve_scrapers(profile), t0, deadline,
                             parallel=(profile.get("scan") or {}).get("parallel_scrapers", True),
                             state=state)
     if args.tavily:
