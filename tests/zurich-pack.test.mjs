@@ -4,6 +4,9 @@ import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseBlacklist } from '../scan.mjs';
+import { mkdtempSync, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import * as yaml from 'js-yaml';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -28,4 +31,13 @@ test('starter blacklist: agencies active, consulting commented', () => {
 test('refuses without portals.yml', () => {
   const r = spawnSync('node', [join(ROOT, 'tools/make-zurich-pack.mjs'), '--portals', '/nonexistent'], { encoding: 'utf8' });
   assert.equal(r.status, 2);
+});
+test('real parser: agencies blacklisted, commented consulting rows skipped', () => {
+  const names = [...parseBlacklist(readFileSync(join(ROOT, 'templates/blacklist.starter.md'), 'utf8')).values()].map((e) => e.company);
+  assert.ok(names.includes('Hays')); assert.ok(!names.includes('McKinsey'));
+});
+test('bad --blacklist exits 2 and writes no pack', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'zpack-'));
+  const r = spawnSync('node', [join(ROOT, 'tools/make-zurich-pack.mjs'), '--portals', join(ROOT, 'templates/portals.zurich.yml'), '--blacklist', '/nonexistent', '--out-dir', dir], { encoding: 'utf8' });
+  assert.equal(r.status, 2); assert.ok(!existsSync(join(dir, 'portals.zurich.yml')));
 });
