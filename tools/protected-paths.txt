@@ -60,3 +60,9 @@ deep/README.md
 check-humanized.mjs
 modes/onboarding.md
 tools/leak-check-exclude.txt
+templates/cv-fill-spec.pro.md
+templates/cl-fill-spec.pro.md
+templates/portals.zurich.yml
+templates/blacklist.starter.md
+modes/pro/onboarding.md
+tools/make-zurich-pack.mjs

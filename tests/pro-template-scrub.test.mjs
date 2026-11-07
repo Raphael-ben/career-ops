@@ -32,3 +32,13 @@ test('leak-check catches the bare surname and employers', () => {
   writeFileSync(join(dir, 'x.md'), 'Worked with Alex Muster at Acme Software AG.');
   assert.equal(run().status, 0);
 });
+
+test('pro fill-specs shipped and owner-neutral', () => {
+  for (const f of ['templates/cv-fill-spec.pro.md', 'templates/cl-fill-spec.pro.md']) {
+    const md = readFileSync(join(ROOT, f), 'utf8');
+    for (const s of [...OWNER, 'Pila' + 'tus']) assert.ok(!md.includes(s), `${f}: ${s}`);
+  }
+  const prot = readFileSync(join(ROOT, 'tools/protected-paths.txt'), 'utf8');
+  for (const p of ['templates/cv-fill-spec.pro.md', 'templates/cl-fill-spec.pro.md', 'modes/pro/onboarding.md', 'templates/portals.zurich.yml', 'templates/blacklist.starter.md', 'tools/make-zurich-pack.mjs'])
+    assert.ok(prot.includes(p), p);
+});
