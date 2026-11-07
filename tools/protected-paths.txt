@@ -14,7 +14,6 @@ modes/pro/tracker-entry.md
 modes/pro/verify.md
 modes/pro/write-cv.md
 modes/pro/write-cl.md
-modes/_custom.md
 
 # --- fork scan / tooling scripts ---
 scan_aggregate.py
@@ -29,7 +28,6 @@ zuerijobs_scan.py
 jobfishing_scan.py
 notion_finalize.py
 sync-notion-tracker.sh
-generate-latex-pro.mjs
 
 # --- guard + leak tooling ---
 tools/leak-check.sh
@@ -54,3 +52,10 @@ extension/ats/workday.js
 extension/fill/workday-fill.js
 tests/apply-data.test.mjs
 tests/workday-map.test.mjs
+
+# --- deep layer (scan Phase 1c, added 2026-11-07) ---
+deep/run_deep.py
+deep/boards.yml
+deep/README.md
+check-humanized.mjs
+modes/onboarding.md

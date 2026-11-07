@@ -10,8 +10,9 @@ Resolve `{DATA_DIR}` and `{PYTHON}` from `modes/_profile.md` (lines `DATA_DIR: .
 
 Read `config/profile.yml` `tracker:` block. Branch on `tracker.type`:
 
+- **`markdown`** or **`dashboard`** → the entry is the `data/applications.md` row only (set to Applied by `apply.md` Step 2 via `set-status.mjs`). Do Steps 1–3, then the "applications.md row" section below. No Notion, no `tracker-links.tsv`.
 - **`notion`** → follow Steps 1–5 (Notion flow). Use `tracker.notion.applications_db_id` as the database id and `tracker.notion.data_source_id` as the data source wherever an id is needed. Never hardcode ids in this mode.
-- **`none`** (or the `tracker:` block / `tracker.type` is absent) → skip the Notion flow. Do Steps 1–2 (collect fields + resolve zipcode), then append one row to `data/applications.md` (see "none: applications.md row" below). Done.
+- **`none`** (or the `tracker:` block / `tracker.type` is absent) → same as `markdown`: skip the Notion flow, do Steps 1–3, then the "applications.md row" section below. Done.
 - **`obsidian`** → print `Obsidian tracker not implemented — see docs/TRACKERS.md` and fall back to the `none` flow.
 
 ---
@@ -66,18 +67,15 @@ Leave Zipcode blank **only** if the city itself cannot be determined from the JD
 
 ---
 
-### `none`: applications.md row
+### applications.md row (`markdown` / `dashboard` / `none` / obsidian fallback)
 
-If `data/applications.md` does not exist, create it with this header:
+The row normally exists already and is `Applied` (`apply.md` Step 2 ran `node set-status.mjs <#> Applied`). Never hand-edit the table and never append a second row for the same opening. Record the extra fields as a note on that row:
 
-```markdown
-# Applications Tracker
-
-| # | Date | Company | Role | Score | Status | PDF | Report | Notes |
-|---|------|---------|------|-------|--------|-----|--------|-------|
+```bash
+node set-status.mjs <tracker#> Applied --note "{City}, {Country} {zip} · ATS {platform} · pkg output/{folder}"
 ```
 
-For `tracker.type: none`/absent/obsidian-fallback, append one row to `data/applications.md` capturing: Company, Role title, Status (`Applied`), Application date (today YYYY-MM-DD), Job posting URL, Location (`{City}, {Country}`, no modifiers), Zipcode (from Step 2), ATS Platform (Step 3 below), Match Score (decimal from report or blank), and the output-folder path. Match the existing format already in `data/applications.md`; if absent, create it with the canonical header above. Then stop — Steps 3–5 below apply only to the Notion flow (Step 3's ATS detection is still used to fill the ATS field here).
+If no row exists (apply started outside the pipeline), add it through a tracker-additions TSV + `node merge-tracker.mjs` (see AGENTS.md "TSV Format for Tracker Additions"), then run the command above. Then stop — Steps 4–5 apply only to the Notion flow.
 
 ---
 
@@ -151,57 +149,57 @@ If the report does not exist (apply started without pipeline context), omit Role
 
 ---
 
-## Step 4b — Finalize: PDFs + verbatim JD (Notion flow only, SCRIPT-owned)
+## Step 4b — Attach PDFs + verbatim JD (Notion flow only)
 
-Pasting a long JD by hand is unreliable — LLM agents truncate or summarize it. This step is a deterministic script instead of a manual edit, and it also owns the PDF uploads (real files via the Notion File Upload API, never external links).
+The agent never pastes or summarizes JD text into the page; the JD goes in as a file, byte for byte. PDFs are real file attachments, never external links or local paths.
 
-Write the full JD text (verbatim, no summarizing) to `{output_folder}/jd.txt` if it isn't already saved there, then run:
+**Primary route: Notion MCP file upload** (works without any token). For each of `{output_folder}/{file_slug}_CV.pdf`, `{output_folder}/{file_slug}_cover-letter.pdf` and `{output_folder}/jd.txt` (write the full JD verbatim to `jd.txt` first if it is not already there):
+
+1. `notion-create-file-upload` with `filename` = the file's basename (omit `content_type`; it is inferred from the extension).
+2. POST the bytes once to the returned `upload_url`, with every header from `upload_headers`:
+   ```bash
+   curl -sS -X POST "<upload_url>" -H "<each upload_headers entry>" -F "file=@{path}"
+   ```
+3. `notion-update-page` on the Step 4 page, inserting the returned `suggested_markdown` / `markdown_source` (e.g. `<pdf src="file-upload://<id>"></pdf>`): both PDFs under a `## Documents` heading, `jd.txt` under `## Job Description`.
+4. `notion-fetch` the page and confirm three attachments are present. Any step failing = Step 5.
+
+**Optional route: `notion_finalize.py`**, only when `NOTION_ACCESS_TOKEN` is set in `career-ops/.env` (never set one up without asking the user). It uploads both PDFs and pastes the JD as text blocks, then prints PASS/FAIL:
 
 ```bash
 {PYTHON} notion_finalize.py <page_url> --jd {output_folder}/jd.txt --cv {output_folder}/{file_slug}_CV.pdf --cl {output_folder}/{file_slug}_cover-letter.pdf
 ```
 
-`<page_url>` is the URL of the page just created in Step 4. `{PYTHON}` resolves per `modes/_profile.md` (same resolution as Step 0). The script uploads both PDFs into the page body under a "Documents" heading and pastes the full JD under a "Job Description" heading, then verifies both and prints a PASS/FAIL summary.
+A non-zero exit falls back to the MCP route above, not to Step 5.
 
-**The agent MUST NOT paste JD content into the page itself** — that responsibility now belongs entirely to this script. If `notion_finalize.py` exits non-zero, report the failure verbatim to the user (including the script's own error/setup message) and do **not** mark the tracker entry as complete — treat it the same as a failed Notion MCP call in Step 5 below (print the paste-able fallback block) and note that PDFs/JD still need manual attention.
+### Step 4c — Record the link (Notion flow only, mandatory)
+
+After the page exists and the PDFs are attached, append one line to `data/tracker-links.tsv` (create the file if missing, no header):
+
+```bash
+printf '%s\t%s\t%s\t%s\n' "<tracker#>" "<Company>" "<page_url>" "$(date +%F)" >> data/tracker-links.tsv
+```
+
+`<tracker#>` is the `applications.md` row number (the `#` passed to `set-status.mjs`), not a report number. `<page_url>` is the page URL from Step 4; the Stop hook (`.claude/hooks/notion-gate.mjs`) accepts `https://www.notion.so/…` and `https://app.notion.com/…` forms. Without this line the hook blocks the end of the turn for every row set to Applied this session.
 
 ---
 
 ## Step 5 — Handle failures (Notion flow only)
 
-**If Notion MCP is unavailable** (tools not loaded, OAuth expired, any call fails), print this fallback block instead:
-
-```
-──────────────────────────────────────────────
-TRACKER ENTRY — paste into applications database
-──────────────────────────────────────────────
-Name:         {Company}
-Position:     {Role title}
-Status:       Applied
-Applied:      {YYYY-MM-DD}
-URL:          {job posting URL}
-Job desc:     {JD summary}
-Location:     {City}
-Zipcode:      {zip or blank}
-ATS:          {Platform}
-Match Score:  {X.X}
-──────────────────────────────────────────────
-CV/CL: career-ops/output/{folder}/
-```
-
-If Expected Salary was captured, append: `Expected Salary: {amount} {currency}`. The fallback block does not block the rest of the post-apply flow.
+**If the Notion MCP is unreachable** (tools not loaded, OAuth expired, a call fails after one retry), tell the user explicitly, in plain words, which step failed, the error, and what is still missing (page / PDFs / JD / `tracker-links.tsv` line). Do not end the turn as if the application were recorded, and do not substitute a "paste this block" printout for the entry. The Stop hook will block the turn anyway while a row set to Applied has no `tracker-links.tsv` line; resolving that means either completing the entry once Notion is back or the user deciding otherwise.
 
 ---
 
 ## Rules
 
 - **Name is company only.** Never "Company — Role" or "Company - Position". The Position field holds the role title.
-- **Job description goes in the page body, not the property field** (the property truncates at ~2000 chars), and it is written EXCLUSIVELY by `notion_finalize.py` in Step 4b — the agent never pastes or summarizes JD text into the page itself.
-- **PDFs are uploaded as real files by `notion_finalize.py`** in Step 4b, never as external links and never as a pasted local folder path.
+- **Job description goes in the page body, not the property field** (the property truncates at ~2000 chars), as the verbatim `jd.txt` attachment (MCP route) or the script's text blocks (`notion_finalize.py`) — the agent never pastes or summarizes JD text into the page itself.
+- **PDFs are uploaded as real files** in Step 4b (MCP file upload, or `notion_finalize.py` when a token exists), never as external links and never as a pasted local folder path.
+- **Every Notion entry ends with its `data/tracker-links.tsv` line** (Step 4c): `<tracker#>\t<Company>\t<page_url>\t<YYYY-MM-DD>`. The Stop hook checks it.
+- **Status goes through `set-status.mjs`**, never a hand edit of `data/applications.md`.
 - **Location has no modifiers.** `{City}, {Country}` only — never "hybrid", "remote", "on-site", or parentheses.
 - **Zipcode is mandatory** when `address_lookup.zip_mandatory` — always run the lookup; never skip because it seems minor.
 - **Match Score is a decimal from the report, or blank.** Never convert a letter grade to a number.
 - **Never fill Expected Salary** unless the form explicitly asked and a specific number was submitted. Store it verbatim (ranges OK); never fabricate a midpoint. Never fill Salary Currency unless Expected Salary is set.
-- **Never write local file paths** into the CV / Cover Letter URL properties — those expect URLs; `notion_finalize.py` handles attachment via the body (and via the properties themselves if the schema type is `files`).
+- **Never write local file paths** into the CV / Cover Letter URL properties — those expect URLs; attachments live in the page body (Step 4b).
 - **RAV Disclosed is always `__NO__`.**
 - **One entry per submission.** If the candidate resubmits after a form error, create a second entry.

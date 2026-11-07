@@ -303,7 +303,7 @@
     }
   },
   "humanize": {
-    "banned_words": ["leveraged", "utilized", "spearheaded", "harnessed", "fostered", "championed", "passionate", "excited", "thrilled", "eager", "dynamic", "synergies (as verb)"],
+    "banned_words": ["leveraged", "utilized", "spearheaded", "harnessed", "fostered", "championed", "passionate", "excited", "thrilled", "eager", "dynamic", "synergies (as verb)", "actually", "additionally", "align with", "bolstered", "crucial", "deep dive", "delve", "enduring", "enhance", "garner", "gate/gated/gating (figurative)", "highlight (verb)", "interplay", "intricate", "intricacies", "key (adjective)", "landscape (abstract noun)", "meticulous", "meticulously", "pivotal", "quietly", "robust (figurative)", "showcase", "tapestry (abstract noun)", "testament", "underscore (verb)", "valuable", "vibrant"],
     "banned_words_de": ["dynamisch", "genutzt", "begeistert", "im Kern", "letztlich"],
     "banned_words_fr": ["dynamique"],
     "banned_bullet_openers": ["leveraged", "utilized", "spearheaded", "harnessed", "fostered", "championed"],

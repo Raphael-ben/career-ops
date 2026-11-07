@@ -44,6 +44,15 @@ Other steps and non-Workday forms are typed by hand. Never click Submit for the 
 
 When the candidate confirms submission:
 
-1. Update status in `career-ops/data/applications.md` from "Evaluated" to "Applied"
-2. Create the application-tracker entry — read and follow `career-ops/modes/pro/tracker-entry.md` exactly; the tracker note records the package folder used
-3. Suggest: `/jobhunter contact` for LinkedIn outreach
+1. Find the tracker row and rule out a duplicate (read-only, advisory, always exits 0):
+   ```bash
+   node precheck-duplicate.mjs --company "<Company>" --title "<Role>" --url "<job URL>"
+   ```
+   If it lists an existing row already `Applied` (or later) for the same opening, stop and show it instead of creating a second application record. Otherwise take the row's `#`. If no row exists, add one via a tracker-additions TSV + `node merge-tracker.mjs` (never hand-add rows), then use its `#`.
+2. Set the status through the canonical writer, never by hand-editing `data/applications.md`:
+   ```bash
+   node set-status.mjs <tracker#> Applied
+   ```
+   This appends the transition to `data/status-log.tsv`, which the Stop hook (`.claude/hooks/notion-gate.mjs`) reads.
+3. In the same turn, create the application-tracker entry — read and follow `career-ops/modes/pro/tracker-entry.md` exactly (Notion page + both PDFs + the `data/tracker-links.tsv` line when `tracker.type` is `notion`). "Applied" and the tracker entry are one action: do not stop to offer it.
+4. Suggest: `/jobhunter contact` for LinkedIn outreach

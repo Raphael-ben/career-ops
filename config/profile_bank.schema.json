@@ -301,7 +301,7 @@
       "type": "object",
       "description": "Person/house-style banned vocabulary for the humanizer + writers (humanize.md job-application bans, write-cl Banned phrases, framing banned_words/banned_bullet_openers). The 29 generic blader/humanizer patterns stay in the mode; only the concrete word/phrase LISTS live here.",
       "properties": {
-        "banned_words": { "type": "array", "items": { "type": "string" }, "description": "Words banned anywhere in output (any language-neutral / English)." },
+        "banned_words": { "type": "array", "items": { "type": "string" }, "description": "Words banned anywhere in output (any language-neutral / English). Includes the humanizer skill's stock AI vocabulary. An entry with a parenthetical qualifier, e.g. \"key (adjective)\", is banned only in that sense and is judged by pro/humanize.md; bare entries are also enforced mechanically by check-humanized.mjs." },
         "banned_words_de": { "type": "array", "items": { "type": "string" }, "description": "German filler/AI-tell words." },
         "banned_words_fr": { "type": "array", "items": { "type": "string" }, "description": "French filler/AI-tell words." },
         "banned_bullet_openers": { "type": "array", "items": { "type": "string" }, "description": "Words no bullet or sentence may open with." },

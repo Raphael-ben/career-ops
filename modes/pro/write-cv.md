@@ -24,7 +24,9 @@ Read `{output_folder}/profile-filtered.json` (pre-filtered profile for this job,
 
 ### Step 2 — Extract JD keywords (ATS injection)
 
-Extract 15-20 keywords from the JD: noun phrases and verb phrases the JD uses to describe required skills and experience. These will be woven naturally into experience bullets. Do NOT invent experience — only reformulate existing profile-bank content using JD vocabulary.
+List the JD's skill/experience noun and verb phrases, then keep ONLY those an achievement id in the filtered profile already backs; write each kept keyword next to its backing `ach_id` in your working notes. Drop every JD phrase with no backing id: there is no keyword quota, and a dropped keyword is a gap, not a slot to fill.
+
+**Anti-echo rule.** Mirror JD wording only where an achievement id already backs the claim. Never restate a JD requirement as something the candidate did. No backing id ⇒ omit. Keyword weaving must not create a new claim.
 
 ### Step 3 — Select and order experience blocks
 
@@ -127,11 +129,11 @@ Date format: `Month.~'YY -- Month.~'YY` for completed; `Month.~'YY -- present` f
 
 ### Step 7 — ATS keyword injection
 
-Integrate the 15-20 JD keywords naturally into filled bullets. Reformulate existing achievements using JD vocabulary. Never invent experience not in the profile bank.
+Use only the keyword ↔ `ach_id` pairs from Step 2, each inside the bullet for that achievement. **Anti-echo rule.** Mirror JD wording only where an achievement id already backs the claim. Never restate a JD requirement as something the candidate did. No backing id ⇒ omit. Keyword weaving must not create a new claim.
 
 ### Step 8 — Swiss German orthography
 
-If `swiss: true`: use `ss` instead of `ß` throughout all bullet text, sidebar items, and tagline. The LaTeX compile script applies a second pass, but the mode output must already be clean. If `swiss: false` and the company is German (DE): use standard `ß`.
+If `swiss: true`: use `ss` instead of `ß` throughout all bullet text, sidebar items, and tagline. Nothing rewrites it later: the pipeline lint (Step 5.5 Check 5) fails on any `ß`. If `swiss: false` and the company is German (DE): use standard `ß`.
 
 ### Step 9 — Page fullness self-check (planning aid before compiling)
 
@@ -175,7 +177,8 @@ If computed total is over target, trim in this order: shorten the longest bullet
 
 Report — all fields mandatory:
 - EXP blocks included (list of experience ids)
-- Keyword list injected
+- Keyword list injected, each with its backing `ach_id`
+- **Bullet provenance:** one line per rendered bullet, `<location> → <ach_id>` (no id ⇒ the bullet must not exist)
 - **Bullet-count classifications:** copy each per-block `[{block}: ... reduce_when="..."; ...]` statement verbatim
 - **Optional-block decisions:** copy each `[{block}: included/excluded — ...]` statement verbatim (conditional-mention blocks + space-fill blocks)
 - **Step 9 line-count table:** copy the completed table verbatim
@@ -184,10 +187,12 @@ Report — all fields mandatory:
 
 ## Hard rules — violations cause verifier to fail
 
-1. **Source-bound claims.** Every bullet maps to a specific achievement in the profile bank. No claim untraceable to an experience/achievement id.
+1. **Source-bound claims.** Every bullet maps to a specific achievement in the profile bank, and you write that `ach_id` next to the bullet in your working notes (reported as "Bullet provenance"). No claim untraceable to an experience/achievement id. JD vocabulary is never a source (see the anti-echo rule in Step 2).
 2. **No invented metrics.** Numbers only if in the profile bank.
 3. **No inferred sector specifics.** Do not claim engagements in a JD sector unless the profile bank states it.
 4. **No banned terms.** Never emit any `profile_bank.rules.never_mention` term.
 5. **Tense compliance** per `profile_bank.rules.tense` (see Step 4).
 6. **Single page.** If content overflows, trim bullets — do not adjust geometry.
 7. **Never devalue the profile.** No "without hierarchical power", no "the project wasn't technically complex", no "I did not have...".
+8. **Durations only from the bank.** Any "N years" figure is the `years_experience` the orchestrator pasted (summed from `profile_bank.experience[].start/end`, employed periods only). Never state a duration the bank does not give, never compute your own span, never volunteer a shortfall against a JD threshold.
+9. **Ended roles in past tense.** Decide tense from each role's `end` date against today's date: `end` before today ⇒ past tense, never "current role" / "currently" / present-tense verbs. Present tense only when `end` is null (or on/after today per `profile_bank.rules.tense`).

@@ -312,6 +312,7 @@ run_smoke() {
 
   smoke "scan_aggregate.py --selftest" 180 '"$PY" scan_aggregate.py --selftest'
   smoke "notion_finalize.py --selftest" 60 '"$PY" notion_finalize.py --selftest'
+  smoke "deep/run_deep.py --selftest" 60 '"$PY" deep/run_deep.py --selftest'
 
   # existence + parse for every script the fork calls; relative-import closure
   # for every .mjs (catches the v1.17 "scan.mjs imports a file upstream never
@@ -385,6 +386,13 @@ surface() {
       cols="$({ grep -oE "'url[\\]tfirst_seen[^']*'" scan.mjs || true; } | head -1 | tr -d "'" | awk '{gsub(/[\\]t/," "); print $1,$2,$3,$4,$5}')"
     fi
     printf 'scan-history first columns: %s\n' "${cols:-<not found>}"
+    # full column list (scan_aggregate.py + deep/run_deep.py read rows by these names)
+    if [ -f lib/scan-history-columns.mjs ]; then
+      printf 'scan-history columns: %s\n' "$({ sed -n '/SCAN_HISTORY_COLUMNS = /,/]);/p' lib/scan-history-columns.mjs | grep -oE "'[a-z_]+'" || true; } | tr -d "'" | paste -sd' ' -)"
+    fi
+    # pipeline.md row/section format scan_aggregate.py writes into
+    { grep -oF -- '- [ ] ${url} | ${company} | ${title}' scan.mjs || true; } | head -1 | sed 's#^#pipeline row: #'
+    { grep -oE 'SECTION_LEVEL = [0-9]+' scan.mjs || true; } | head -1 | sed 's#^#pipeline #'
   } | sort -u
 }
 
@@ -406,6 +414,37 @@ drift_check() {
   for key in $(grep -oE 'cp(\[|\.get\()"[A-Za-z_]+"' scan_aggregate.py | grep -oE '"[A-Za-z_]+"' | tr -d '"' | sort -u); do
     grep -qw -- "$key" scan-ats-full.mjs 2>/dev/null || DRIFT_WARNS+=("scan_aggregate.py reads checkpoint key '$key'; scan-ats-full.mjs no longer mentions it")
   done
+
+  # scan-history columns the fork reads BY NAME (scan_aggregate.py
+  # _HISTORY_COLUMNS_FALLBACK): every name must still exist upstream, and the
+  # first six (the ones this script also writes) must keep their positions.
+  if [ -f lib/scan-history-columns.mjs ]; then
+    local up fork i=0 u
+    up="$({ sed -n '/SCAN_HISTORY_COLUMNS = /,/]);/p' lib/scan-history-columns.mjs | grep -oE "'[a-z_]+'" || true; } | tr -d "'" | paste -sd' ' -)"
+    fork="$({ sed -n '/^_HISTORY_COLUMNS_FALLBACK = (/,/)/p' scan_aggregate.py | grep -oE '"[a-z_]+"' || true; } | tr -d '"' | paste -sd' ' -)"
+    for key in $fork; do
+      case " $up " in *" $key "*) ;; *) DRIFT_WARNS+=("scan_aggregate.py reads scan-history column '$key'; lib/scan-history-columns.mjs no longer lists it") ;; esac
+    done
+    for u in $up; do
+      [ "$i" -ge 6 ] && break
+      [ "$u" = "$(printf '%s' "$fork" | awk -v n=$((i+1)) '{print $n}')" ] || DRIFT_WARNS+=("scan-history column $i is '$u' upstream; scan_aggregate.py writes '$(printf '%s' "$fork" | awk -v n=$((i+1)) '{print $n}')' there")
+      i=$((i+1))
+    done
+  else
+    DRIFT_WARNS+=("lib/scan-history-columns.mjs missing; scan_aggregate.py falls back to its built-in column list")
+  fi
+
+  # pipeline.md format scan_aggregate.py / deep/run_deep.py append to:
+  # `- [ ] url | company | title` rows under `## Scan <date> (script layer…)`.
+  # Upstream must still parse that row shape and must not treat a `## Scan`
+  # heading as a Processed section (it would release queued rows for re-scan).
+  grep -qF -- '- [ ] ${url} | ${company} | ${title}' scan.mjs 2>/dev/null \
+    || DRIFT_WARNS+=("scan.mjs no longer writes '- [ ] url | company | title' pipeline rows; check scan_aggregate.pipeline_row()")
+  grep -qE 'SECTION_LEVEL = 2' scan.mjs 2>/dev/null \
+    || DRIFT_WARNS+=("scan.mjs pipeline section depth changed; '## Scan <date>' blocks may change meaning")
+  if grep -qiE "\[\s*'scan" lib/pipeline-sections.mjs 2>/dev/null; then
+    DRIFT_WARNS+=("lib/pipeline-sections.mjs now names a 'Scan' section; '## Scan <date>' blocks may be read as Pending/Processed")
+  fi
 
   # flags the prompt layer passes to upstream node scripts
   while IFS= read -r line; do

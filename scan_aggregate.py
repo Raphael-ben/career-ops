@@ -168,12 +168,36 @@ def is_tavily_posting(url):
     return False
 
 
-def run_scraper(name):
+SCRAPER_CAP = 420       # per-scraper ceiling (seconds)
+SCRAPER_FLOOR = 30      # never start a scraper with less than this left
+DEFAULT_DEADLINE = 600  # Raphael's rule: a scan finishes in <=10 min
+
+
+def remaining_budget(start, deadline, cap, now=None):
+    """Seconds a step may use: min(cap, time left before start+deadline), >= 0.
+
+    Pure (pass `now` to test). start/now are time.monotonic() values.
+    """
+    import time
+    now = time.monotonic() if now is None else now
+    return max(0.0, min(float(cap), deadline - (now - start)))
+
+
+def scraper_timeout(start, deadline, now=None):
+    """Timeout for the next scraper, or None when the budget is spent
+    (<= SCRAPER_FLOOR left) and the rest must be skipped."""
+    left = remaining_budget(start, deadline, SCRAPER_CAP, now)
+    if left <= SCRAPER_FLOOR:
+        return None
+    return max(SCRAPER_FLOOR, int(left))
+
+
+def run_scraper(name, timeout=SCRAPER_CAP):
     """Run a scraper, return its JSON list. Never raises — [] on failure."""
     try:
         proc = subprocess.run(
             [sys.executable, str(HERE / name)],
-            capture_output=True, text=True, timeout=420,
+            capture_output=True, text=True, timeout=timeout,
             cwd=str(HERE),  # scrapers read cwd-relative config/profile.yml
         )
         if not proc.stdout.strip():
@@ -188,7 +212,7 @@ def run_scraper(name):
 ATS_FULL_CHECKPOINT = HERE / "data" / "cache" / "ats-full-checkpoint.json"
 
 
-def run_ats_full(profile_cfg, dry_run=False):
+def run_ats_full(profile_cfg, dry_run=False, max_cap=None):
     """Optional stage: `node scan-ats-full.mjs` — a reverse-ATS keyword sweep of
     the full public Greenhouse/Lever/Ashby/Workday/iCIMS datasets, filtered by
     portals.yml's own title_filter/location_filter (no company list needed, so
@@ -208,6 +232,11 @@ def run_ats_full(profile_cfg, dry_run=False):
     if not cfg.get("ats_full", True):
         return 0
     cap = int(cfg.get("ats_full_cap_seconds", 900))
+    if max_cap is not None:  # overall scan deadline wins over the stage cap
+        if max_cap <= SCRAPER_FLOOR:
+            print("  deadline: skipping ats-full", file=sys.stderr)
+            return 0
+        cap = min(cap, int(max_cap))
     before = len(HISTORY.read_text(errors="replace").splitlines()) if HISTORY.exists() else 0
     args = ["node", str(HERE / "scan-ats-full.mjs")]
     if ATS_FULL_CHECKPOINT.exists():
@@ -266,8 +295,18 @@ def run_ats_full(profile_cfg, dry_run=False):
     return max(0, after - before)
 
 
-def run_tavily(profile_cfg, portals_cfg):
-    """Run portals.yml search_queries via Tavily REST. Zero agent tokens."""
+def run_tavily(profile_cfg, portals_cfg, start=None, deadline=None, state=None):
+    """Run portals.yml search_queries via Tavily REST. Zero agent tokens.
+
+    Stops the whole phase on the first HTTP 432 (credits exhausted: every
+    further query would fail the same way) and when the overall scan deadline
+    leaves < 5 s. `state` (dict) receives deadline_hit=True on a deadline stop.
+    """
+    import time
+    import urllib.error
+    start = time.monotonic() if start is None else start
+    deadline = float("inf") if deadline is None else deadline
+    state = {} if state is None else state
     key = ((profile_cfg.get("tavily") or {}).get("api_key") or "").strip()
     if not key:
         print("  [tavily] no api_key in profile.yml → skipped "
@@ -293,13 +332,26 @@ def run_tavily(profile_cfg, portals_cfg):
                    "max_results": 8, "country": "switzerland"}
         if include:
             payload["include_domains"] = include
+        left = remaining_budget(start, deadline, 30)
+        if left < 5:
+            print(f"  deadline: skipping remaining tavily queries (from {q.get('name','?')})",
+                  file=sys.stderr)
+            state["deadline_hit"] = True
+            break
         try:
             req = urllib.request.Request(
                 "https://api.tavily.com/search",
                 data=json.dumps(payload).encode(),
                 headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=30) as r:
+            with urllib.request.urlopen(req, timeout=left) as r:
                 results = json.loads(r.read()).get("results", [])
+        except urllib.error.HTTPError as e:
+            if e.code == 432:
+                print("  [tavily] HTTP 432 (credits exhausted) — stopping Tavily phase",
+                      file=sys.stderr)
+                break
+            print(f"  [tavily] query failed ({q.get('name','?')}): {e}", file=sys.stderr)
+            continue
         except Exception as e:  # noqa: BLE001
             print(f"  [tavily] query failed ({q.get('name','?')}): {e}", file=sys.stderr)
             continue
@@ -359,26 +411,76 @@ def load_cfgs():
             [b.lower() for b in (lf.get("block") or [])])
 
 
-def load_history():
-    """Return (seen_urls, (title, company) pairs) from scan-history.tsv.
+# scan-history.tsv column order. Authority is upstream's
+# lib/scan-history-columns.mjs (append-only list; v1.39 added 13-15). Read at
+# runtime so a new upstream column never shifts us; the tuple is the fallback
+# and the selftest asserts the two agree on every name we use.
+_HISTORY_COLUMNS_FALLBACK = (
+    "url", "first_seen", "portal", "title", "company", "status", "location",
+    "fingerprint", "posted_at", "trust_score", "trust_flags",
+    "normalized_company", "requisition_id", "language", "listing_key")
+# Legacy layout this script wrote before 2026-11-07 (still in old rows).
+_LEGACY_AGG_COLUMNS = ("url", "title", "company", "portal", "first_seen", "status")
 
-    History rows are url\ttitle\tcompany\tsource\tdate\tstatus (see main()'s
-    writer below) — title/company feed the fuzzy-dedup corpus.
+
+def history_columns(mjs_path=None):
+    p = Path(mjs_path) if mjs_path else HERE / "lib" / "scan-history-columns.mjs"
+    try:
+        body = re.search(r"SCAN_HISTORY_COLUMNS\s*=\s*Object\.freeze\(\[(.*?)\]\)",
+                         p.read_text(), re.S).group(1)
+        cols = tuple(re.findall(r"'([a-z_]+)'", body))
+        if cols and cols[0] == "url":
+            return cols
+    except Exception:  # noqa: BLE001 — missing/reshaped file: fall back
+        pass
+    return _HISTORY_COLUMNS_FALLBACK
+
+
+HISTORY_COLUMNS = history_columns()
+
+
+def parse_history_row(line, columns=None):
+    """One scan-history.tsv line -> dict keyed by column NAME ('' if absent).
+
+    Canonical rows (scan.mjs, and this script since 2026-11-07) follow
+    HISTORY_COLUMNS. Old rows this script wrote use _LEGACY_AGG_COLUMNS,
+    recognised by a non-date column 1 and an ISO date in column 4. Header
+    row -> None. Formula escaping (leading ' before =+-@) is undone.
     """
+    parts = line.rstrip("\n").split("\t")
+    if not parts or not parts[0].strip() or parts[0] == "url":
+        return None
+    cols = columns or HISTORY_COLUMNS
+    if (len(parts) >= 5 and not _ISO_DATE.match(parts[1].strip())
+            and _ISO_DATE.match(parts[4].strip())):
+        cols = _LEGACY_AGG_COLUMNS
+    def cell(i):
+        v = parts[i].strip() if i < len(parts) else ""
+        return re.sub(r"^'(?='*[=+\-@])", "", v)
+    return {name: cell(i) for i, name in enumerate(cols)}
+
+
+def history_line(url, first_seen, portal, title, company, status, location=""):
+    """A canonical scan-history.tsv line (named columns, upstream order)."""
+    rec = {"url": url, "first_seen": first_seen, "portal": portal, "title": title,
+           "company": company, "status": status, "location": location}
+    cells = [(rec.get(c) or "").replace("\t", " ").strip() for c in HISTORY_COLUMNS[:7]]
+    return "\t".join(cells) + "\n"
+
+
+def load_history():
+    """Return (seen_urls, (title, company) pairs) from scan-history.tsv,
+    read by column name via parse_history_row()."""
     seen = set()
     pairs = []
     if HISTORY.exists():
         for line in HISTORY.read_text(errors="replace").splitlines():
-            if not line.strip():
+            row = parse_history_row(line)
+            if not row:
                 continue
-            parts = line.split("\t")
-            seen.add(parts[0].strip())
-            # scan.mjs writes url\tfirst_seen\tportal\ttitle\tcompany\t... instead
-            dated = bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", parts[1].strip())) if len(parts) > 1 else False
-            if dated and len(parts) >= 5:
-                pairs.append((parts[3].strip(), parts[4].strip()))
-            elif not dated and len(parts) >= 3:
-                pairs.append((parts[1].strip(), parts[2].strip()))
+            seen.add(row["url"])
+            if row.get("title") or row.get("company"):
+                pairs.append((row.get("title", ""), row.get("company", "")))
     return seen, pairs
 
 
@@ -554,8 +656,17 @@ def pipeline_row(j):
     title = (j.get("title") or "").strip()
     loc = (j.get("location") or "").strip()
     suffix = f" ({loc})" if loc else ""
+    # Signals for the Phase 3 pre-assessment. Only what the source exposed —
+    # never a guessed count. " · " (not "|") keeps the row's 3 pipe fields intact.
+    extra = ""
+    apl = str(j.get("applicants") or "").strip()
+    if re.fullmatch(r"<?\d+\+?", apl):  # "37", "200+" (LinkedIn "Over 200"), "<25"
+        extra += f" · applicants: {apl}"
+    posted = (j.get("date_posted") or "").strip()[:10]
+    if _ISO_DATE.match(posted):
+        extra += f" · posted: {posted}"
     return (f"- [ ] {j.get('url','').strip()} | {company} | "
-            f"{title}{suffix} — via {j.get('source','')}, triage\n")
+            f"{title}{suffix} — via {j.get('source','')}, triage{extra}\n")
 
 
 # ── REAPER — closes stale pipeline.md entries so it stops growing forever ──
@@ -675,6 +786,55 @@ def reap_pipeline(max_age_days, today=None, pipeline_path=None, history_path=Non
         path.write_text("".join(out_lines))
 
     return {"reaped": reaped, "undatable": undatable, "open_remaining": open_remaining}
+
+
+ASSESSED_LOG = HERE / "data" / "scan-assessed.log"
+_SCAN_BLOCK = re.compile(r"^## Scan (\d{4}-\d{2}-\d{2}) \(script layer")
+
+
+def scan_blocks(pipeline_path=None):
+    """[(key, date, header, open_rows)] for every `## Scan YYYY-MM-DD (script
+    layer...)` block in pipeline.md. key = header + first URL (stable: the
+    file is append-only and the reaper edits rows in place, never moves them)."""
+    path = Path(pipeline_path) if pipeline_path else PIPELINE
+    blocks, cur = [], None
+    for line in (path.read_text(errors="replace").splitlines() if path.exists() else []):
+        if line.startswith("## "):
+            m = _SCAN_BLOCK.match(line)
+            cur = [line, m.group(1), []] if m else None
+            if cur:
+                blocks.append(cur)
+        elif cur is not None and line.startswith("- ["):
+            cur[2].append(line)
+    out = []
+    for header, date, rows in blocks:
+        m = _ROW_URL.search(rows[0]) if rows else None
+        key = header + "\t" + (m.group(1) if m else "")
+        out.append((key, date, header, [r for r in rows if r.startswith("- [ ]")]))
+    return out
+
+
+def unassessed_blocks(today, pipeline_path=None, log_path=None, window_days=14):
+    """Scan blocks (<= window_days old) never shown to the user with a Phase 3
+    glyph pass — i.e. launchd-populated rows. Old blocks are out of scope so
+    the first run doesn't dump months of history."""
+    log = Path(log_path) if log_path else ASSESSED_LOG
+    done = set(log.read_text().splitlines()) if log.exists() else set()
+    return [b for b in scan_blocks(pipeline_path)
+            if b[0] not in done
+            and (today - datetime.date.fromisoformat(b[1])).days <= window_days]
+
+
+def mark_assessed(pipeline_path=None, log_path=None):
+    """Record every current scan block as shown. Returns how many were new."""
+    log = Path(log_path) if log_path else ASSESSED_LOG
+    done = set(log.read_text().splitlines()) if log.exists() else set()
+    new = [b[0] for b in scan_blocks(pipeline_path) if b[0] not in done]
+    if new:
+        log.parent.mkdir(parents=True, exist_ok=True)
+        with log.open("a") as fh:
+            fh.write("".join(k + "\n" for k in new))
+    return len(new)
 
 
 def selftest():
@@ -888,6 +1048,76 @@ def selftest():
     finally:
         ATS_FULL_CHECKPOINT, HISTORY, subprocess.run = saved
 
+    # ── overall deadline: budget math (pure) ──
+    assert remaining_budget(0, 600, 420, now=0) == 420          # cap binds
+    assert remaining_budget(0, 600, 420, now=400) == 200        # deadline binds
+    assert remaining_budget(0, 600, 420, now=700) == 0          # never negative
+    assert scraper_timeout(0, 600, now=0) == 420
+    assert scraper_timeout(0, 600, now=500) == 100
+    assert scraper_timeout(0, 600, now=571) is None             # 29 s left -> skip
+    assert scraper_timeout(0, 600, now=569) == 31
+
+    # ── Tavily: first HTTP 432 stops the whole phase; deadline stops it too ──
+    import io, urllib.error
+    saved_open = urllib.request.urlopen
+    hits = []
+    def fake_432(req, timeout=None):
+        hits.append(timeout)
+        raise urllib.error.HTTPError("https://api.tavily.com/search", 432, "", {}, io.BytesIO())
+    pcfg = {"tavily": {"api_key": "k"}}
+    qcfg = {"search_queries": [{"name": f"q{i}", "query": f"x{i}"} for i in range(5)]}
+    try:
+        urllib.request.urlopen = fake_432
+        assert run_tavily(pcfg, qcfg) == [] and len(hits) == 1, hits
+        hits.clear(); st = {}
+        import time as _t
+        assert run_tavily(pcfg, qcfg, start=_t.monotonic() - 100, deadline=60, state=st) == []
+        assert hits == [] and st.get("deadline_hit"), (hits, st)
+    finally:
+        urllib.request.urlopen = saved_open
+
+    # ── scan-history: named columns (upstream lib/scan-history-columns.mjs) ──
+    cols = history_columns()
+    assert cols[:6] == ("url", "first_seen", "portal", "title", "company", "status"), cols
+    assert set(_HISTORY_COLUMNS_FALLBACK) <= set(cols), "upstream renamed a column we know"
+    canon15 = "\t".join(["https://x/1", "2026-11-01", "greenhouse", "Head of Strategy",
+                         "Acme", "added", "Zürich", "fp", "2026-10-30", "0.9", "",
+                         "acme", "R-1", "en", "lk"])
+    r = parse_history_row(canon15)
+    assert (r["title"], r["company"], r["first_seen"], r["requisition_id"],
+            r["listing_key"]) == ("Head of Strategy", "Acme", "2026-11-01", "R-1", "lk"), r
+    legacy = "https://x/2\tKAM\tBeta AG\tjobs.ch\t2026-10-01\tborderline"
+    r = parse_history_row(legacy)
+    assert (r["title"], r["company"], r["portal"], r["first_seen"]) == \
+        ("KAM", "Beta AG", "jobs.ch", "2026-10-01"), r
+    assert parse_history_row("url\tfirst_seen\tportal") is None
+    assert parse_history_row("https://x/3\t2026-11-01\tp\t'=SUM(A1)\tC\tadded")["title"] == "=SUM(A1)"
+    # our writer emits the canonical layout and reads back by name
+    w = parse_history_row(history_line("https://x/4", "2026-11-07", "tavily", "T\tx", "Co", "added"))
+    assert (w["first_seen"], w["portal"], w["title"], w["company"]) == \
+        ("2026-11-07", "tavily", "T x", "Co"), w
+
+    # ── applicants / posted in pipeline rows: shown when known, never invented ──
+    row = pipeline_row({"url": "u", "company": "C", "title": "T", "source": "linkedin-guest",
+                        "applicants": "12", "date_posted": "2026-11-05"})
+    assert row.rstrip().endswith("triage · applicants: 12 · posted: 2026-11-05"), row
+    assert "applicants" not in pipeline_row({"url": "u", "title": "T", "applicants": "over 100"})
+    assert "applicants: 200+" in pipeline_row({"url": "u", "title": "T", "applicants": "200+"})
+
+    # ── Phase 0: unassessed launchd blocks ──
+    with tempfile.TemporaryDirectory() as td:
+        pp, lp = Path(td) / "p.md", Path(td) / "a.log"
+        pp.write_text("# Pipeline\n\n## Scan 2026-11-02 (script layer + tavily)\n\n"
+                      "- [ ] https://a/1 | A | T1 — via tavily, triage\n"
+                      "## Scan 2026-09-01 (script layer)\n\n- [ ] https://a/0 | Z | T0\n")
+        d = datetime.date(2026, 11, 7)
+        ub = unassessed_blocks(d, pp, lp)
+        assert len(ub) == 1 and ub[0][1] == "2026-11-02" and len(ub[0][3]) == 1, ub
+        assert mark_assessed(pp, lp) == 2 and unassessed_blocks(d, pp, lp) == []
+        with pp.open("a") as fh:
+            fh.write("\n## Scan 2026-11-02 (script layer)\n\n- [ ] https://a/9 | B | T9\n")
+        assert [b[3] for b in unassessed_blocks(d, pp, lp)] == [["- [ ] https://a/9 | B | T9"]]
+
     print("selftest: OK")
 
 
@@ -904,15 +1134,45 @@ def main():
     ap.add_argument("--reap-dry-run", action="store_true",
                     help="print what --reap would close, change nothing, then exit")
     ap.add_argument("--inject", metavar="JSON",
-                    help="funnel an external JSON job list (agent web search) "
-                         "through the same filters/dedup; skips scrapers")
+                    help="funnel an external JSON job list (agent web search, "
+                         "deep/run_deep.py) through the same filters/dedup; "
+                         "skips scrapers and ats-full")
+    ap.add_argument("--deadline-seconds", type=float, default=None,
+                    help=f"overall wall-clock budget (default: profile.yml "
+                         f"scan.deadline_seconds, else {DEFAULT_DEADLINE})")
+    ap.add_argument("--stamp", metavar="PATH",
+                    help="touch PATH on success (raw>0, not dry-run) — the "
+                         "launchd weekly-run success marker")
+    ap.add_argument("--unassessed", action="store_true",
+                    help="print recent `## Scan` blocks never given the Phase 3 "
+                         "glyph pass (launchd rows), then exit")
+    ap.add_argument("--mark-assessed", action="store_true",
+                    help="record all current `## Scan` blocks as shown, then exit")
     args = ap.parse_args()
     if args.selftest:
         selftest()
         return
+    import time
+    t0 = time.monotonic()
     today = datetime.date.fromisoformat(args.date)
 
+    if args.unassessed:
+        blocks = unassessed_blocks(today)
+        for _, _, header, rows in blocks:
+            print(header)
+            print("\n".join(rows) if rows else "  (no open rows left)")
+            print()
+        print(f"unassessed blocks: {len(blocks)}")
+        return
+    if args.mark_assessed:
+        print(f"marked assessed: {mark_assessed()}")
+        return
+
     portals, profile, pos, neg, allow, block = load_cfgs()
+    deadline = float(args.deadline_seconds if args.deadline_seconds is not None
+                     else (profile.get("scan") or {}).get("deadline_seconds",
+                                                          DEFAULT_DEADLINE))
+    state = {"deadline_hit": False}
     max_age = int((profile.get("scan") or {}).get("max_age_days", 45))
     fuzzy_threshold = float((profile.get("scan") or {}).get("fuzzy_dedup_threshold", 90))
     pipeline_max_age = int((profile.get("scan") or {}).get("pipeline_max_age_days", 45))
@@ -931,7 +1191,9 @@ def main():
     # Runs (and writes pipeline.md/scan-history.tsv) FIRST, before load_history()
     # reads them — so its own rows are in `seen`/static_corpus and the scraper
     # loop below can't re-add the same URL a second time this run.
-    ats_full_new = run_ats_full(profile, dry_run=args.dry_run)
+    ats_full_new = 0 if args.inject else run_ats_full(
+        profile, dry_run=args.dry_run,
+        max_cap=remaining_budget(t0, deadline, float("inf")))
     print(f"  ats-full: {ats_full_new} new rows", file=sys.stderr)
 
     seen, history_pairs = load_history()
@@ -944,11 +1206,16 @@ def main():
         jobs = json.load(open(args.inject))
         print(f"  inject: {len(jobs)} jobs from {args.inject}", file=sys.stderr)
     for s in ([] if args.inject else SCRAPERS):
-        got = run_scraper(s)
+        tmo = scraper_timeout(t0, deadline)
+        if tmo is None:
+            print(f"  deadline: skipping {s}", file=sys.stderr)
+            state["deadline_hit"] = True
+            continue
+        got = run_scraper(s, timeout=tmo)
         print(f"  {s}: {len(got)} jobs", file=sys.stderr)
         jobs.extend(got)
     if args.tavily:
-        got = run_tavily(profile, portals)
+        got = run_tavily(profile, portals, start=t0, deadline=deadline, state=state)
         print(f"  tavily: {len(got)} results", file=sys.stderr)
         jobs.extend(got)
 
@@ -1031,12 +1298,10 @@ def main():
         with HISTORY.open("a") as fh:
             for j, status in ([(x, "added") for x in passed] +
                               [(x, "borderline") for x in borderline]):
-                fh.write("\t".join([
-                    j.get("url", "").strip(),
-                    (j.get("title") or "").replace("\t", " ").strip(),
-                    (j.get("company") or "").replace("\t", " ").strip(),
-                    j.get("source", "").strip(),
-                    args.date, status]) + "\n")
+                fh.write(history_line(
+                    j.get("url", "").strip(), args.date, j.get("source", ""),
+                    j.get("title") or "", j.get("company") or "", status,
+                    j.get("location") or ""))
         with PIPELINE.open("a") as fh:
             fh.write(f"\n## Scan {args.date} (script layer"
                      f"{' + tavily' if args.tavily else ''})\n\n")
@@ -1057,6 +1322,16 @@ def main():
             print(f"  {label[:4]:4} • {(j.get('title') or '')[:64]:64} | {j.get('source')}")
         if len(lst) > 25:
             print(f"       … and {len(lst) - 25} more {label.lower()}")
+
+    if args.stamp and raw > 0 and not args.dry_run:
+        Path(args.stamp).touch()
+    print(f"funnel: raw={raw} kept={len(passed) + len(borderline)} "
+          f"elapsed={int(time.monotonic() - t0)}s "
+          f"deadline_hit={'yes' if state['deadline_hit'] else 'no'}")
+    # non-zero only when every layer came back empty (all scrapers dead,
+    # Tavily out of credits, ...) so callers can tell "no jobs" from "broken"
+    if raw == 0 and ats_full_new == 0:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

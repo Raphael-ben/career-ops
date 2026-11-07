@@ -5,7 +5,7 @@ Process a job posting end-to-end: classify → write CV + cover letter → human
 
 ## Resolution — machine paths and profile bank
 
-Resolve `{DATA_DIR}` and `{PYTHON}` from `modes/_profile.md` (lines `DATA_DIR: ...` / `PYTHON: ...`). If absent, `{DATA_DIR}` defaults to the repo's `config/` and `{PYTHON}` to `python3`. The **profile bank** is `{DATA_DIR}/config/profile_bank.json` (fallback: repo `config/profile_bank.json`). `{file_slug}` = `profile_bank.candidate.file_slug` — all generated artefacts use it (`{file_slug}_CV.tex`, `{file_slug}_cover-letter.tex`, and PDFs).
+Resolve `{DATA_DIR}` and `{PYTHON}` from `modes/_profile.md` (lines `DATA_DIR: ...` / `PYTHON: ...`). If absent, `{DATA_DIR}` defaults to the repo's `config/` and `{PYTHON}` to `python3`. The **profile bank** (`{profile_bank}` in commands below) is `{DATA_DIR}/config/profile_bank.json` (fallback: repo `config/profile_bank.json`). `{file_slug}` = `profile_bank.candidate.file_slug` — all generated artefacts use it (`{file_slug}_CV.tex`, `{file_slug}_cover-letter.tex`, and PDFs).
 
 ## Inputs
 - Job URL or JD text (optional — if omitted, read queue from `career-ops/data/pipeline.md`)
@@ -18,6 +18,8 @@ Resolve `{DATA_DIR}` and `{PYTHON}` from `modes/_profile.md` (lines `DATA_DIR: .
 If a job URL or JD text was provided: use it. Go to Step 1.
 
 If nothing was provided: default scope is the **entire queue** — every `- [ ]` entry in `career-ops/data/pipeline.md`. Go to Step 0.5.
+
+**Unseen launchd scan blocks first.** If `data/pipeline.md` holds a scan block written by the weekly launchd scan that has not yet been shown to the user, run the pre-assessment glyph pass from `modes/pro/scan.md` Phase 3 on it before triage (that text is owned by scan.md; do not restate it here).
 
 `scan_aggregate.py`'s reaper runs at the start of every scan and closes (`- [ ]` → `- [x] ... EXPIRED`) entries older than `config/profile.yml` `scan.pipeline_max_age_days` (default 45), so this queue stays bounded to recent inflow instead of growing forever — its counts (`reaped=N undatable=M open_remaining=K`) print in the scan summary, worth a glance before a full triage run.
 
@@ -58,6 +60,8 @@ From the `- [ ]` entries in Step 0, extract `{url}`, `{title}`, `{company}`. Lin
 
 Strip the leading `- [ ] `, split on ` | ` — field 0 url, 1 company, 2 title. If no ` | `, use the raw line as `title`, `"unknown"` company, `""` url. Build an indexed list.
 
+**Applicant count.** If the row carries ` · applicants: N` (written by `scan_aggregate.py` only when the source reported a number), keep `applicants = N` with the entry and append `(applicants: N)` after `{company}` in the triage prompt line. Absent → `applicants = null`. Never estimate it. Triage uses it only as a tie-breaker between `pass` and `borderline` (see Step 3 fit grade: <25 is a plus, >200 is crowded).
+
 **`⚑ RESCUED` entries jump to the front.** If a title field starts with `⚑ RESCUED ` (a human pre-assessed it as a strong fit during a reaper backlog sweep — see `scan_aggregate.py`), move it to the front of the indexed list ahead of everything else before batching, so it lands in the first triage batch.
 
 ### Score entries (batches of ~40)
@@ -77,6 +81,9 @@ Verdicts:
 - pass       — clear match with candidate profile
 - borderline — plausible but uncertain (wrong company size, adjacent title, sector mismatch)
 - skip       — clearly irrelevant
+
+Tie-breaker only: a job shown with "(applicants: N)" where N < 25 may move borderline → pass;
+N > 200 (crowded) may move pass → borderline. It never turns a skip into anything else.
 
 Jobs:
 1. {title} — {company}
@@ -132,13 +139,23 @@ For each `pass` entry, run Steps 1–9 sequentially. After each, mark its checkb
 
 ---
 
-## Step 1 — Generate cv.md if stale
+## Step 1 — Load the profile bank and compute years of experience
+
+The pipeline reads `profile_bank.json` directly (see Resolution); there is no `cv.md` build step. The repo-root `cv.md` is NOT a source for this pipeline and may be stale, which is why Step 6 skips upstream's cv.md-based fact gate and verify Step 0 points `verify-cv-facts.mjs` at the bank instead.
+
+Compute the candidate's experience duration from the bank, once per run (sum of employed periods; roles are non-contiguous, so first-job-to-today is wrong; `end: null` = today; month granularity, rounded down, so it never overstates):
 
 ```bash
-node generate-cv-md.mjs
+{PYTHON} - {profile_bank} <<'PY'
+import json, sys, datetime as d
+b = json.load(open(sys.argv[1])); t = d.date.today()
+m = lambda s: int(s[:4]) * 12 + int(s[5:7]) if s else t.year * 12 + t.month
+months = sum(m(e.get('end')) - m(e['start']) for e in b['experience'])
+print(f"years_experience={months // 12} (employed months={months})")
+PY
 ```
 
-Stale = `profile_bank.json` mtime newer than `cv.md`, or `cv.md` missing. The script checks and skips if up to date.
+Keep `years_experience` for this run. It is the ONLY duration figure anyone may use: Step 3 compares it against a JD's years threshold, Step 3.5 writes it to `computed-facts.txt`, and Step 4 pastes it into both writer prompts. Never state or brief a duration from impression.
 
 ---
 
@@ -173,6 +190,7 @@ Apply the classifier rules below to produce a classification object. This gates 
   "confidence": "high | medium | low",
   "fit_grade": "A | B | C | D",
   "fit_rationale": "one sentence explaining the grade",
+  "applicants": "integer from the pipeline row or JD, else null — never estimated",
   "company_signals": { "name": "…or null", "size": "startup | scale-up | mid-market | large | enterprise | unknown", "location": "…or null" }
 }
 ```
@@ -211,6 +229,10 @@ Score how well this role matches the candidate's profile. Read the candidate's s
 
 `fit_rationale`: one sentence explaining the grade.
 
+**Years threshold.** If the JD states a minimum years of experience, compare it to `years_experience` from Step 1, never to an impression.
+
+**Applicant count (tie-breaker only).** `applicants` = the integer from the pipeline row (` · applicants: N`) or a count stated in the JD/posting page; otherwise `null`. Never infer or invent it. When the grade sits between two letters, `applicants < 25` is a plus (round up) and `applicants > 200` means crowded (round down); mention it in `fit_rationale` when it decided the grade. It never moves a grade by more than one letter and never overrides a location/seniority mismatch.
+
 ---
 
 ## Step 3.5 — Create output folder and prepare context files
@@ -245,9 +267,17 @@ CLEOF
 # 3. Filter profile bank to job-relevant achievements
 node profile-for-job.mjs output/{folder}/classification.json \
   > output/{folder}/profile-filtered.json
+
+# 4. Orchestrator-computed facts (extra evidence for the verify Step 0 fact gate)
+echo "years_experience: {years_experience} years of professional experience" \
+  > output/{folder}/computed-facts.txt
 ```
 
+`computed-facts.txt` holds only figures computed from the bank in Step 1, so a writer that states "{years_experience} years" passes `verify-cv-facts.mjs` while any other duration fails it. Never write anything from the JD into it.
+
 If `profile-for-job.mjs` fails or produces empty output, note the fallback in Step 9 and use the full profile bank (`{DATA_DIR}/config/profile_bank.json`, fallback repo `config/profile_bank.json`) in subsequent steps instead of `profile-filtered.json`.
+
+Then check every `always_include: true` experience block in `profile-filtered.json` has a non-empty achievement list (the `surface_in` filter can empty one). If one is empty, restore that block's achievements unfiltered from the bank and tell the writer and verifier why; otherwise the writer must render a bullet with no source.
 
 ---
 
@@ -268,15 +298,18 @@ Classification is in: output/{folder}/classification.json
 Profile (filtered) is in: output/{folder}/profile-filtered.json
 Output folder: output/{folder}
 Today's date: {YYYY-MM-DD}
+years_experience (computed in pipeline Step 1, the only duration you may state): {years_experience}
 
 Write {file_slug}_CV.tex to the output folder.
 ```
+
+**Writer briefing rule.** Add to this context block only file paths, the computed `years_experience`, achievement ids, and explicitly stated gaps. Never a list of JD phrases to "mirror" or "honest overlaps" worded in the JD's vocabulary: the writer reads that as approved wording and the verifier then fails it as unsupported JD echo. Point at an overlap by id ("`<ach_id>` backs the X angle"), never as a ready-made phrase.
 
 Check: if the Agent errors or `output/{folder}/{file_slug}_CV.tex` is missing → report error, stop.
 
 ### Step 4b — Write cover letter
 
-Same pattern with `modes/pro/write-cl.md`, `description: "write cover letter — {Company} {Role}"`, writing `{file_slug}_cover-letter.tex`. Check for the file; error → stop.
+Same pattern with `modes/pro/write-cl.md`, `description: "write cover letter — {Company} {Role}"`, writing `{file_slug}_cover-letter.tex`, same context block (including `years_experience`) and same briefing rule. Check for the file; error → stop.
 
 ---
 
@@ -301,20 +334,31 @@ Check: if the Agent errors, warn and ask whether to proceed. If both files are u
 
 ---
 
-## Step 5.5 — LaTeX lint (cover letter)
+## Step 5.5 — LaTeX lint (CV + cover letter)
 
-Run these checks before compiling. If **any** produces output, report, **stop**, and ask the user to fix before Step 6.
+Run these checks before compiling. If **any** produces output (or `check-humanized.mjs` exits 1), report, **stop**, and ask the user to fix before Step 6. A fix edits the `.tex`, so it must go back through Step 5 (humanize regenerates the report) before this lint can pass again.
 
 ```bash
+CV="output/{folder}/{file_slug}_CV.tex"
 CL="output/{folder}/{file_slug}_cover-letter.tex"
 
-echo "--- [1] Connector dashes ---"
-grep -n " --" "$CL" \
+echo "--- [0] Wording, dashes, stale humanizer report (both files) ---"
+node check-humanized.mjs {profile_bank} "$CV" "$CL"
+```
+
+`check-humanized.mjs` wraps upstream `cv-voice.mjs` (which has no CLI of its own: `node cv-voice.mjs <tex>` prints nothing and exits 0, so never call it directly as a gate). Per file it fails on: a cv-voice stock phrase or any bare (unqualified) entry of `profile_bank.humanize.banned_words` / `_de` / `_fr` / `banned_bullet_openers` that the bank's own content does not contain; a Unicode em/en dash outside a date range; and `humanizer_report.json` missing or older than the `.tex` (the .tex was edited after humanize). Numbers are left to the verify Step 0 fact gate.
+
+```bash
+echo "--- [1] Connector dashes (CL body + CV bullets; stored titles/sidebar labels keep their --) ---"
+{ grep -n " --" "$CL"; grep -n " --" "$CV" | grep "\\\\item"; } \
   | grep -v "^[0-9]*:[ ]*%" \
   | grep -v "\\\\newcommand" \
   | grep -v "[0-9]--[0-9]" \
   | grep -v "~'[0-9][0-9] --" \
   || echo "(none)"
+
+echo "--- [5] Swiss orthography (only if classification.swiss is true) ---"
+grep -n "ß" "$CV" "$CL" || echo "(none)"
 
 echo "--- [2] CGPA / numeric grade ---"
 grep -n "CGPA\|GPA\|[0-9]\.[0-9][0-9]/[0-9]" "$CL" \
@@ -335,18 +379,23 @@ WORDS=$(awk '/AI-FILL-START/,/AI-FILL-END/' "$CL" \
 echo "$WORDS words (limit: profile_bank.verify.tolerances.cover_letter_max_words)"
 ```
 
-Fix criteria: Check 1 — any `--` not a numeric/date range → fix before compile. Check 2 — any CGPA/GPA or decimal grade (only if `education_display.cgpa_never_in_cover_letter`) → remove score, keep ranking. Check 3 — unescaped `&` → escape as `\&`. Check 4 — over `cover_letter_max_words` → trim least-specific sentences.
+Fix criteria: Check 0 — reword the flagged phrase / replace the dash (then re-humanize), or re-run Step 5 if only the report is stale. Check 1 — any `--` not a numeric/date range → fix before compile. Check 5 — any `ß` when `swiss: true` → `ss` (this replaces the old compile-time ß→ss rewrite; nothing rewrites text at compile time any more). Check 2 — any CGPA/GPA or decimal grade (only if `education_display.cgpa_never_in_cover_letter`) → remove score, keep ranking. Check 3 — unescaped `&` → escape as `\&`. Check 4 — over `cover_letter_max_words` → trim least-specific sentences.
 
 ---
 
 ## Step 6 — Compile LaTeX
 
 ```bash
-node generate-latex.mjs output/{folder}/{file_slug}_CV.tex output/{folder}/{file_slug}_CV.pdf [--swiss-german if swiss:true]
-node generate-latex.mjs output/{folder}/{file_slug}_cover-letter.tex output/{folder}/{file_slug}_cover-letter.pdf [--swiss-german if swiss:true]
+node generate-latex.mjs output/{folder}/{file_slug}_CV.tex output/{folder}/{file_slug}_CV.pdf --compile-only --skip-fact-check
+node generate-latex.mjs output/{folder}/{file_slug}_cover-letter.tex output/{folder}/{file_slug}_cover-letter.pdf --compile-only --skip-fact-check
 ```
 
-If compilation fails: report errors and stop. Do NOT proceed to verify. Review each compile's JSON output — `pageCount` > 1 → alert (trim); non-empty `warnings` → report each (e.g. missing photo).
+- `--compile-only`: the pro templates are not upstream's `cv-template.tex`, so upstream's structure validator would reject them; this flag compiles any user-owned `.tex`.
+- `--skip-fact-check`, deliberately: upstream's built-in gate reads `cv.md` + `article-digest.md` from the data root, and this pipeline has no maintained `cv.md` (Step 1). Running it would check against a stale file, or skip silently when none exists. The fact gate runs instead in verify Step 0 with the right sources (`verify-cv-facts.mjs --source {profile_bank} --source computed-facts.txt`), as a blocker.
+- No text normalising happens at compile time. Em/en dashes and stock wording are caught by Step 5.5 Check 0, connector `--` by Check 1, `ß` by Check 5, and curly quotes by humanize pattern 19; the old compile-time silent rewrite script is gone.
+- Engine: `generate-latex.mjs` prefers tectonic when installed, else pdflatex (current machine: pdflatex). If tectonic appears and the pro template renders differently, `cv_fitcheck.py` still gates the result.
+
+If compilation fails (`"compiled": false` in the JSON, exit 1): report `compileError` and stop. Do NOT proceed to verify. Page fit is not judged here: `cv_fitcheck.py` in verify Step 0 is the only page-fit gate.
 
 ---
 
@@ -359,6 +408,8 @@ Read `modes/pro/verify.md`. Call the Agent tool with `subagent_type: "general-pu
 ## Orchestrator context for this run
 
 Profile (filtered): output/{folder}/profile-filtered.json
+Profile bank: {profile_bank}
+Computed facts: output/{folder}/computed-facts.txt
 CV: output/{folder}/{file_slug}_CV.tex
 Cover letter: output/{folder}/{file_slug}_cover-letter.tex
 JD text: output/{folder}/jd.txt
@@ -366,7 +417,7 @@ JD text: output/{folder}/jd.txt
 Write the verdict to output/{folder}/verifier_report.json.
 ```
 
-Note: verify.md Step 0 (the measured cv_fitcheck gate) runs with shell access before the sterile audit. Check: if the Agent errors or `verifier_report.json` is missing → treat as fail, stop. `fail` → report blockers, **stop**, do NOT mark ready. `pass`/`pass_with_warnings` → continue.
+Note: verify.md Step 0 (the mechanical gates: cv_fitcheck, check-humanized, verify-cv-facts) runs with shell access before the sterile audit. Check: if the Agent errors or `verifier_report.json` is missing → treat as fail, stop. `fail` → run the verify.md **Fix loop** (writer fixes only the flagged sentences → Step 5 re-humanize → Step 5.5 → Step 6 → Step 7 again), max 3 verify rounds in total; after round 3 still `fail`, **stop**, report the remaining blockers, do NOT mark ready. `pass` / `pass_with_warnings` → continue. Any `unsupported` claim is a blocker, so `pass_with_warnings` can only carry non-provenance warnings (tone, tense ambiguity, banned phrase).
 
 ---
 
@@ -471,6 +522,8 @@ output/Company/YYYYMMDD_Company_Role/
 ├── jd.txt                  ← Step 3.5, consumed by all subagents
 ├── classification.json     ← Step 3.5
 ├── profile-filtered.json   ← Step 3.5 (profile-for-job.mjs)
+├── computed-facts.txt      ← Step 3.5 (years_experience from Step 1; fact-gate source)
+├── humanizer_report.json   ← humanize subagent (Step 5); must be newer than both .tex
 ├── {file_slug}_CV.tex                  ← write-cv subagent (Step 4a)
 ├── {file_slug}_CV.pdf                  ← compiled (Step 6)
 ├── {file_slug}_cover-letter.tex        ← write-cl subagent (Step 4b)
@@ -479,4 +532,4 @@ output/Company/YYYYMMDD_Company_Role/
 └── verifier_report.json    ← verify subagent (Step 7)
 ```
 
-`cv.md` is in the repo root (build artifact, gitignored). Never put `cv.md` in the output folder.
+This pipeline does not read or write `cv.md`.

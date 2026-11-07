@@ -5,28 +5,36 @@ Audit the generated CV and cover letter for factual accuracy, standing-rule comp
 
 ## Resolution — machine paths and profile bank
 
-Resolve `{DATA_DIR}` and `{PYTHON}` from `modes/_profile.md` (lines `DATA_DIR: ...` / `PYTHON: ...`). If absent, `{DATA_DIR}` defaults to the repo's `config/` and `{PYTHON}` to `python3`. The **profile bank** is `{DATA_DIR}/config/profile_bank.json` (fallback: repo `config/profile_bank.json`). `{file_slug}` = `profile_bank.candidate.file_slug`; the audited files are `{file_slug}_CV.tex` and `{file_slug}_cover-letter.tex`.
+Resolve `{DATA_DIR}` and `{PYTHON}` from `modes/_profile.md` (lines `DATA_DIR: ...` / `PYTHON: ...`). If absent, `{DATA_DIR}` defaults to the repo's `config/` and `{PYTHON}` to `python3`. The **profile bank** (`{profile_bank}` in commands) is `{DATA_DIR}/config/profile_bank.json` (fallback: repo `config/profile_bank.json`). `{file_slug}` = `profile_bank.candidate.file_slug`; the audited files are `{file_slug}_CV.tex` and `{file_slug}_cover-letter.tex`.
 
-## Step 0 — Real page-fill gate (run BEFORE the audit)
+## Step 0 — Mechanical gates (run BEFORE the audit, by the orchestrator with shell access)
 
-The orchestrator (which has shell access) MUST compile the CV and measure its **actual** rendered fill before the sterile LLM audit:
+Every gate below is a script exit code. None can be satisfied by reasoning, and any failure is an automatic `fail` verdict: no sterile audit runs, the report cites the script output, and the package goes back per the **Fix loop** below.
 
 ```bash
-cd {output_folder} && pdflatex -interaction=nonstopmode -halt-on-error {file_slug}_CV.tex >/dev/null 2>&1
-cd - >/dev/null && {PYTHON} cv_fitcheck.py {output_folder}/{file_slug}_CV.pdf
+OUT={output_folder}; CV=$OUT/{file_slug}_CV.tex; CL=$OUT/{file_slug}_cover-letter.tex
+
+# 0a. Real page fill (PyMuPDF on the compiled PDF)
+(cd $OUT && pdflatex -interaction=nonstopmode -halt-on-error {file_slug}_CV.tex >/dev/null 2>&1)
+{PYTHON} cv_fitcheck.py $OUT/{file_slug}_CV.pdf
+
+# 0b. Wording + dashes on BOTH .tex, and humanizer_report.json present AND newer than both
+node check-humanized.mjs {profile_bank} "$CV" "$CL"
+
+# 0c. Fact gate on BOTH .tex, sources = the bank + orchestrator-computed facts only
+node verify-cv-facts.mjs "$CV" --source {profile_bank} --source $OUT/computed-facts.txt
+node verify-cv-facts.mjs "$CL" --source {profile_bank} --source $OUT/computed-facts.txt
 ```
 
-`cv_fitcheck.py` opens the compiled PDF with PyMuPDF and measures real main-column fill (lowest text baseline ÷ page height), replacing the old character-count heuristic which lied. Add `--ats --expect "<profile_bank.candidate.name>"` to also gate machine-extractability, identity presence, and column-order stability. Exit codes:
-- **exit 0** → full single page (≥ `profile_bank.verify.tolerances.cv_min_fill_pct`% fill, within `cv_max_pages`, non-negative bottom margin). Proceed to the LLM audit.
-- **exit 1** → BLOCKER. Either overflow or underfilled. Return a `fail` verdict citing the script output and send the CV back to `write-cv` to adjust **by selecting whole humanized bullets** (drop the lowest-priority bullet if overflowing; restore a dropped bullet / use the fuller profile-bank variant if underfilled). Never let write-cv pad with invented prose or em dashes.
+- **0a `cv_fitcheck.py`** — exit 0 = full single page (≥ `profile_bank.verify.tolerances.cv_min_fill_pct`% fill, within `cv_max_pages`, bottom blank ≥ 8pt). Exit 1 = overflow or underfill → back to `write-cv` to adjust **by selecting whole humanized bullets** (drop the lowest-priority bullet if overflowing; restore a dropped bullet / use the fuller profile-bank variant if underfilled). Never pad with invented prose or em dashes. Add `--ats --expect "<profile_bank.candidate.name>"` to also gate extractability, identity and column order.
+- **0b `check-humanized.mjs`** — wraps upstream `cv-voice.mjs` (no CLI of its own; calling it directly always exits 0). Exit 1 on any stock phrase / bare `profile_bank.humanize.banned_words*` entry not in the bank's own content, any Unicode em/en dash outside a date range, or a missing/stale `humanizer_report.json` (older than either `.tex` = the file was edited after humanize). A stale or missing report goes back to `pro/humanize.md`; the humanize step is never optional and cannot be bypassed by reasoning about document quality.
+- **0c `verify-cv-facts.mjs`** — reads `profile_bank.json` directly as a `--source` (no adapter, no `config/cv-facts.json` needed; its "fact-gate config not found" stderr line is expected). Exit 1 lists metric-like or named facts absent from the sources. Each listed item is a blocker unless it is demonstrably not a claim about the candidate (a product or model name quoted from the JD, e.g. an aircraft type); record each such exception with its quote in `verifier_report.json` → `mechanical.fact_gate_exceptions`. Never add JD text as a `--source`: that would launder JD echo into evidence. On a non-English document it prints "scope-verb and adoption checks did not run" (exit 0); the per-sentence table below covers those by hand.
 
-This gate is non-negotiable and cannot be satisfied by reasoning — it is a measured fill percentage.
-
-Before the sterile audit, the orchestrator MUST also confirm `{output_folder}/humanizer_report.json` exists and lists both `{file_slug}_CV.tex` and `{file_slug}_cover-letter.tex` (or a per-doc report exists for each). Missing report → automatic `fail`, no sterile audit runs. Return a `fail` verdict citing the missing file and send the package back to `pro/humanize.md` first — the humanize step is never optional or skippable and cannot be bypassed by reasoning about the document quality.
+Record the four results in `verifier_report.json` → `mechanical` (see Output format).
 
 ## Sterile context
 
-This mode receives ONLY: the JD text (`<jd>`), the profile-bank contents, the generated `{file_slug}_CV.tex`, the generated `{file_slug}_cover-letter.tex`, and today's date. No web access. No other context. No charitable interpretation via outside knowledge. This is intentional.
+This mode receives ONLY: the JD text (`<jd>`), the profile-bank contents, `computed-facts.txt`, the Step 0 results, the generated `{file_slug}_CV.tex`, the generated `{file_slug}_cover-letter.tex`, and today's date. No web access. No other context. No charitable interpretation via outside knowledge. This is intentional.
 
 Write the verdict to `{output_folder}/verifier_report.json`.
 
@@ -36,17 +44,21 @@ Write the verdict to `{output_folder}/verifier_report.json`.
 
 Before auditing, do this silently: scan `<jd>` for banned-category words (the entries in `profile_bank.humanize.banned_words` / `banned_words_de` / `banned_words_fr`) and company/market descriptions. Note: "These words are in the JD. I will not flag them in the documents unless I find them verbatim in the document text." This prevents JD vocabulary from contaminating the audit.
 
-## Audit procedure
+## Audit procedure — per-sentence provenance table (no spot checks)
 
-For each factual claim about the candidate in the two documents:
-1. **Identify the claim.** Quote the exact text.
-2. **Find the source.** Look up referenced entries in the profile bank.
-3. **Classify:**
-   - **SUPPORTED** — direct match, possibly rephrased.
-   - **INFERRED_OK** — reasonable summary/aggregation, no new specifics.
-   - **INFERRED_RISKY** — extrapolation beyond the profile bank (new numbers, scope, outcomes).
-   - **UNSUPPORTED** — no basis in the profile bank, or cited source does not support it.
-   - **RULE_VIOLATION** — violates a standing rule.
+Build `claims[]` covering **every sentence of every `\CLParagraph{}`** in the cover letter and **every `\item` bullet** in the CV (plus the CV tagline). One row per sentence; a bullet with two sentences gets two rows. Spot-checking is not allowed: a sampled audit passes documents that still contain unsupported sentences, and each later round then finds a new one.
+
+```json
+{ "document": "cv | cover_letter", "location": "paragraph_2 | experience.<exp_id>.bullets[1] | tagline", "sentence": "verbatim text", "ach_id": "<achievement/experience/education id> | null", "status": "backed | paraphrase | unsupported" }
+```
+
+- **backed** — the sentence restates what the cited id says (wording may differ).
+- **paraphrase** — a fair summary or aggregation of the cited id(s), with no new number, scope, outcome, tool, audience or sector.
+- **unsupported** — no id backs it, the cited id does not say it, or it extrapolates beyond it (new number, scope, seniority, audience, outcome). Also unsupported: **JD echo**, i.e. a sentence that restates a JD requirement or JD vocabulary as something the candidate did, without an `ach_id` that already says it. Matching a JD phrase is never evidence. A duration figure is backed only if it equals `years_experience` in `computed-facts.txt`.
+
+Sentences that make no claim about the candidate (salutation, formal close, a motivation sentence about the company) get `ach_id: null, status: "backed"` only if they state nothing about the candidate's experience; otherwise they need an id like any other.
+
+**Every `unsupported` row is a BLOCKER** and also gets its own entry in `flags[]` (category `unsupported_claim`, or `jd_echo` when it paraphrases a JD requirement). Never downgrade one to a warning.
 
 ## Standing rules to check — enumerated from `profile_bank.verify.blockers`
 
@@ -71,8 +83,8 @@ Before flagging any phrase:
 
 | Severity | Trigger |
 |---|---|
-| **BLOCKER** | UNSUPPORTED claim, RULE_VIOLATION, fabricated number/metric/team-size/scope, any `verify.blockers` check firing, framing violation, conditional-mention violation, language mismatch |
-| **WARNING** | INFERRED_RISKY, tense ambiguity, tone mismatch with JD seniority, a banned phrase (`profile_bank.humanize.banned_phrases*`) |
+| **BLOCKER** | any `claims[]` row with status `unsupported` (including JD echo and extrapolation), any Step 0 script failure, RULE_VIOLATION, fabricated number/metric/team-size/scope, any `verify.blockers` check firing, framing violation, conditional-mention violation, language mismatch |
+| **WARNING** | tense ambiguity, tone mismatch with JD seniority, a banned phrase (`profile_bank.humanize.banned_phrases*`) |
 | **NIT** | Minor phrasing, redundancy, weak verb |
 
 ## Hard rules for the verifier
@@ -94,10 +106,18 @@ Return strictly this JSON, no preamble:
   "blocker_count": 0,
   "warning_count": 0,
   "nit_count": 0,
+  "mechanical": {
+    "cv_fitcheck": "PASS | FAIL + script line",
+    "check_humanized": "PASS | FAIL + script lines",
+    "fact_gate_cv": "pass | warn | fail + listed items",
+    "fact_gate_cl": "pass | warn | fail + listed items",
+    "fact_gate_exceptions": [ { "item": "6x", "quote": "...", "why_not_a_claim": "aircraft model from the JD" } ]
+  },
+  "claims": [ { "document": "cover_letter", "location": "paragraph_1", "sentence": "...", "ach_id": "ach_x | null", "status": "backed | paraphrase | unsupported" } ],
   "flags": [
     {
       "severity": "blocker | warning | nit",
-      "category": "unsupported_claim | rule_violation | tense_violation | fabricated_metric | banned_term | banned_phrase | framing_violation | conditional_mention_violation | language_mismatch | tone",
+      "category": "unsupported_claim | jd_echo | rule_violation | tense_violation | fabricated_metric | banned_term | banned_phrase | framing_violation | conditional_mention_violation | language_mismatch | tone",
       "document": "cv | cover_letter",
       "location": "experience.<exp_id>.bullets[2] | paragraph_3 | etc",
       "claim_text": "exact quote from document",
@@ -115,10 +135,19 @@ Return strictly this JSON, no preamble:
 ## Verdict logic
 
 - `pass`: zero blockers, zero warnings (nits acceptable)
-- `pass_with_warnings`: zero blockers, ≥1 warning
+- `pass_with_warnings`: zero blockers, ≥1 warning. Never possible with an `unsupported` row: those are blockers.
 - `fail`: ≥1 blocker
 
 `fail` is a hard stop — write the report and halt. The pipeline does not advance to "ready" until blockers are resolved.
+
+## Fix loop (max 3 verify rounds)
+
+1. **Verify** (Step 0 + audit) → `fail` with flagged sentences/bullets.
+2. **Writer fixes only the flagged sentences.** Send `write-cv` / `write-cl` the `flags[]` entries (location + verbatim sentence + issue). The writer rewrites or deletes those sentences only, citing an `ach_id` for every replacement in its working notes, or omits the claim. No other sentence changes. CV page-fit fixes are whole-bullet selection only.
+3. **Re-humanize** both files (`pro/humanize.md`), which regenerates `humanizer_report.json`; a report older than either `.tex` fails Step 0b.
+4. **Re-run** pipeline Step 5.5 lint and Step 6 compile, then **re-verify** from Step 0 with a fresh, sterile verifier (no memory of the previous round).
+
+Stop after round 3 if it still fails: report the remaining blockers verbatim to the user and do not mark the package ready.
 
 ## Standalone invocation
 

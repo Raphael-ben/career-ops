@@ -1,0 +1,105 @@
+# deep/boards.yml — what deep/run_deep.py harvests. Fork-owned, edit freely.
+# Recovered 2026-11-07 from the 2026-11-06 scan session's scratch scripts
+# (harvest.py / harvest_ats.py / harvest_wd2.py), de-duplicated.
+#
+# queries: sent to the LinkedIn guest search API and the jobs.ch public API.
+#   Empty list -> fall back to profile.yml jobspy.search_terms (country words stripped).
+queries:
+  - strategy manager
+  - head of strategy
+  - corporate strategy
+  - corporate development
+  - M&A
+  - chief of staff
+  - business operations
+  - strategy and operations
+  - transformation manager
+  - operational excellence
+  - PMO
+  - program manager
+  - technical account manager
+  - key account manager
+  - strategic account manager
+  - customer success manager
+  - business development manager
+  - head of business development
+  - commercial excellence
+  - pricing manager
+  - sales operations
+  - revenue operations
+  - strategic partnerships
+  - venture
+  - Strategie
+  - Unternehmensentwicklung
+  - Geschäftsentwicklung
+  - Leiter Business Development
+  - Stabsstelle
+  - Transformation
+  - Vertriebsingenieur
+  - Business Excellence
+  - Programmleiter
+
+linkedin:
+  location: "Zürich, Switzerland"
+  distance_km: 50
+  detail_max: 30        # postings whose detail page is fetched for the applicant count
+
+jobsch:
+  location: "Zürich"
+  max_pages: 2          # 20 rows per page, newest first
+
+# Workday CXS tenants: "tenant|wdN|site". Searched with the tenant's own
+# Switzerland location facet when it has one, else filtered by location text.
+workday_keywords: [strategy, corporate development, business development, key account,
+                   transformation, chief of staff, commercial excellence, pricing,
+                   portfolio, venture, business operations, customer success, M&A]
+workday:
+  - abb|wd3|external_career_page
+  - alcon|wd5|careers_alcon
+  - galderma|wd3|external
+  - gategroup|wd3|gategroup_external_careers
+  - georgfischer|wd103|georgfischer_careers
+  - hitachi|wd1|hitachi
+  - juliusbaer|wd3|external
+  - kardex|wd103|kardex
+  - lgt|wd3|lgtcurrentvacancies
+  - lgtcp|wd502|lgtcpcurrentvacancies
+  - lonza|wd3|lonza_careers
+  - medela|wd103|medela_careers
+  - novartis|wd3|novartis_careers
+  - roche|wd3|roche-ext
+  - salesforce|wd12|external_career_site
+  - sulzer|wd502|sulzerjobs
+  - swisscom|wd103|swisscomexternalcareers
+  - swisslife|wd3|swiss_life_asset_managers_career_site
+  - vontobel|wd3|vontobel_external_career
+  - richemont|wd3|broadbean_external
+  - jj|wd5|jj
+  - siemensgamesa|wd3|sgre
+
+# SmartRecruiters company ids (api.smartrecruiters.com/v1/companies/<id>/postings?country=ch)
+smartrecruiters: [StraumannGroup1, INFICON2, SikaAG, Sonova, Geberit, Schindler, BuhlerGroup,
+  Lindt, Swatch, Ypsomed, Staubli, Comet, LEMHolding, Dormakaba, Hilti, Belimo, Bachem,
+  Clariant, Holcim, Emmi, Implenia, Endress, HuberSuhner, Rieter, Stadler, SFSGroup, Bossard,
+  Burckhardt, Kistler, Medartis, Tecan, VATGroup, Siegfried, Galenica, Mobimo, Ascom, Landis,
+  Interroll, Oerlikon, Autoneum, Bystronic, SIX, Swissquote, Logitech, Avaloq, Temenos,
+  Siemens, Bosch, Kuehne, dsm-firmenich, Givaudan, Ems, AccelleronIndustries]
+greenhouse: [comet, onrunning, scandit, climeworks, nexthink, sensirion, ublox, wingtra,
+  anybotics, getyourguide, ledgy, beekeeper, frontify, yokoy, sygnum, taurus, proton, dfinity,
+  neustark, axpo, planted, smallpdf, swissborg]
+lever: [anybotics, wingtra-2, wingtra, zurichinstruments, nexthink, climeworks, sensirion,
+  scandit, verity, fixposition, yokoy, sevensense, ecorobotix, swissto12, destinus, auterion,
+  voliro, flyability, distalmotion]
+ashby: [climeworks, nexthink, scandit, auterion, voliro, destinus, ledgy, yokoy, frontify,
+  proton, sevensense, anybotics, sensirion, neustark, swissborg, deepjudge, lakera,
+  tune-insight, calvin-risk, legartis]
+
+# Display names for ATS board slugs (company column in pipeline.md)
+aliases: {jj: Johnson & Johnson, abb: ABB, hitachi: Hitachi Energy, lonza: Lonza, roche: Roche,
+  novartis: Novartis, alcon: Alcon, salesforce: Salesforce, swisscom: Swisscom,
+  georgfischer: Georg Fischer, sulzer: Sulzer, galderma: Galderma, medela: Medela,
+  kardex: Kardex, onrunning: On, anybotics: ANYbotics, wingtra-2: Wingtra, wingtra: Wingtra,
+  zurichinstruments: Zurich Instruments, deepjudge: DeepJudge, getyourguide: GetYourGuide,
+  scandit: Scandit, proton: Proton, frontify: Frontify, comet: Comet, richemont: Richemont,
+  siemensgamesa: Siemens Gamesa, swisslife: Swiss Life Asset Managers, juliusbaer: Julius Baer,
+  vontobel: Vontobel, lgt: LGT, lgtcp: LGT Capital Partners, gategroup: gategroup}

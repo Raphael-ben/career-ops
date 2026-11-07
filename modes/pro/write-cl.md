@@ -25,7 +25,7 @@ Read `{output_folder}/profile-filtered.json` (pre-filtered profile; if missing, 
 
 Language = classification's `language` field (en/fr/de). Write the entire letter in this language.
 
-Swiss orthography: if `swiss: true`, use `ss` instead of `ß` throughout the entire letter body, including the greeting line. The compile script applies a second pass, but the mode output must already be clean.
+Swiss orthography: if `swiss: true`, use `ss` instead of `ß` throughout the entire letter body, including the greeting line. Nothing rewrites it later: the pipeline lint (Step 5.5 Check 5) fails on any `ß`.
 
 ### Step 3 — Determine availability
 
@@ -47,7 +47,7 @@ Do NOT start with the company name. Do NOT describe the company's market situati
 
 **Paragraph 2 — Current / most recent primary role, mapped to the JD** (3-4 sentences)
 
-Name role and company (from `profile_bank.experience`). Describe what the candidate does in concrete terms — 2-3 specific activities from the profile bank. End with an explicit mapping sentence naming actual JD requirements (fold the JD requirements into a clean sentence; do not use a banned connector phrase).
+Name role and company (from `profile_bank.experience`). Describe what the candidate did/does in concrete terms — 2-3 specific activities from the profile bank, each tied to an `ach_id`. End with a mapping sentence that names a JD requirement only as a pointer to the evidence just given (fold it into a clean sentence; do not use a banned connector phrase). The mapping sentence may not add an activity the preceding sentences did not already back.
 
 Do not say "transferable experience" — name what it transfers to. **Tense:** apply `profile_bank.rules.tense` — a role whose `end_status` is `current_indefinite`/`contract_ending` (and end on/after today) is present tense; never place it in a past or subordinate-past clause ("Before I moved to…", "During my time at…" as past). A completed role is past tense.
 
@@ -92,6 +92,12 @@ Read `profile_bank.rules.address_lookup`. **Do not guess. Do not use partial val
 
 ---
 
+### Step 5b — Provenance and anti-echo pass (before filling)
+
+**Anti-echo rule.** Mirror JD wording only where an achievement id already backs the claim. Never restate a JD requirement as something the candidate did. No backing id ⇒ omit. Keyword weaving must not create a new claim.
+
+In your working notes, list every sentence of paragraphs 1–5 with the `ach_id` (or education id) that backs it; a sentence about the company or the motivation that claims nothing about the candidate gets `none (no candidate claim)`. A candidate claim with no id is deleted, not reworded. The verifier repeats this table sentence by sentence and fails the letter on any unsupported sentence.
+
 ### Step 6 — Fill the template
 
 Filling conventions from the template's fill-spec:
@@ -125,7 +131,7 @@ Write the filled `{file_slug}_cover-letter.tex` to `{output_folder}/{file_slug}_
 
 ## Hard rules — violations cause verifier to fail
 
-1. **Source-bound claims.** Every factual claim maps to an experience/achievement id in the profile bank.
+1. **Source-bound claims.** Every factual claim maps to an experience/achievement id in the profile bank (Step 5b table). JD vocabulary is never a source.
 2. **Never use banned terms** (`profile_bank.rules.never_mention`).
 3. **Apply conditional mentions and framing rules** (`profile_bank.rules.conditional_mentions`, `profile_bank.rules.framing` entries with `cover_letter` in `enforce_on`).
 4. **Tense** per `profile_bank.rules.tense` — no past framing of a still-current role.
@@ -138,6 +144,8 @@ Write the filled `{file_slug}_cover-letter.tex` to `{output_folder}/{file_slug}_
 11. **No dashes as clause connectors.** Never use `—` (em dash) or LaTeX `--` to connect prose phrases. Use commas, colons, or two sentences. Exception: `--` is fine for numeric ranges and date ranges.
 12. **`cover_letter_min_words`–`cover_letter_max_words` words total** (`profile_bank.verify.tolerances`). Count words inside all `\CLParagraph{}` blocks before writing. If over the max, trim the least specific sentences first.
 13. **Never devalue the profile.** No "without hierarchical power", no "the project wasn't complex".
+14. **Durations only from the bank.** Any "N years" figure is the `years_experience` the orchestrator pasted (summed from `profile_bank.experience[].start/end`, employed periods only). Never state a duration the bank does not give, never compute your own span, never volunteer a shortfall against a JD threshold.
+15. **Ended roles in past tense.** Decide tense from each role's `end` date against today's date: `end` before today ⇒ past tense, never "current role" / "in my current position" / "rôle actuel" / "derzeit" or present-tense verbs for it; frame the most recent ended role as "most recently". Present tense only when `end` is null (or on/after today per `profile_bank.rules.tense`).
 
 ## Banned phrases
 

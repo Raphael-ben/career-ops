@@ -44,7 +44,9 @@ Resolve `{DATA_DIR}` and `{PYTHON}` from `modes/_profile.md` (lines `DATA_DIR: .
 These are data-driven. Read the lists from the profile bank and ban every entry, in whatever language the document is written:
 
 - **Verbs / openers** — `profile_bank.humanize.banned_bullet_openers` (also `banned_words`): replace with concrete action verbs.
-- **Adjectives / filler words** — `profile_bank.humanize.banned_words` (+ `banned_words_de`, `banned_words_fr`): remove or replace with evidence.
+- **Adjectives / filler words** — `profile_bank.humanize.banned_words` (+ `banned_words_de`, `banned_words_fr`): remove or replace with evidence. `banned_words` also carries the stock AI vocabulary of the user-level humanizer skill (§12: delve, tapestry, pivotal, crucial, robust, showcase, testament, valuable, …). Entries with a parenthetical qualifier ("key (adjective)", "landscape (abstract noun)", "robust (figurative)") are banned only in that sense; "Key Account Manager" or "robust" in an engineering sense stay.
+
+**Mechanical enforcement.** The pipeline's Step 5.5 lint and verify Step 0 run `check-humanized.mjs`, which wraps upstream `cv-voice.mjs` (its English stock-phrase list + Unicode dash check) and adds every bare, unqualified entry of the lists above, on both `.tex` files. A word the bank's own content uses is exempt. Anything you leave in fails the lint and comes back to you, so do not rely on the lint as your check.
 - **Phrases / constructions** — `profile_bank.humanize.banned_phrases` (+ `banned_phrases_de`, `banned_phrases_fr`): remove or rewrite (e.g. cover-letter clichés, "at the intersection of" constructions).
 
 **Constructions to also restructure** (concept-level, language-agnostic): "-ing" pileups ("fostering collaboration, ensuring delivery, championing change" → restructure); a verb used as a false synergy noun.
@@ -193,3 +195,5 @@ After writing the humanized `.tex` files, write `humanizer_report.json` to the s
 ```
 
 If a document had no flags and no rewrites, still include it in `documents` with zero counts. Always write the file even if no changes were made — its presence confirms the humanizer ran.
+
+**Staleness rule.** Write `humanizer_report.json` AFTER both `.tex` files, every run. The report is valid only while it is newer than both `.tex` files: ANY later edit of either `.tex` (a lint fix, a verifier fix-loop rewrite, a hand edit by the orchestrator) makes it stale, and `check-humanized.mjs` then fails the package until this mode runs again and regenerates the report. There is no "small edit" exception; re-run humanize on the edited file(s) and rewrite the report.
