@@ -57,7 +57,8 @@ fi
 hits=0
 
 if [[ "$mode" == "--worktree" ]]; then
-  matches="$(git -C "$repo" ls-files -z | xargs -0 grep -lIiEf "$patterns" 2>/dev/null || true)"
+  # cd into the repo: ls-files paths are repo-relative, so grep must run there.
+  matches="$(git -C "$repo" ls-files -z | (cd "$repo" && xargs -0 grep -lIiEf "$patterns" 2>/dev/null) || true)"
   if [[ -n "$matches" ]]; then
     echo "$matches"
     hits=1

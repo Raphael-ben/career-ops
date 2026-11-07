@@ -24,12 +24,12 @@ test('fieldId and dateIds', () => {
 });
 
 test('keys', () => {
-  assert.equal(W.workKey(' Rolex  SA ', 2017), 'rolex sa|2017');
+  assert.equal(W.workKey(' Acme  SA ', 2017), 'acme sa|2017');
   assert.equal(W.eduKey('', undefined), '');
 });
 
 test('matchBlocks keys on company and start year', () => {
-  const r = W.matchBlocks([{ n: 9, key: W.workKey('Rolex SA', 2017) }], [W.workKey('Rolex SA ', 2015), W.workKey('rolex sa', 2017)]);
+  const r = W.matchBlocks([{ n: 9, key: W.workKey('Acme SA', 2017) }], [W.workKey('Acme SA ', 2015), W.workKey('acme sa', 2017)]);
   assert.deepEqual(r, { pairs: [{ n: 9, wanted: 1 }], toAdd: [0], extra: [] });
 });
 

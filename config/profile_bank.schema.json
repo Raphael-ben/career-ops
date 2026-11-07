@@ -200,9 +200,9 @@
             "type": "object",
             "required": ["block", "default"],
             "properties": {
-              "block": { "type": "string", "description": "experience id, e.g. exp_pwc." },
+              "block": { "type": "string", "description": "experience id, e.g. exp_1." },
               "default": { "type": "integer", "description": "Default bullet count for this block." },
-              "default_max": { "type": "integer", "description": "Upper bound when a range is allowed (e.g. PwC 4-5 -> default 5, default_max 5, floor via reduce)." },
+              "default_max": { "type": "integer", "description": "Upper bound when a range is allowed (e.g. a 4-5 range -> default 5, default_max 5, floor via reduce)." },
               "reduce_to": { "type": "integer", "description": "Reduced bullet count when reduce_when fires." },
               "reduce_when": { "type": "string", "description": "Condition (referencing classification_defs where possible) that triggers reduce_to." },
               "always_include": { "type": "boolean", "description": "true = block is mandatory in every CV." },
@@ -217,7 +217,7 @@
         },
         "space_fill": {
           "type": "object",
-          "description": "Single-page space-fill logic as data (write-cv Step 3 space-fill + Step 9). base_formula documents how base_count is summed; optional_blocks are the Chopard/Prepa-style conditional inclusions.",
+          "description": "Single-page space-fill logic as data (write-cv Step 3 space-fill + Step 9). base_formula documents how base_count is summed; optional_blocks are the conditional inclusions.",
           "properties": {
             "base_formula": { "type": "string" },
             "fill_threshold": { "type": "integer", "description": "base_count threshold below which the last optional education block is pulled in." },
@@ -231,7 +231,7 @@
                   "block": { "type": "string", "description": "education or experience id to conditionally add." },
                   "condition": { "type": "string", "description": "Inclusion condition expressed against classification + base_count." },
                   "bullets": { "type": "integer" },
-                  "absolute": { "type": "boolean", "description": "true = condition is the ONLY gate; space-fill must never override it (Chopard)." },
+                  "absolute": { "type": "boolean", "description": "true = condition is the ONLY gate; space-fill must never override it." },
                   "note": { "type": "string" }
                 }
               }

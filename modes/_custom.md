@@ -1,9 +1,11 @@
-# _custom.md — Raphael's procedural house rules (user layer, survives updates)
+# _custom.md — Owner's procedural house rules (user layer, survives updates)
 
 ## No Playwright outside the apply flow
 
 Playwright (or any browser automation) is used in EXACTLY ONE place: the
-interactive `/jobhunter apply` flow driving Raphael's Brave + Dashlane browser.
+interactive `/jobhunter apply` flow. It drives the browser named by profile.yml
+`apply.browser` (brave = the owner's Brave + Dashlane profile; playwright or
+absent = a plain Playwright Chromium).
 Everywhere else — scan, pipeline, liveness, JD fetching, Notion entries — is
 browserless. This overrides the system-layer "Offer Verification — MANDATORY
 Playwright" rule in CLAUDE.md/AGENTS.md.
