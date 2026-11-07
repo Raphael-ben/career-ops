@@ -891,6 +891,9 @@ def main():
                     help="reap aged-out pipeline.md entries only (no scan), then exit")
     ap.add_argument("--reap-dry-run", action="store_true",
                     help="print what --reap would close, change nothing, then exit")
+    ap.add_argument("--inject", metavar="JSON",
+                    help="funnel an external JSON job list (agent web search) "
+                         "through the same filters/dedup; skips scrapers")
     args = ap.parse_args()
     if args.selftest:
         selftest()
@@ -924,7 +927,11 @@ def main():
     static_corpus = [(normalize(t), normalize(c)) for t, c in history_pairs + applied_pairs]
 
     jobs = []
-    for s in SCRAPERS:
+    # ponytail: --inject replaces the scraper stage, the funnel below is shared
+    if args.inject:
+        jobs = json.load(open(args.inject))
+        print(f"  inject: {len(jobs)} jobs from {args.inject}", file=sys.stderr)
+    for s in ([] if args.inject else SCRAPERS):
         got = run_scraper(s)
         print(f"  {s}: {len(got)} jobs", file=sys.stderr)
         jobs.extend(got)
