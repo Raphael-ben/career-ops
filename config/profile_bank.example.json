@@ -136,6 +136,7 @@
       "end": "2016-06",
       "end_status": "completed",
       "summary": "Conditional inclusion only — early-stage / startup roles. Part-time engineering while studying.",
+      "include_only_if": ["tech"],
       "achievements": [
         {
           "id": "ach_webshop_frontend",

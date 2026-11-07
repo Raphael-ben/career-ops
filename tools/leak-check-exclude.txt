@@ -1,0 +1,7 @@
+# leak-check-exclude.txt -- path globs skipped by `leak-check.sh --worktree`.
+# One glob per line; '#' starts a comment. See the leak-check.sh header.
+
+# upstream-owned file (never edited in the fork); comment names a generic initialism
+sponsor-check.mjs
+# SVG path data is full of numbers that collide with numeric owner patterns
+docs/**/*.svg

@@ -178,7 +178,7 @@ def is_tavily_posting(url):
 
 SCRAPER_CAP = 420       # per-scraper ceiling (seconds)
 SCRAPER_FLOOR = 30      # never start a scraper with less than this left
-DEFAULT_DEADLINE = 600  # Raphael's rule: a scan finishes in <=10 min
+DEFAULT_DEADLINE = 600  # owner's rule: a scan finishes in <=10 min
 
 
 def remaining_budget(start, deadline, cap, now=None):

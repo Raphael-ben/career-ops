@@ -129,7 +129,8 @@
               }
             }
           },
-          "tools_methods": { "type": "array", "items": { "type": "string" } }
+          "tools_methods": { "type": "array", "items": { "type": "string" } },
+          "include_only_if": { "type": "array", "items": { "type": "string" }, "description": "Optional. Classification tags; the experience is included only when the job matches one (profile-for-job.mjs)." }
         }
       }
     },

@@ -37,25 +37,24 @@ function filterAchievements(achievements = []) {
     .map(({ surface_in: _s, keywords: _k, ...rest }) => rest);
 }
 
-// The pipeline emits conditional_flags (derived from rules.conditional_mentions),
-// not a top-level chopard_eligible key — reading only the latter pinned this to
-// false on every run. Fall back to the bank's own surface_only_when rule so a
-// classification that forgets the flag still resolves correctly.
-const chopardRule = (bank.rules?.conditional_mentions ?? [])
-  .find(m => m.entity === 'Chopard');
-const chopardEligible =
-  classification.conditional_flags?.Chopard
-  ?? classification.chopard_eligible
-  ?? (chopardRule?.surface_only_when ?? []).some(t => tags.has(t));
+// An experience entry may carry include_only_if (a list of classification tags).
+// It is then included only when the job matches one of those tags. The pipeline's
+// conditional_flags (keyed by experience id or company) override the tag test when
+// present, so a classification that forgets the flag still resolves correctly.
+function conditionalEligible(exp) {
+  if (!Array.isArray(exp.include_only_if)) return true;
+  const flags = classification.conditional_flags ?? {};
+  return flags[exp.id] ?? flags[exp.company] ?? exp.include_only_if.some(t => tags.has(t));
+}
 
 const experiences = (bank.experiences ?? bank.experience ?? []).map(exp => {
   const filtered = {
     ...exp,
     achievements: filterAchievements(exp.achievements),
   };
-  // Signal Chopard ineligibility so the writer can skip without re-running logic
-  if (exp.id === 'exp_chopard' && !chopardEligible) {
-    filtered._chopard_eligible = false;
+  // Signal ineligibility so the writer can skip without re-running logic
+  if (!conditionalEligible(exp)) {
+    filtered._conditional_eligible = false;
   }
   return filtered;
 });
@@ -64,7 +63,7 @@ const output = {
   _meta: {
     ...bank._meta,
     filtered_for: classification.classifications,
-    chopard_eligible: chopardEligible,
+    excluded_conditional: experiences.filter(e => e._conditional_eligible === false).map(e => e.id),
   },
   candidate: bank.candidate,
   education: bank.education,

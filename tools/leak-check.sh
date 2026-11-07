@@ -28,6 +28,12 @@
 #               to these by construction — a name quoted inside a commit
 #               message lives in the commit object, not any blob.
 #
+# Excludes (--worktree only):
+#   tools/leak-check-exclude.txt (override with $LEAK_CHECK_EXCLUDE) lists path
+#   globs, one per line, '#' comments. Matching tracked files are not reported.
+#   '*' matches across '/', and 'dir/**/x' also matches 'dir/x'. Use sparingly:
+#   for upstream-owned files or binary-like noise (SVG numbers), never owner data.
+#
 # Exit code: 1 if any match found, 0 if clean, 2 on usage/setup error.
 #
 # If trufflehog is on PATH, this script prints a note suggesting a
@@ -59,6 +65,20 @@ hits=0
 if [[ "$mode" == "--worktree" ]]; then
   # cd into the repo: ls-files paths are repo-relative, so grep must run there.
   matches="$(git -C "$repo" ls-files -z | (cd "$repo" && xargs -0 grep -lIiEf "$patterns" 2>/dev/null) || true)"
+  excl="${LEAK_CHECK_EXCLUDE:-$(dirname "${BASH_SOURCE[0]}")/leak-check-exclude.txt}"
+  if [[ -n "$matches" && -f "$excl" ]]; then
+    kept=""
+    while IFS= read -r f; do
+      skip=0
+      while IFS= read -r g; do
+        [[ -z "$g" || "$g" == \#* ]] && continue
+        # shellcheck disable=SC2053
+        if [[ "$f" == $g || "$f" == ${g//\*\*\//} ]]; then skip=1; break; fi
+      done < "$excl"
+      if [[ $skip -eq 0 ]]; then kept+="$f"$'\n'; fi
+    done <<< "$matches"
+    matches="${kept%$'\n'}"
+  fi
   if [[ -n "$matches" ]]; then
     echo "$matches"
     hits=1
