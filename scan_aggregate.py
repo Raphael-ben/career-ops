@@ -1126,6 +1126,9 @@ def selftest():
         ATS_FULL_CHECKPOINT.write_text(json.dumps({"ats": ["greenhouse"], "limit": None, "includeUndated": False}))
         subprocess.run = scripted(settings, changed); calls.clear(); run_ats_full(cfg)
         assert len(calls) == 3 and "--resume" not in calls[2] and "--ats" not in calls[2] and not ATS_FULL_CHECKPOINT.exists(), calls
+        # default (key absent) → stage off, scan-ats-full.mjs never spawned
+        subprocess.run = scripted(); calls.clear(); run_ats_full({"scan": {}})
+        assert not calls, calls
     finally:
         ATS_FULL_CHECKPOINT, HISTORY, subprocess.run = saved
 
