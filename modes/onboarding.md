@@ -1,4 +1,2 @@
-# Onboarding (superseded)
-
-Superseded. Onboarding lives in AGENTS.md §First Run (upstream) until modes/pro/onboarding.md ships.
-Run `node doctor.mjs --json` and follow AGENTS.md.
+# Mode: onboarding
+Superseded by modes/pro/onboarding.md (fork). Read that file.
