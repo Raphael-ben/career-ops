@@ -7,7 +7,7 @@ This file handles `/jobhunter onboarding` and the auto-entry when `node doctor.m
 2. **No user file is written before the Phase 7 "yes"** (`cv.md`, `config/`, `portals.yml`, `data/`, `modes/_profile.md`, `{DATA_DIR}`). Phases 0–6 only ask, read, and run checks; the dependency installs the friend accepts in Phase 1 and the dashboard build in Phase 6 are the only exceptions. Collect every answer in a running answer sheet in the conversation.
 3. **Never accept "flexible", "depends", or "all equal" for the priority ranking.** Ask the tie-break ("If you had to give up one: X or Y?") until the order is total.
 4. **Never invent profile_bank content.** Every employer, title, date, number, achievement, and skill comes from the friend's CV or their own words in this conversation. Missing → ask; still missing → leave it out.
-5. **Never hand-write a field `onboard-write.mjs` owns** (candidate contact, target_roles, compensation, location, spend_tier, cv.max_pages, narrative, title_filter, location_filter countries/cities, max_posting_age_days). To change one, rerun the writer.
+5. **Never hand-write a field `onboard-write.mjs` owns** (candidate contact, target_roles, compensation, location, spend_tier, cv.max_pages, narrative, title_filter, max_posting_age_days). To change one, rerun the writer. `location_filter` is the exception: the writer is called with empty `countries`/`cities`, and the agent owns the whole `location_filter` block afterwards (Phase 7 step 5).
 6. Ask one topic at a time. Short questions. Play back what you understood before moving on.
 
 ## Resolution — machine paths
@@ -37,7 +37,7 @@ node doctor.mjs --json
 Read `missing`, `warnings`, and the check list. Ask **only** about what is missing:
 - **Node ≥ 18** missing → `brew install node`, rerun doctor.
 - **Python venv** (`../.venv`) missing → `bash ../setup.sh` (builds the venv and installs the scrapers). Then `{PYTHON}` = `../.venv/bin/python3`.
-- **pdflatex** missing → offer MacTeX/BasicTeX (`brew install --cask basictex`); the pro CV templates are LaTeX, so without it CVs cannot compile.
+- **pdflatex** missing → offer MacTeX/BasicTeX (`brew install --cask basictex`); the pro pipeline requires LaTeX; if they decline, set `cv.output_format: html` and they use the upstream generic `pdf` pipeline instead of the pro CV/letter templates.
 - **Tavily key** → explain: free tier at https://tavily.com, powers the web search layer of the scan (job boards with no API). Record the key on the answer sheet as `tavily.api_key`; skipping is fine (scan runs script-only).
 - **Brave + `extension/`** for `/jobhunter apply` form filling → only if the friend wants form filling; record `apply.browser: brave`.
 - **Notion MCP** → only needed if they pick `notion` in Phase 6; ask then.
@@ -47,7 +47,7 @@ Do not fix anything the friend declines. Note declined items for the Phase 7 pla
 ## Phase 2 — Identity, CV, profile bank
 
 1. **CV.** Ask the friend to paste their CV (text, PDF path, or LinkedIn export). Draft `cv.md` in the shape AGENTS.md "Step 1: CV" requires (`## Experience`, `### Company — Location`, bold title line, dates line, a `Skills` heading). Show the draft; corrections go in now.
-2. **Contact + identity:** full name, email, phone, LinkedIn, city, timezone, years of experience (compute from CV dates, then confirm; never guess).
+2. **Contact + identity:** full name, email, phone, LinkedIn, city, country (onboard-write requires `location.country`), timezone, years of experience (compute from CV dates, then confirm; never guess).
 3. **Profile bank.** Build `{DATA_DIR}/config/profile_bank.json` in conversation: read `config/profile_bank.schema.json` (required: `candidate`, `education`, `experience`, `rules`) and use `config/profile_bank.example.json` as the shape only (its person is fictional; copy no facts). For each experience entry ask: context line, 3–6 achievement bullets with numbers the friend confirms, skills it surfaces. Ask per entry: always include, or only for certain role types (→ `include_only_if: [tags]`). Ask for `rules.never_mention` (anything they never want on a CV) and `rules.tense` (current role present tense, past roles past tense). Copy `humanize.*` (all seven lists) and `verify.tolerances` verbatim from the example. `candidate.file_slug` = `Firstname_Lastname`.
 4. **Machine paths.** `DATA_DIR` default `~/jobhunter-data` (expanded to an absolute path; ask if they want another). `PYTHON` = absolute path of `../.venv/bin/python3`.
 5. **Pro assets** (copied in Phase 7) into `{DATA_DIR}/templates/`:
@@ -66,14 +66,15 @@ Ask exactly: **"Where are you hunting, and how far will you commute (minutes, by
 - Plan: copy `templates/portals.zurich.yml` sections (`location_filter`, `search_queries`, `tracked_companies`) into `portals.yml`, copy `templates/blacklist.starter.md` → `data/blacklist.md`, keep all Swiss scrapers (omit `scan.scrapers`, absent = all seven).
 - **Rewrite `location_filter.allow`** from the friend's own commute: propose the towns reachable within their stated minutes and mode (start from their home town, list it, let them add/remove). The pack's `allow` list is a starting menu, never the final list. Keep the pack's `location_filter.block` as is.
 - `tracked_companies`: group the pack's ~100 companies by industry yourself (from names and notes), show the groups with counts, ask which industries to keep. Trimmed groups are deleted at copy time.
-- `jobspy.location`: their city, e.g. `"Zürich, Switzerland"`.
+- `jobspy.location`: their city, e.g. `"Zürich, Switzerland"`; `jobspy.country_indeed: switzerland`.
 
 **B. Anywhere else:**
 - `scan.scrapers: [jobspy]` (the other scrapers are Swiss-only).
 - Discovery: read `modes/discover.md`. Ask for 10–20 target employers in their area (or propose from their industries), then preview with `node discover-ats.mjs <Name> <Name> ... --summary` (writes nothing). After the first real scan, `node discover-new-companies.mjs --summary` finds more.
 - WebSearch (or Tavily if a key was given) for the 5–10 main job boards in their city/country and the local LinkedIn location string (e.g. `"Munich, Bavaria, Germany"`). Each board with a searchable site becomes a `search_queries` entry (`site:<board> "<title>" <city>`).
-- `jobspy.location` = the LinkedIn location string; `portals.cities` / `portals.countries` from their answer.
-- Commute → `location_filter.allow` (towns in range) and `block` (regions out of range they name).
+- `jobspy.location` = the LinkedIn location string; `jobspy.country_indeed` = their country (ISO-2 code or English name, e.g. `de` / `germany`).
+- Commute → `location_filter.allow` = the towns in range only (never the country: a country entry admits every job in it), `block` = regions out of range they name. No `always_allow`.
+- Target employers go in a YAML file `{DATA_DIR}/discovery.yml` of shape `companies: [{name, slug?, website?}]` (written in Phase 7; the Phase 3 preview passes the names as positional args instead).
 
 Record on the answer sheet: commute minutes + mode (→ `compensation.location_flexibility`, e.g. `"≤60 min by transit"`), the town list, the company/board list.
 
@@ -143,25 +144,25 @@ Ask which tracker: `tracker.type` ∈ `notion` | `markdown` | `dashboard`.
   2. Open applications.md: it is your tracker table, updated by the system.
   3. Optional: install the Dataview plugin to filter by status.
   ```
-- **dashboard** — tell them this builds the local web dashboard once, takes a few minutes and needs network. Run `cd career-ops && npm --prefix web ci && npm run ui`; when it prints the URL, confirm it loads, stop it (Ctrl-C), and print the launch line: `cd career-ops && npm run ui` → http://localhost:3000 (loopback only, no login). It reads the same `data/applications.md`; the Applied gate treats it like markdown.
+- **dashboard** — tell them this builds the local web dashboard once, takes a few minutes and needs network. Run `npm --prefix web ci && npm run ui`; when it prints the URL, confirm it loads, stop it (Ctrl-C), and print the launch line: `cd career-ops && npm run ui` → http://localhost:3000 (loopback only, no login). It reads the same `data/applications.md`; the Applied gate treats it like markdown.
 
 ## Phase 7 — Playback, then write
 
-Print the full answer sheet as one table: identity + contact, CV summary (entries, dates), profile_bank entries with their include rules, `DATA_DIR`/`PYTHON`, location branch (A/B) + towns + companies/boards, all ten Phase 4 artifacts, language (+ warning shown?), tracker, Tavily (set/skipped), declined dependencies. Ask: **"Is this correct? Reply yes to write the files."** Anything but an explicit yes → fix and replay.
+Print the full answer sheet as one table with columns `item | value | → key`, covering: identity + contact, CV summary (entries, dates), profile_bank entries with their include rules, `DATA_DIR`/`PYTHON`, location branch (A/B) + towns + companies/boards, all ten Phase 4 artifacts, language (+ warning shown?), tracker, Tavily (set/skipped), declined dependencies. Ask: **"Is this correct? Reply yes to write the files."** Anything but an explicit yes → fix and replay.
 
 On yes, in this order:
 
 1. `node doctor.mjs --json --init-templates` (copies `modes/_profile.md`, `_custom.md`, `_brief.md`, `voice-dna.md` templates).
 2. Write `cv.md`.
-3. `node onboard-write.mjs --answers - --force` with ONE JSON on stdin built from the table (shape: `node onboard-write.mjs --help`): `candidate` (full_name, email, location, phone, linkedin, years_of_experience), `target_roles` (acceptable titles), `compensation` (target_range, currency, minimum, location_flexibility), `location` (country, city, timezone, visa_status), `spend_tier` (ask: economy/standard/premium; default standard), `cv: {max_pages: 1, strict_pages: true}`, `narrative.headline`, `portals` (`positive` = acceptable titles + variants, `negative` = unacceptable titles, `countries`, `cities`, `max_posting_age_days: 45`). It prints `{"written":[...],"kept":[...]}`; both files must be in `written`.
+3. `node onboard-write.mjs --answers - --force` with ONE JSON on stdin built from the table (shape: `node onboard-write.mjs --help`): `candidate` (full_name, email, location, phone, linkedin, years_of_experience), `target_roles` (acceptable titles), `compensation` (target_range, currency, minimum, location_flexibility), `location` (country, city, timezone, visa_status), `spend_tier` (ask: economy/standard/premium; default standard), `cv: {max_pages: 1, strict_pages: true}`, `narrative.headline`, `portals` (`positive` = acceptable titles + variants, `negative` = unacceptable titles, `countries: []`, `cities: []`, `max_posting_age_days: 45`). Empty countries/cities on purpose: a country passed here lands in `location_filter.always_allow`, which outranks `block` in `scan.mjs` and would admit every job in the country, overriding the commute cap. It prints `{"written":[...],"kept":[...]}`; both files must be in `written`.
 4. Edit `config/profile.yml` for the keys the writer does not own. Where the writer already emitted the top-level block (`language:`, `cv:`, `candidate:`), add the keys inside it; never create a second block with the same name. Everything else is appended at the end:
    - `candidate.languages: [...]`; `language.output`, `language.warned: true`
-   - `cv.output_format: "latex"`, `cv.template_cv: "{DATA_DIR}/templates/cv-template-pro.tex"`, `cv.template_cl: "{DATA_DIR}/templates/cover-letter-template-pro.tex"`, `candidate.photo` (only if given). Delete the writer's example `cover_letter.language_learning` entry unless the friend stated one.
+   - `cv.output_format: "latex"`, `cv.template_cv: "{DATA_DIR}/templates/cv-template-pro.tex"`, `cv.template_cl: "{DATA_DIR}/templates/cover-letter-template-pro.tex"`, `cv.photo: "{DATA_DIR}/templates/photo.jpg"` (only if given). Delete the writer's example `cover_letter.language_learning` entry unless the friend stated one.
    - `sharing:` with `role: friend` as its **first** key (the friend-guard hook regex depends on it)
    - `scan.scrapers: [jobspy]` (branch B only; branch A omits it), `scan.parallel_scrapers: true`
-   - `jobspy:` `search_terms` (≥ 8), `location`, `results_wanted: 20`, `hours_old: 72`
+   - `jobspy:` `search_terms` (≥ 8), `location`, `country_indeed` (Swiss: `switzerland`), `results_wanted: 20`, `hours_old: 72`
    - `triage:` block from Phase 4; `tracker.type` (+ `tracker.notion.*`); `tavily.api_key` (if given); `apply.browser` (if given)
-5. `portals.yml`: branch A → replace its `location_filter`, `search_queries`, `tracked_companies` with the pack's sections (trimmed industries removed), then set `location_filter.allow` to the friend's town list, keeping the pack's `block`; copy `templates/blacklist.starter.md` → `data/blacklist.md` (uncomment the consulting block on yes). Branch B → replace `tracked_companies` with the discovered companies (`node discover-ats.mjs --in <file> --write` appends resolved ones), replace `search_queries` with the board queries, add `location_filter.block`; copy `templates/blacklist.example.md` → `data/blacklist.md` if missing.
+5. `portals.yml` — the agent owns `location_filter` in both branches: it has `allow` = the friend's commute towns only, `block` as below, and **no** `always_allow` and no country in `allow` (delete any the writer emitted). Branch A → replace `search_queries` and `tracked_companies` with the pack's sections (trimmed industries removed) and `location_filter` with `allow` = the friend's town list plus the pack's `block`; copy `templates/blacklist.starter.md` → `data/blacklist.md` (uncomment the consulting block on yes). Branch B → write `{DATA_DIR}/discovery.yml`, empty the example `tracked_companies`, then `node discover-ats.mjs --in {DATA_DIR}/discovery.yml --write` appends the resolved ones, replace `search_queries` with the board queries, set `location_filter` (towns `allow`, regions `block`); copy `templates/blacklist.example.md` → `data/blacklist.md` if missing.
 6. `mkdir -p {DATA_DIR}/config {DATA_DIR}/templates`; write `{DATA_DIR}/config/profile_bank.json`; copy the four pro assets (Phase 2 step 5) and the photo. Check it parses and has the schema's required keys: `node -e 'const b=require(process.argv[1]);for(const k of require("./config/profile_bank.schema.json").required)if(!(k in b))throw k' {DATA_DIR}/config/profile_bank.json`.
 7. Append to `modes/_profile.md`:
    ```
@@ -183,7 +184,7 @@ node doctor.mjs --json                                  # onboardingNeeded must 
 node scan.mjs --dry-run
 ```
 
-Check in the `{PYTHON} scan_aggregate.py --dry-run` output that only the configured scrapers ran (branch B: jobspy only) and that the funnel is non-zero after the title filter. A zero funnel means the titles or location filter are too narrow: show the funnel, adjust with the friend (`node onboard-write.mjs --answers - --force --only portals` for title/city changes), rerun. Errors → fix and rerun (`node scan.mjs --dry-run` too); never skip to Phase 9.
+Check in the `{PYTHON} scan_aggregate.py --dry-run` output that only the configured scrapers ran (branch B: jobspy only) and that the funnel is non-zero after the title filter. A zero funnel means the titles or location filter are too narrow: show the funnel, adjust with the friend (`node onboard-write.mjs --answers - --force --only portals` for title changes, then re-apply step 5's `location_filter`; town changes are a direct `location_filter.allow` edit), rerun. Errors → fix and rerun (`node scan.mjs --dry-run` too); never skip to Phase 9.
 
 ## Phase 9 — Explainer and update briefing (print this block as is)
 
