@@ -398,6 +398,11 @@ def run_tavily(profile_cfg, portals_cfg, start=None, deadline=None, state=None):
     tavily_dropped_nonposting = 0
     queries = [q for q in (portals_cfg.get("search_queries") or [])
                if q.get("enabled", True)]
+    unfilled = [q for q in queries if "{ROLES}" in str(q.get("query", ""))]
+    if unfilled:  # pack placeholder not expanded by onboarding: never search the literal text
+        queries = [q for q in queries if q not in unfilled]
+        print(f"warning: {len(unfilled)} search_queries still contain {{ROLES}}; "
+              "run /jobhunter onboarding (Phase 7 step 5) to fill them", file=sys.stderr)
     print(f"  [tavily] {len(queries)} queries", file=sys.stderr)
     for q in queries:
         query = q.get("query", "")
@@ -1171,6 +1176,20 @@ def selftest():
         assert hits == [] and st.get("deadline_hit"), (hits, st)
     finally:
         urllib.request.urlopen = saved_open
+
+    # ── {ROLES} guard: placeholder query skipped, one warning, normal one runs ──
+    import contextlib
+    hits.clear(); err = io.StringIO()
+    gcfg = {"search_queries": [{"name": "ph", "query": "site:x {ROLES} Zurich"},
+                               {"name": "ok", "query": "site:x analyst Zurich"}]}
+    try:
+        urllib.request.urlopen = fake_432
+        with contextlib.redirect_stderr(err):
+            run_tavily(pcfg, gcfg)
+    finally:
+        urllib.request.urlopen = saved_open
+    assert len(hits) == 1, hits
+    assert err.getvalue().count("warning: 1 search_queries still contain {ROLES}") == 1, err.getvalue()
 
     # ── scan-history: named columns (upstream lib/scan-history-columns.mjs) ──
     cols = history_columns()
