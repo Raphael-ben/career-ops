@@ -40,7 +40,7 @@ PENDING_PATH = Path.home() / ".jobfishing" / "pending_device_code"
 MAX_GROUP = 2  # 1 Best, 2 Good, 3 Partial
 
 MOCK_JOB = {
-    "title": "Head of Strategy",
+    "title": "Head of Research",
     "company": "Example AG",
     "url": "https://example.com/jobs/1",
     "source": "jobfishing",

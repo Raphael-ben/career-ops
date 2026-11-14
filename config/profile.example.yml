@@ -374,7 +374,7 @@ cover_letter:
 
 # JobSpy board scraper (jobspy_scan.py) — all keys optional.
 # jobspy:
-#   search_terms: ["Business Development Manager", "Key Account Manager"]
+#   search_terms: ["Product Manager", "Data Analyst"]
 #   location: "Zurich, Switzerland"   # free-text location passed to every board
 #   country_indeed: switzerland       # Indeed country (name or ISO-2: CH, DE, US, GB...); default switzerland
 #   results_wanted: 20                # per term and board (default 20)

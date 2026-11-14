@@ -1176,12 +1176,12 @@ def selftest():
     cols = history_columns()
     assert cols[:6] == ("url", "first_seen", "portal", "title", "company", "status"), cols
     assert set(_HISTORY_COLUMNS_FALLBACK) <= set(cols), "upstream renamed a column we know"
-    canon15 = "\t".join(["https://x/1", "2026-11-01", "greenhouse", "Head of Strategy",
+    canon15 = "\t".join(["https://x/1", "2026-11-01", "greenhouse", "Head of Research",
                          "Acme", "added", "Zürich", "fp", "2026-10-30", "0.9", "",
                          "acme", "R-1", "en", "lk"])
     r = parse_history_row(canon15)
     assert (r["title"], r["company"], r["first_seen"], r["requisition_id"],
-            r["listing_key"]) == ("Head of Strategy", "Acme", "2026-11-01", "R-1", "lk"), r
+            r["listing_key"]) == ("Head of Research", "Acme", "2026-11-01", "R-1", "lk"), r
     legacy = "https://x/2\tKAM\tBeta AG\tjobs.ch\t2026-10-01\tborderline"
     r = parse_history_row(legacy)
     assert (r["title"], r["company"], r["portal"], r["first_seen"]) == \
