@@ -11,7 +11,7 @@ INVESTIGATION NOTE (2026-07-18): jobscout24.ch's visible search box posts to
 /en/jobs/ also accepts the same field as a GET query string
 (?SearchWhat=<term>) and returns the filtered result set server-rendered, no
 token needed (verified: 90300 unfiltered vacancies on the bare listing page vs
-432 with ?SearchWhat=Business+Development). Each result is a
+432 with ?SearchWhat=Product+Marketing). Each result is a
 <li class="job-list-item" data-job-detail-url="/en/job/<uuid>/"> with a
 `.job-title` link, a `.job-attributes` paragraph (two <span> children: company,
 location) and a `.job-date` paragraph carrying an abbreviated relative age token
@@ -47,7 +47,7 @@ import scan_http
 DOMAIN = "https://www.jobscout24.ch"
 
 MOCK_JOB = {
-    "title": "Business Development Manager",
+    "title": "Product Marketing Manager",
     "company": "",
     "url": "https://www.jobscout24.ch/en/job/00000000-0000-0000-0000-000000000000/",
     "source": "jobscout24",

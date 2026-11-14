@@ -1,4 +1,4 @@
-# Zürich starter pack — sources only. Title filters come from your goal-job definition. tracked_companies: starter list, prune to taste.
+# Zürich starter pack — sources only. Title filters come from your goal-job definition. search_queries: onboarding replaces {ROLES} with your titles ("Title One" OR "Title Two"). tracked_companies: starter list, prune to taste.
 location_filter:
   allow:
     - Zürich
@@ -161,245 +161,161 @@ location_filter:
     - Romania
     - India
 search_queries:
-  - name: Xing — Business Development & Corp Dev Switzerland
-    query: site:xing.com "Business Development" OR "Corporate Development" OR "M&A" Switzerland Zürich OR Zug OR Basel Manager OR Director OR Head -Intern -Junior
+  - name: xing.com
+    query: site:xing.com {ROLES} Switzerland Zürich OR Zug OR Basel Manager OR Director OR Head -Intern -Junior
     enabled: true
-  - name: Xing — Head of / GM / Managing Director Switzerland
-    query: site:xing.com "Head of" OR "General Manager" OR "Managing Director" OR "Geschäftsführer" Switzerland Strategy OR Commercial OR Operations OR Transformation OR Growth
+  - name: experteer.com
+    query: site:experteer.com {ROLES} Switzerland Manager OR Director OR Head -Intern -Junior
+    enabled: false
+  - name: stepstone.ch
+    query: site:stepstone.ch {ROLES} Zürich OR Basel OR Bern Manager OR Director OR Head -Intern -Junior
     enabled: true
-  - name: Xing — Chief of Staff & Strategy Switzerland
-    query: site:xing.com "Chief of Staff" OR "Chief Operating" OR "Head of Strategy" OR "Stabsstelle" Switzerland
+  - name: ch.indeed.com
+    query: site:ch.indeed.com {ROLES} Zürich Senior OR Manager OR Director
+    enabled: false
+  - name: linkedin.com/jobs
+    query: site:linkedin.com/jobs {ROLES} Zürich OR Zug -junior -intern
     enabled: true
-  - name: Experteer — BD / Strategy / Corp Dev Switzerland
-    query: site:experteer.com "Business Development" OR "Corporate Development" OR "Strategy" OR "M&A" Switzerland Manager OR Director OR Head -Intern -Junior
-    enabled: false
-  - name: Experteer — GM / Managing Director Switzerland
-    query: site:experteer.com "General Manager" OR "Managing Director" OR "Country Manager" OR "Chief of Staff" Switzerland
-    enabled: false
-  - name: StepStone — BD & Strategy Zürich
-    query: site:stepstone.ch "Business Development" OR "Corporate Development" OR "Strategy" OR "M&A" Zürich OR Basel OR Bern Manager OR Director OR Head -Intern -Junior
+  - name: web
+    query: '{ROLES} Switzerland'
     enabled: true
-  - name: StepStone — Commercial & Operations Zürich
-    query: site:stepstone.ch "Commercial Director" OR "Head of Commercial" OR "Head of Operations" OR "Chief of Staff" OR "Growth" Zürich OR Zug OR Basel
+  - name: xing.com/jobs
+    query: site:xing.com/jobs {ROLES} Zürich
     enabled: true
-  - name: Indeed CH — BD & Corp Dev Zürich
-    query: site:ch.indeed.com "Business Development" OR "Corporate Development" OR "M&A" OR "Head of Strategy" Zürich Senior OR Manager OR Director
+  - name: jobup.ch
+    query: site:jobup.ch {ROLES} Zürich Manager OR Director
     enabled: false
-  - name: Indeed CH — Commercial & GM Zürich
-    query: site:ch.indeed.com "General Manager" OR "Managing Director" OR "Country Manager" OR "Head of Commercial" OR "Chief of Staff" Zürich OR Zug OR Basel
-    enabled: false
-  - name: LinkedIn — Corporate Strategy & Commercial Zürich
-    query: site:linkedin.com/jobs "Business Development" OR "Corporate Development" OR "Chief of Staff" OR "Strategy Manager" OR "Strategy Director" Zürich OR Zug -consultant -junior -intern
+  - name: jobs.nzz.ch
+    query: site:jobs.nzz.ch {ROLES} Zürich
     enabled: true
-  - name: LinkedIn — Operations & Key Account Zürich
-    query: site:linkedin.com/jobs "Head of Operations" OR "Head of Sales" OR "Key Account" OR "M&A" OR "Programme Manager" OR "Transformation Manager" Zürich OR Zug
+  - name: jobagent.ch
+    query: site:jobagent.ch {ROLES} Zürich Manager OR Director
     enabled: true
-  - name: LinkedIn — General Manager & VP Commercial Zürich
-    query: site:linkedin.com/jobs "General Manager" OR "VP Commercial" OR "Head of Partnerships" OR "Alliance Manager" OR "Commercial Director" Zürich OR Zug Switzerland -intern -junior -trainee
+  - name: topjobs.ch
+    query: site:topjobs.ch {ROLES} Zürich Manager OR Director
     enabled: true
-  - name: LinkedIn — M&A & Corp Dev Switzerland
-    query: site:linkedin.com/jobs "Corporate Development" OR "M&A Manager" OR "M&A Director" OR "Mergers and Acquisitions" OR "Strategic Planning" Switzerland -Deloitte -KPMG -EY -BCG -McKinsey -Bain
+  - name: jobs.ashbyhq.com
+    query: site:jobs.ashbyhq.com "Zürich" OR "Zug" {ROLES}
     enabled: true
-  - name: LinkedIn — Growth & Innovation Switzerland
-    query: site:linkedin.com/jobs "Head of Growth" OR "Growth Director" OR "Innovation Director" OR "Head of Innovation" OR "Integration Manager" Switzerland -intern -junior
+  - name: jobs.lever.co
+    query: site:jobs.lever.co "Zürich" OR "Zug" {ROLES}
     enabled: true
-  - name: Aviation & Defense — Strategy / BD Switzerland
-    query: '"Business Development" OR "Head of Strategy" OR "Corporate Development" OR "Commercial Manager" Switzerland aviation OR aerospace OR defense OR airline OR airport'
+  - name: alpha.ch
+    query: site:alpha.ch {ROLES} Zürich OR Zug OR Switzerland Manager OR Director -intern -trainee
+    enabled: false
+  - name: stellen.ch
+    query: site:stellen.ch {ROLES} Zürich OR Zug Manager OR Director -intern -trainee
+    enabled: false
+  - name: job-boards.greenhouse.io
+    query: site:job-boards.greenhouse.io "Zürich" OR "Zug" OR "Basel" OR "Switzerland" {ROLES} -intern -junior
     enabled: true
-  - name: Sports & Consumer — BD / Commercial Switzerland
-    query: '"Business Development" OR "Head of Commercial" OR "Country Manager" OR "Head of Sales" Switzerland sport OR outdoor OR consumer OR luxury OR watch OR "sporting goods"'
+  - name: michaelpage.ch
+    query: site:michaelpage.ch {ROLES} Switzerland Manager OR Director -intern -junior
+    enabled: false
+  - name: careerplus.ch
+    query: site:careerplus.ch {ROLES} Switzerland Manager OR Director -intern -trainee
+    enabled: false
+  - name: swisslinx.com
+    query: site:swisslinx.com {ROLES} Switzerland Manager OR Director -intern
+    enabled: false
+  - name: badenochandclark.ch
+    query: site:badenochandclark.ch OR site:badenoch-clark.ch {ROLES} Switzerland -intern -junior
+    enabled: false
+  - name: mercuri-urval.com
+    query: site:mercuri-urval.com {ROLES} Switzerland -intern
+    enabled: false
+  - name: antal.com
+    query: site:antal.com {ROLES} Switzerland Manager OR Director -intern
+    enabled: false
+  - name: experteer.ch
+    query: site:experteer.ch {ROLES} Zürich OR Switzerland Director OR "Head of" OR VP
+    enabled: false
+  - name: egonzehnder.com
+    query: site:egonzehnder.com "Switzerland" OR "Zürich" OR "Zug" {ROLES}
+    enabled: false
+  - name: odgersberndtson.com
+    query: site:odgersberndtson.com "Switzerland" OR "Zürich" {ROLES}
+    enabled: false
+  - name: kienbaum.com
+    query: site:kienbaum.com "Switzerland" OR "Schweiz" OR "Zürich" {ROLES}
+    enabled: false
+  - name: vonrohr.com
+    query: site:vonrohr.com {ROLES} Switzerland
+    enabled: false
+  - name: roberthalf.com/ch
+    query: site:roberthalf.com/ch {ROLES} Switzerland Manager OR Director -intern -junior
+    enabled: false
+  - name: hays.ch
+    query: site:hays.ch {ROLES} Zürich OR Zug OR Switzerland -intern -junior -trainee
+    enabled: false
+  - name: robertwalters.com/ch
+    query: site:robertwalters.com/ch {ROLES} Switzerland -intern -junior
+    enabled: false
+  - name: pageexecutive.com
+    query: site:pageexecutive.com {ROLES} Switzerland Director OR VP OR "General Manager"
+    enabled: false
+  - name: randstad.ch
+    query: site:randstad.ch {ROLES} Zürich OR Switzerland Manager OR Director -intern -trainee
+    enabled: false
+  - name: approachpeople.com
+    query: site:approachpeople.com {ROLES} Zürich OR Switzerland Manager OR Director
+    enabled: false
+  - name: kornferry.com
+    query: site:kornferry.com "Switzerland" OR "Zürich" OR "Zug" {ROLES}
+    enabled: false
+  - name: spencerstuart.com
+    query: site:spencerstuart.com "Switzerland" OR "Zürich" {ROLES}
+    enabled: false
+  - name: heidrick.com
+    query: site:heidrick.com "Switzerland" OR "Zürich" {ROLES}
+    enabled: false
+  - name: boyden.com
+    query: site:boyden.com "Switzerland" OR "Zürich" OR "Geneva" {ROLES}
+    enabled: false
+  - name: russellreynolds.com
+    query: site:russellreynolds.com "Switzerland" OR "Zürich" {ROLES}
+    enabled: false
+  - name: amrop.com
+    query: site:amrop.com "Switzerland" OR "Zürich" {ROLES}
+    enabled: false
+  - name: pedersenandpartners.com
+    query: site:pedersenandpartners.com "Switzerland" OR "Zürich" {ROLES}
+    enabled: false
+  - name: stantonchase.com
+    query: site:stantonchase.com "Switzerland" OR "Zürich" {ROLES}
+    enabled: false
+  - name: accurservices.com
+    query: site:accurservices.com {ROLES} Switzerland Manager OR Director
+    enabled: false
+  - name: viavanta.ch
+    query: site:viavanta.ch {ROLES} Switzerland
+    enabled: false
+  - name: kellerexecutivesearch.com
+    query: site:kellerexecutivesearch.com "Switzerland" OR "Zürich" OR "Geneva" {ROLES}
+    enabled: false
+  - name: phoenix-consulting.ch
+    query: site:phoenix-consulting.ch {ROLES} Switzerland
+    enabled: false
+  - name: fintalent.com
+    query: site:fintalent.com "Switzerland" OR "Zürich" {ROLES}
+    enabled: false
+  - name: karriere.ch
+    query: site:karriere.ch {ROLES} Zürich OR Zug OR Switzerland Manager OR Director -intern -trainee
+    enabled: false
+  - name: monster.ch
+    query: site:monster.ch {ROLES} Zürich OR Zug OR Switzerland Manager OR Director -intern -junior
+    enabled: false
+  - name: talent.com
+    query: site:talent.com {ROLES} Zürich OR Zug OR Switzerland Manager OR Director -intern -junior
+    enabled: false
+  - name: careers.smartrecruiters.com
+    query: site:careers.smartrecruiters.com "Zürich" OR "Zug" OR "Basel" OR "Switzerland" {ROLES} -intern -junior
     enabled: true
-  - name: Tech & SaaS — Commercial Zürich
-    query: '"Strategic Account" OR "Enterprise Account" OR "Business Development" OR "Head of Sales" OR "Chief of Staff" OR "GTM" Zürich OR Zug software OR SaaS OR tech OR AI OR fintech -intern -junior -trainee'
+  - name: workable.com
+    query: site:workable.com "Zürich" OR "Zug" OR "Switzerland" {ROLES} -intern -junior
     enabled: true
-  - name: LinkedIn — German-language roles DACH
-    query: site:linkedin.com/jobs "Leiter Vertrieb" OR "Leiter Business Development" OR "Leiter Strategie" OR "Head of Sales" OR "Key Account Manager" OR "Chief of Staff" Zürich OR Zug OR "Deutschschweiz" -Praktikum -Junior
-    enabled: true
-  - name: LinkedIn — PE portfolio & value creation Switzerland
-    query: site:linkedin.com/jobs "Value Creation" OR "Portfolio Operations" OR "Head of Strategy" OR "COO" OR "Chief Operating Officer" Switzerland "private equity" OR "PE-backed" OR "portfolio company" -intern -junior
-    enabled: true
-  - name: Indeed.ch — Strategy & Commercial Zürich
-    query: site:ch.indeed.com "Business Development" OR "Corporate Development" OR "Chief of Staff" OR "Head of Sales" OR "Key Account" Zürich Manager OR Director
-    enabled: false
-  - name: Xing — Strategy & Operations Zürich
-    query: site:xing.com/jobs "Business Development" OR "Corporate Development" OR "Strategy" OR "Chief of Staff" OR "Head of Operations" Zürich
-    enabled: true
-  - name: jobup.ch — Commercial & Corporate Dev Zürich
-    query: site:jobup.ch "Key Account" OR "Business Development" OR "Head of Sales" OR "Corporate Development" OR "Chief of Staff" Zürich Manager OR Director
-    enabled: false
-  - name: nzz-jobs.ch — Strategy & Leadership Zürich
-    query: site:jobs.nzz.ch "Corporate Development" OR "Business Development" OR "Strategy" OR "Chief of Staff" OR "Head of" Zürich
-    enabled: true
-  - name: jobagent.ch — Strategy & Commercial Zürich
-    query: site:jobagent.ch "Business Development" OR "Corporate Development" OR "Chief of Staff" OR "Head of Sales" OR "Key Account" OR "Strategy" Zürich Manager OR Director
-    enabled: true
-  - name: experteer — Corp Dev & Commercial Zürich
-    query: site:experteer.com "Corporate Development" OR "Business Development" OR "Chief of Staff" OR "Head of Sales" OR "Key Account" OR "M&A" Zürich OR Zug Manager OR Director
-    enabled: false
-  - name: topjobs.ch — Strategy & Commercial Zürich
-    query: site:topjobs.ch "Business Development" OR "Corporate Development" OR "Chief of Staff" OR "Head of Sales" OR "Key Account" OR "Strategy" Zürich Manager OR Director
-    enabled: true
-  - name: stepstone.ch — Strategy & Commercial Zürich
-    query: site:stepstone.ch "Business Development" OR "Corporate Development" OR "Chief of Staff" OR "Head of Sales" OR "Key Account" OR "Strategy" Zürich Manager OR Director
-    enabled: true
-  - name: Ashby ATS — Strategy & Commercial Zürich
-    query: site:jobs.ashbyhq.com "Zürich" OR "Zug" "Business Development" OR "Commercial" OR "Strategy" OR "Chief of Staff" OR "Head of" OR "Key Account"
-    enabled: true
-  - name: Lever ATS — Strategy & Commercial Zürich
-    query: site:jobs.lever.co "Zürich" OR "Zug" "Business Development" OR "Commercial" OR "Strategy" OR "Chief of Staff" OR "Operations"
-    enabled: true
-  - name: Niche — Swiss cleantech & energy Zürich
-    query: '"Business Development" OR "Head of Sales" OR "Chief of Staff" OR "Strategy Manager" Zürich OR Zug cleantech OR "energy transition" OR "energy storage" OR "smart grid" OR "electromobility" OR renewables -intern -trainee -consultant'
-    enabled: true
-  - name: Niche — Swiss medtech & diagnostics Zürich
-    query: '"Business Development" OR "Key Account" OR "Head of Sales" OR "Strategy" Zürich medtech OR diagnostics OR "medical device" OR "in vitro" OR "point of care" Manager OR Director -intern -Roche -Novartis -Lonza'
-    enabled: true
-  - name: Niche — Swiss precision engineering & industrial SME
-    query: '"Head of Sales" OR "Business Development" OR "Key Account" OR "Commercial Director" OR "Operations Manager" Zürich OR Winterthur OR Schaffhausen OR Zug "precision engineering" OR automation OR mechatronics OR "industrial solutions" Manager OR Director -intern -trainee'
-    enabled: true
-  - name: Niche — Swiss fintech & insurtech Zürich
-    query: '"Business Development" OR "Head of Sales" OR "Chief of Staff" OR "Strategy" OR "Commercial" Zürich fintech OR insurtech OR "embedded finance" OR regtech Manager OR Director -intern -trainee'
-    enabled: true
-  - name: Niche — Swiss sports & outdoor brands
-    query: '"Business Development" OR "Key Account" OR "Head of Sales" OR "Commercial" OR "Operations Manager" OR "Strategy" Switzerland sport OR sports OR outdoor OR cycling OR "snow sports" OR triathlon OR running OR climbing Manager OR Director -intern -trainee -Mammut -"On Running" -FIFA -"Scott Sports"'
-    enabled: true
-  - name: Niche — Swiss aviation & aerospace
-    query: '"Business Development" OR "Key Account" OR "Head of Sales" OR "Commercial" OR "Strategy" OR "Operations" Switzerland aviation OR aerospace OR avionics OR MRO OR drone OR UAV OR "air cargo" OR "flight operations" Manager OR Director -intern -trainee -SWISS -"SR Technics" -Pilatus -RUAG'
-    enabled: true
-  - name: alpha.ch — Strategy & Commercial Zürich
-    query: site:alpha.ch "Business Development" OR "Corporate Development" OR "Key Account" OR "Chief of Staff" OR "Head of Sales" OR "Strategy" OR "M&A" OR "Operations Manager" Zürich OR Zug OR Switzerland Manager OR Director -intern -trainee
-    enabled: false
-  - name: stellen.ch — Strategy & Commercial Zürich
-    query: site:stellen.ch "Business Development" OR "Corporate Development" OR "Key Account" OR "Chief of Staff" OR "Head of Sales" OR "Strategy" OR "Operations" Zürich OR Zug Manager OR Director -intern -trainee
-    enabled: false
-  - name: Greenhouse ATS — Switzerland
-    query: site:job-boards.greenhouse.io "Zürich" OR "Zug" OR "Basel" OR "Switzerland" "Business Development" OR "Corporate Development" OR "Key Account" OR "Strategy" OR "Chief of Staff" OR "Commercial" OR "Head of Sales" -intern -junior
-    enabled: true
-  - name: Niche — Swiss precision instruments & metrology
-    query: '"Business Development" OR "Key Account" OR "Commercial Manager" OR "Head of Sales" OR "Strategy" OR "Operations" Zürich OR Winterthur OR Schaffhausen Switzerland "precision" OR "measurement" OR "metrology" OR "sensors" OR "instruments" OR "testing" Manager OR Director -intern -trainee'
-    enabled: true
-  - name: Niche — Swiss packaging & healthcare manufacturing
-    query: '"Business Development" OR "Key Account" OR "Commercial" OR "Head of Sales" OR "Operations Manager" OR "Strategy" Switzerland packaging OR "medical device" OR "pharma" OR "life sciences" OR "cleanroom" OR "sterile" Manager OR Director -intern -trainee -Roche -Novartis -Lonza'
-    enabled: true
-  - name: Niche — Swiss luxury watches & jewellery
-    query: '"Business Development" OR "Key Account" OR "Head of Sales" OR "Commercial" OR "Strategy" OR "Corporate Development" OR "Operations" Switzerland watches OR watchmaking OR horlogerie OR luxury OR jewellery OR jewerly Manager OR Director -intern -trainee'
-    enabled: true
-  - name: Niche — Swiss PE portfolio & value creation
-    query: '"Head of Strategy" OR "Chief of Staff" OR "Corporate Development" OR "Head of Operations" OR "VP Operations" OR "Business Development" OR "Value Creation" Switzerland "PE-backed" OR "private equity" OR "portfolio" OR "carve-out" OR "post-merger" -intern -junior -consultant'
-    enabled: true
-  - name: Niche — Swiss M&A advisory boutiques
-    query: '"Analyst" OR "Associate" OR "Manager" OR "Director" Switzerland "M&A" OR "mergers and acquisitions" OR "transaction" OR "corporate finance" OR "deal advisory" -Deloitte -KPMG -EY -BCG -McKinsey -Bain "boutique" OR "independent" OR "Rothschild" OR "Lazard" OR "Houlihan" OR "DC Advisory" OR "Alantra"'
-    enabled: false
-  - name: Niche — Swiss market expansion & KAM (DKSH, Iglo)
-    query: '"Key Account" OR "Market Development" OR "Business Development" OR "Commercial" OR "Sales" Switzerland "market expansion" OR "distribution" OR "channel management" OR "trade marketing" Manager OR Director -intern -trainee'
-    enabled: true
-  - name: Michael Page CH — Strategy & Commercial
-    query: site:michaelpage.ch "Business Development" OR "Strategy" OR "Corporate Development" OR "M&A" OR "Key Account" OR "Head of" OR "Operations" Switzerland Manager OR Director -intern -junior
-    enabled: false
-  - name: Careerplus CH — Strategy & Commercial
-    query: site:careerplus.ch "Business Development" OR "Strategy" OR "M&A" OR "Key Account" OR "Head of Sales" OR "Operations" OR "Commercial" Switzerland Manager OR Director -intern -trainee
-    enabled: false
-  - name: Swisslinx — Finance, Luxury & Commercial
-    query: site:swisslinx.com "Business Development" OR "Corporate Development" OR "Strategy" OR "Key Account" OR "Commercial" OR "M&A" Switzerland Manager OR Director -intern
-    enabled: false
-  - name: Badenoch + Clark CH — Commercial & Professional
-    query: site:badenochandclark.ch OR site:badenoch-clark.ch "Business Development" OR "Strategy" OR "Key Account" OR "Head of" OR "Commercial" OR "Operations" Switzerland -intern -junior
-    enabled: false
-  - name: Mercuri Urval CH — Professional Search
-    query: site:mercuri-urval.com "Business Development" OR "Strategy" OR "M&A" OR "Key Account" OR "Head of" OR "Commercial" OR "Operations" Switzerland -intern
-    enabled: false
-  - name: Antal International CH — Commercial & Sales
-    query: site:antal.com "Business Development" OR "Key Account" OR "Head of Sales" OR "Commercial" OR "Strategy" Switzerland Manager OR Director -intern
-    enabled: false
-  - name: Experteer CH — Executive Roles Switzerland
-    query: site:experteer.ch "Business Development" OR "Corporate Development" OR "Strategy" OR "M&A" OR "Head of" OR "Key Account" OR "Operations" Zürich OR Switzerland Director OR "Head of" OR VP
-    enabled: false
-  - name: Egon Zehnder — Publicly listed mandates CH
-    query: site:egonzehnder.com "Switzerland" OR "Zürich" OR "Zug" "Business Development" OR "Strategy" OR "Corporate Development" OR "Operations" OR "M&A"
-    enabled: false
-  - name: Odgers Berndtson CH — Executive mandates
-    query: site:odgersberndtson.com "Switzerland" OR "Zürich" "Business Development" OR "Strategy" OR "Head of" OR "Corporate Development" OR "Operations" OR "M&A"
-    enabled: false
-  - name: Kienbaum CH — Executive Search DACH
-    query: site:kienbaum.com "Switzerland" OR "Schweiz" OR "Zürich" "Strategieentwicklung" OR "Geschäftsentwicklung" OR "Business Development" OR "Corporate Development" OR "Leiter" OR "Head of"
-    enabled: false
-  - name: Von Rohr & Associates — Swiss boutique exec search
-    query: site:vonrohr.com "Business Development" OR "Strategy" OR "M&A" OR "Key Account" OR "Head of" OR "Commercial" Switzerland
-    enabled: false
-  - name: Robert Half CH — Finance & Commercial
-    query: site:roberthalf.com/ch "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Operations" OR "Corporate Development" Switzerland Manager OR Director -intern -junior
-    enabled: false
-  - name: Hays CH — Commercial & Strategy
-    query: site:hays.ch "Business Development" OR "Strategy" OR "M&A" OR "Corporate Development" OR "Key Account" OR "Head of" OR "Operations" Zürich OR Zug OR Switzerland -intern -junior -trainee
-    enabled: false
-  - name: Robert Walters CH — Commercial & Finance
-    query: site:robertwalters.com/ch "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Head of" OR "Operations" Switzerland -intern -junior
-    enabled: false
-  - name: Page Executive CH — Senior Operations & Strategy
-    query: site:pageexecutive.com "Business Development" OR "Strategy" OR "Corporate Development" OR "M&A" OR "Operations" OR "Head of" Switzerland Director OR VP OR "General Manager"
-    enabled: false
-  - name: Randstad Professional CH — Commercial & Ops
-    query: site:randstad.ch "Business Development" OR "Strategy" OR "Key Account" OR "Commercial" OR "Head of" OR "Operations" Zürich OR Switzerland Manager OR Director -intern -trainee
-    enabled: false
-  - name: Approach People CH — Sales & Commercial
-    query: site:approachpeople.com "Business Development" OR "Key Account" OR "Head of Sales" OR "Commercial" OR "Strategy" Zürich OR Switzerland Manager OR Director
-    enabled: false
-  - name: Korn Ferry CH — Executive mandates
-    query: site:kornferry.com "Switzerland" OR "Zürich" OR "Zug" "Business Development" OR "Strategy" OR "Corporate Development" OR "M&A" OR "Head of" OR "Operations"
-    enabled: false
-  - name: Spencer Stuart CH — Executive mandates
-    query: site:spencerstuart.com "Switzerland" OR "Zürich" "Business Development" OR "Strategy" OR "Corporate Development" OR "M&A" OR "Operations" OR "Head of"
-    enabled: false
-  - name: Heidrick & Struggles CH — Executive mandates
-    query: site:heidrick.com "Switzerland" OR "Zürich" "Business Development" OR "Strategy" OR "Corporate Development" OR "M&A" OR "Operations"
-    enabled: false
-  - name: Boyden CH — Executive mandates
-    query: site:boyden.com "Switzerland" OR "Zürich" OR "Geneva" "Business Development" OR "Strategy" OR "Corporate Development" OR "M&A" OR "Operations" OR "Head of"
-    enabled: false
-  - name: Russell Reynolds CH — Executive mandates
-    query: site:russellreynolds.com "Switzerland" OR "Zürich" "Business Development" OR "Strategy" OR "Corporate Development" OR "M&A" OR "Commercial" OR "Head of"
-    enabled: false
-  - name: Amrop CH — Executive mandates
-    query: site:amrop.com "Switzerland" OR "Zürich" "Business Development" OR "Strategy" OR "M&A" OR "Corporate Development" OR "Operations" OR "Head of"
-    enabled: false
-  - name: Pedersen & Partners CH — Executive mandates
-    query: site:pedersenandpartners.com "Switzerland" OR "Zürich" "Business Development" OR "Strategy" OR "Corporate Development" OR "M&A" OR "Head of"
-    enabled: false
-  - name: Stanton Chase CH — Executive mandates
-    query: site:stantonchase.com "Switzerland" OR "Zürich" "Business Development" OR "Strategy" OR "Corporate Development" OR "M&A" OR "Head of" OR "Operations"
-    enabled: false
-  - name: ACCUR Recruiting CH — Luxury & Consumer Commercial
-    query: site:accurservices.com "Business Development" OR "Key Account" OR "Head of Sales" OR "Commercial" OR "Strategy" Switzerland luxury OR consumer OR "FMCG" OR watches OR "beauty" Manager OR Director
-    enabled: false
-  - name: Viavanta CH — Executive boutique
-    query: site:viavanta.ch "Business Development" OR "Strategy" OR "M&A" OR "Key Account" OR "Head of" OR "Commercial" OR "Operations" Switzerland
-    enabled: false
-  - name: Keller Executive Search CH — Multi-sector
-    query: site:kellerexecutivesearch.com "Switzerland" OR "Zürich" OR "Geneva" "Business Development" OR "Strategy" OR "M&A" OR "Corporate Development" OR "Head of" OR "Operations"
-    enabled: false
-  - name: Phoenix Search CH — PE & M&A
-    query: site:phoenix-consulting.ch "Business Development" OR "Strategy" OR "M&A" OR "Corporate Development" OR "Head of" OR "PE" OR "private equity" Switzerland
-    enabled: false
-  - name: Fintalent CH — M&A & Strategy interim
-    query: site:fintalent.com "Switzerland" OR "Zürich" "M&A" OR "Corporate Development" OR "Strategy" OR "Business Development" OR "Head of"
-    enabled: false
-  - name: karriere.ch — Strategy & Commercial Zürich
-    query: site:karriere.ch "Business Development" OR "Corporate Development" OR "Key Account" OR "Chief of Staff" OR "Head of Sales" OR "Head of" OR "Strategy" OR "M&A" OR "Operations" Zürich OR Zug OR Switzerland Manager OR Director -intern -trainee
-    enabled: false
-  - name: monster.ch — Strategy & Commercial Switzerland
-    query: site:monster.ch "Business Development" OR "Corporate Development" OR "Key Account" OR "Chief of Staff" OR "Head of Sales" OR "Strategy" OR "M&A" OR "Commercial" Zürich OR Zug OR Switzerland Manager OR Director -intern -junior
-    enabled: false
-  - name: talent.com — Strategy & Commercial Switzerland
-    query: site:talent.com "Business Development" OR "Corporate Development" OR "Key Account" OR "Chief of Staff" OR "Head of Sales" OR "Strategy" OR "M&A" OR "Commercial" Zürich OR Zug OR Switzerland Manager OR Director -intern -junior
-    enabled: false
-  - name: SmartRecruiters ATS — Untracked Swiss Companies
-    query: site:careers.smartrecruiters.com "Zürich" OR "Zug" OR "Basel" OR "Switzerland" "Business Development" OR "Corporate Development" OR "Key Account" OR "Strategy" OR "Chief of Staff" OR "Commercial" OR "Head of Sales" -intern -junior
-    enabled: true
-  - name: Workable ATS — Strategy & Commercial Zürich
-    query: site:workable.com "Zürich" OR "Zug" OR "Switzerland" "Business Development" OR "Strategy" OR "Key Account" OR "Head of" OR "Chief of Staff" OR "Commercial" OR "Operations" -intern -junior
-    enabled: true
-  - name: Personio — Strategy & Commercial DACH
-    query: site:personio.de "Zürich" OR "Zug" OR "Switzerland" "Business Development" OR "Strategy" OR "Key Account" OR "Head of" OR "Chief of Staff" OR "Commercial" OR "Operations" -intern -junior
+  - name: personio.de
+    query: site:personio.de "Zürich" OR "Zug" OR "Switzerland" {ROLES} -intern -junior
     enabled: true
 tracked_companies:
   - name: TEMPLATE — Recruitee company
@@ -420,681 +336,581 @@ tracked_companies:
   - name: McKinsey Zurich
     careers_url: https://www.mckinsey.com/careers/search-jobs
     scan_method: websearch
-    scan_query: '"mckinsey" "strategy" OR "associate" Zurich Switzerland site:mckinsey.com/careers'
+    scan_query: '"mckinsey" {ROLES} Zurich Switzerland site:mckinsey.com/careers'
     enabled: false
-    notes: 'DISABLED: consulting roles excluded.'
   - name: BCG Zurich
     careers_url: https://careers.bcg.com
     scan_method: websearch
-    scan_query: '"BCG" OR "Boston Consulting" Zurich Switzerland "Consultant" OR "Manager" site:careers.bcg.com'
+    scan_query: '"BCG" OR "Boston Consulting" Zurich Switzerland {ROLES} site:careers.bcg.com'
     enabled: false
-    notes: 'DISABLED: consulting roles excluded.'
   - name: Bain Zurich
     careers_url: https://www.bain.com/careers
     scan_method: websearch
-    scan_query: '"Bain" Zurich Switzerland "Consultant" OR "Manager" OR "Associate" site:bain.com/careers'
+    scan_query: '"Bain" Zurich Switzerland {ROLES} site:bain.com/careers'
     enabled: false
-    notes: 'DISABLED: consulting roles excluded.'
   - name: Roland Berger
     careers_url: https://www.rolandberger.com/en/Career/
     scan_method: websearch
-    scan_query: '"Roland Berger" Zurich Switzerland "Consultant" OR "Manager" site:rolandberger.com'
+    scan_query: '"Roland Berger" Zurich Switzerland {ROLES} site:rolandberger.com'
     enabled: false
-    notes: 'DISABLED: consulting roles excluded.'
   - name: Oliver Wyman
     careers_url: https://www.oliverwyman.com/careers.html
     scan_method: websearch
-    scan_query: '"Oliver Wyman" Zurich Switzerland "Consultant" OR "Manager" site:oliverwyman.com'
+    scan_query: '"Oliver Wyman" Zurich Switzerland {ROLES} site:oliverwyman.com'
     enabled: false
-    notes: 'DISABLED: consulting roles excluded.'
   - name: Deloitte Switzerland
     careers_url: https://jobs.ch/en/vacancies/?employer=deloitte&location=zürich
     scan_method: websearch
-    scan_query: '"Deloitte" Zürich "M&A" OR "Strategy" OR "Deal Advisory" OR "Transaction" OR "PMI" site:jobs.ch OR site:deloitte.com'
+    scan_query: '"Deloitte" Zürich {ROLES} site:jobs.ch OR site:deloitte.com'
     enabled: false
-    notes: 'DISABLED: consulting roles excluded.'
   - name: KPMG Switzerland
     careers_url: https://home.kpmg/ch/en/home/careers.html
     scan_method: websearch
-    scan_query: '"KPMG" Zürich "Deal Advisory" OR "M&A" OR "Transaction" OR "Strategy" site:jobs.ch OR site:kpmg.com'
+    scan_query: '"KPMG" Zürich {ROLES} site:jobs.ch OR site:kpmg.com'
     enabled: false
-    notes: 'DISABLED: consulting roles excluded.'
   - name: EY Switzerland
     careers_url: https://www.ey.com/en_ch/careers
     scan_method: websearch
-    scan_query: '"EY" OR "Ernst Young" Zürich "Strategy" OR "M&A" OR "Transaction" OR "Parthenon" site:jobs.ch OR site:ey.com'
+    scan_query: '"EY" OR "Ernst Young" Zürich {ROLES} site:jobs.ch OR site:ey.com'
     enabled: false
-    notes: 'DISABLED: consulting roles excluded.'
   - name: SWISS (Swiss International Air Lines)
     careers_url: https://careers.swiss.com
     scan_method: websearch
-    scan_query: '"SWISS" OR "Swiss International Air Lines" "Business Development" OR "Commercial" OR "Strategy" OR "Key Account" OR "Chief of Staff" OR "Operations" Zürich site:jobs.ch OR site:swiss.com'
+    scan_query: '"SWISS" OR "Swiss International Air Lines" {ROLES} Zürich site:jobs.ch OR site:swiss.com'
     enabled: true
-    notes: Zürich. National airline. Commercial, strategy, and ops roles.
   - name: Flughafen Zürich (Zurich Airport)
     careers_url: https://www.flughafen-zuerich.ch/en/company/jobs-and-career
     scan_method: websearch
-    scan_query: '"Flughafen Zürich" OR "Zurich Airport" "Business Development" OR "Commercial" OR "Strategy" OR "Head of" OR "Manager" Zürich site:jobs.ch OR site:flughafen-zuerich.ch'
+    scan_query: '"Flughafen Zürich" OR "Zurich Airport" {ROLES} Zürich site:jobs.ch OR site:flughafen-zuerich.ch'
     enabled: true
-    notes: Zürich. Airport operator. Commercial and strategic roles.
   - name: SR Technics
     careers_url: https://www.srtechnics.com/careers
     scan_method: websearch
-    scan_query: '"SR Technics" "Business Development" OR "Commercial" OR "Key Account" OR "Sales" OR "Strategy" OR "Operations" Zürich site:jobs.ch OR site:srtechnics.com'
+    scan_query: '"SR Technics" {ROLES} Zürich site:jobs.ch OR site:srtechnics.com'
     enabled: true
-    notes: Zürich. MRO (aircraft maintenance). Engineering + commercial bridge roles.
   - name: Pilatus Aircraft
     careers_url: https://www.pilatus-aircraft.com/en/corporate/career
     scan_method: websearch
-    scan_query: '"Pilatus Aircraft" "Business Development" OR "Sales" OR "Key Account" OR "Strategy" OR "Operations" Stans OR Switzerland site:jobs.ch OR site:pilatus-aircraft.com'
+    scan_query: '"Pilatus Aircraft" {ROLES} site:jobs.ch OR site:pilatus-aircraft.com'
     enabled: true
-    notes: 'Stans, NW (~50 min from Zürich). Aircraft manufacturer. Engineering meets commercial. Note: multiple prior rejections — watch for senior or new-angle openings.'
   - name: RUAG
     careers_url: https://www.ruag.com/en/career
     scan_method: websearch
-    scan_query: '"RUAG" "Business Development" OR "Sales" OR "Key Account" OR "Strategy" OR "Commercial" OR "Procurement" Zürich OR Bern OR Switzerland site:jobs.ch OR site:ruag.com'
+    scan_query: '"RUAG" {ROLES} Zürich OR Bern OR Switzerland site:jobs.ch OR site:ruag.com'
     enabled: true
-    notes: Zürich/Bern. Swiss defense and aerospace technology. Active acquirer.
   - name: On Running
     careers_url: https://culture.on.com/jobs/
     scan_method: websearch
-    scan_query: '"On Running" OR "On AG" "Business Development" OR "Key Account" OR "Sales" OR "Commercial" OR "Strategy" OR "Chief of Staff" OR "Operations" Zürich site:jobs.ch OR site:on-running.com'
+    scan_query: '"On Running" OR "On AG" {ROLES} Zürich site:jobs.ch OR site:on-running.com'
     enabled: true
-    notes: 'Zürich. Fast-growing sports brand (NYSE: ONON). Strategic commercial and ops roles.'
   - name: Mammut Sports Group
     careers_url: https://recruiting.mammut.com
     scan_method: websearch
-    scan_query: '"Mammut" "Business Development" OR "Key Account" OR "Sales" OR "Commercial" OR "Strategy" OR "Operations" Seon OR Zürich OR Switzerland site:jobs.ch OR site:mammut.com'
+    scan_query: '"Mammut" {ROLES} site:jobs.ch OR site:mammut.com'
     enabled: true
-    notes: Seon, Aargau (~40 min from Zürich). Outdoor/climbing gear brand.
   - name: FIFA
     careers_url: https://fifa-careers.pinpointhq.com
     provider: pinpoint
     scan_method: websearch
-    scan_query: '"FIFA" "Business Development" OR "Commercial" OR "Strategy" OR "Operations" OR "Partnerships" OR "Chief of Staff" Zürich site:jobs.ch OR site:fifa.com'
+    scan_query: '"FIFA" {ROLES} Zürich site:jobs.ch OR site:fifa.com'
     enabled: true
-    notes: Zürich. World football governing body. Commercial and strategic roles.
   - name: Scott Sports
     careers_url: https://www.scott-sports.com/global/en/careers
     scan_method: websearch
-    scan_query: '"Scott Sports" "Business Development" OR "Key Account" OR "Sales" OR "Commercial" OR "Strategy" OR "Operations" Givisiez OR Fribourg OR Switzerland site:jobs.ch'
+    scan_query: '"Scott Sports" {ROLES} site:jobs.ch'
     enabled: true
-    notes: Givisiez FR (~1h from Zürich). Cycling, snow sports brand.
   - name: Garmin Switzerland
     careers_url: https://careers.garmin.com
     scan_method: websearch
-    scan_query: '"Garmin" "Business Development" OR "Sales" OR "Key Account" OR "Strategy" OR "Commercial" OR "Operations" Schaffhausen OR Switzerland site:jobs.ch OR site:careers.garmin.com'
+    scan_query: '"Garmin" {ROLES} Schaffhausen OR Switzerland site:jobs.ch OR site:careers.garmin.com'
     enabled: true
-    notes: Schaffhausen (~45 min). Aviation + outdoor GPS tech. Strong overlap with aviation interest and outdoor sector.
   - name: Google Zürich
     careers_url: https://careers.google.com
     scan_method: websearch
-    scan_query: '"Google" "Business Development" OR "Strategy" OR "Operations" OR "Strategic Account" OR "Partnerships" OR "Chief of Staff" Zürich site:jobs.ch OR site:careers.google.com'
+    scan_query: '"Google" {ROLES} Zürich site:jobs.ch OR site:careers.google.com'
     enabled: true
-    notes: Zürich. Largest Google R&D center outside US. Strategy & ops roles.
   - name: Palantir Zürich
     careers_url: https://www.palantir.com/careers/
     api: https://api.lever.co/v0/postings/palantir?mode=json
     api_provider: lever
     scan_method: websearch
-    scan_query: '"Palantir" "Business Development" OR "Sales" OR "Commercial" OR "Strategy" OR "Account" OR "Operations" Zürich site:jobs.ch OR site:palantir.com'
+    scan_query: '"Palantir" {ROLES} Zürich site:jobs.ch OR site:palantir.com'
     enabled: true
-    notes: Zürich office. Enterprise AI/data. Sales + forward-deployed roles.
   - name: Microsoft Switzerland
     careers_url: https://careers.microsoft.com
     scan_method: websearch
-    scan_query: '"Microsoft" "Strategic Account" OR "Enterprise Account" OR "Business Development" OR "Chief of Staff" OR "Operations" Zürich OR Wallisellen site:jobs.ch OR site:careers.microsoft.com'
+    scan_query: '"Microsoft" {ROLES} site:jobs.ch OR site:careers.microsoft.com'
     enabled: true
-    notes: Wallisellen ZH. Enterprise account and commercial roles.
   - name: Salesforce Switzerland
     careers_url: https://salesforce.wd12.myworkdayjobs.com/External_Career_Site
     api: https://salesforce.wd12.myworkdayjobs.com/wday/cxs/salesforce/External_Career_Site/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Salesforce" "Account Executive" OR "Account Manager" OR "Business Development" OR "Sales" OR "Strategic" Zürich site:jobs.ch OR site:salesforce.com'
+    scan_query: '"Salesforce" {ROLES} Zürich site:jobs.ch OR site:salesforce.com'
     enabled: true
-    notes: Zürich office. Enterprise SaaS. Strategic account executive roles. Global Workday tenant — location filter limits to Zürich/Switzerland.
   - name: Scandit
     careers_url: https://www.scandit.com/company/careers/
     api: https://boards-api.greenhouse.io/v1/boards/scandit/jobs
     api_provider: greenhouse
     scan_method: websearch
-    scan_query: '"Scandit" "Business Development" OR "Account" OR "Sales" OR "Commercial" OR "Operations" OR "Strategy" Zürich site:jobs.ch OR site:scandit.com'
+    scan_query: '"Scandit" {ROLES} Zürich site:jobs.ch OR site:scandit.com'
     enabled: true
-    notes: Zürich. AI/computer vision unicorn. Enterprise commercial roles.
   - name: Threema
     careers_url: https://new.career.threema.com/
     provider: teamtailor
     scan_method: websearch
-    scan_query: '"Threema" "Business Development" OR "Sales" OR "Head of" OR "Commercial" OR "Strategy" OR "Operations" Pfäffikon OR Zürich OR Switzerland site:jobs.ch OR site:threema.ch'
+    scan_query: '"Threema" {ROLES} site:jobs.ch OR site:threema.ch'
     enabled: true
-    notes: Pfäffikon SZ (~45 min). Swiss encrypted messaging — security-first SaaS. Head of Sales and BD roles.
-  - name: Nestlé Corporate Development
+  - name: Nestlé
     careers_url: https://www.nestle.com/jobs
     scan_method: websearch
-    scan_query: '"Nestlé" OR "Nestle" "Corporate Development" OR "M&A" OR "Strategy" Manager Vevey OR Switzerland site:nestle.com/jobs OR site:jobs.ch'
+    scan_query: '"Nestlé" OR "Nestle" {ROLES} Manager site:nestle.com/jobs OR site:jobs.ch'
     enabled: false
-    notes: 'DISABLED: Vevey is ~2:20h from Zürich — outside 1.5h radius.'
-  - name: Roche Corporate Development
+  - name: Roche
     careers_url: https://www.roche.com/careers
     api: https://roche.wd3.myworkdayjobs.com/wday/cxs/roche/roche-ext/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Roche" "Corporate Development" OR "M&A" OR "Business Development" OR "Strategy" OR "Commercial" Manager Basel OR Switzerland'
+    scan_query: '"Roche" {ROLES} Manager Basel OR Switzerland'
     enabled: true
-    notes: Basel (~55 min). Corp Dev + BD. Pharma. Within 1.5h radius.
-  - name: Novartis Strategy
+  - name: Novartis
     careers_url: https://www.novartis.com/careers
     api: https://novartis.wd3.myworkdayjobs.com/wday/cxs/novartis/Novartis_Careers/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Novartis" "Corporate Development" OR "M&A" OR "Business Development" OR "Strategy" OR "Commercial" Manager Basel OR Zurich'
+    scan_query: '"Novartis" {ROLES} Manager Basel OR Zurich'
     enabled: true
-    notes: Basel/Zürich. Corp Dev and BD roles. Large deal pipeline.
   - name: Zurich Insurance
     careers_url: https://www.zurich.com/en/careers
     scan_method: websearch
-    scan_query: '"Zurich Insurance" OR "Zurich Versicherung" "M&A" OR "Corporate Development" OR "Strategy" OR "Business Development" OR "Chief of Staff" Zürich site:jobs.ch OR site:zurich.com'
+    scan_query: '"Zurich Insurance" OR "Zurich Versicherung" {ROLES} Zürich site:jobs.ch OR site:zurich.com'
     enabled: true
-    notes: Zürich. Group M&A + strategy.
   - name: Swiss Re
     careers_url: https://careers.swissre.com
     provider: successfactors
     scan_method: websearch
-    scan_query: '"Swiss Re" "Corporate Development" OR "M&A" OR "Strategy" OR "Business Development" OR "Commercial" Manager Zürich site:jobs.ch OR site:swissre.com'
+    scan_query: '"Swiss Re" {ROLES} Manager Zürich site:jobs.ch OR site:swissre.com'
     enabled: true
-    notes: Zürich. Group Corp Dev and M&A.
   - name: ABB
     careers_url: https://careers.abb/global/en/search-results
     provider: phenom
     max_pages: 30
     scan_method: websearch
-    scan_query: '"ABB" "Corporate Development" OR "M&A" OR "Strategy" OR "Business Development" OR "Chief of Staff" Manager Zürich site:jobs.ch OR site:careers.abb'
+    scan_query: '"ABB" {ROLES} Manager Zürich site:jobs.ch OR site:careers.abb'
     enabled: true
-    notes: Zürich. Industrial tech. Corp dev and commercial roles.
   - name: Givaudan
     careers_url: https://www.givaudan.com/careers
     scan_method: websearch
-    scan_query: '"Givaudan" "Corporate Development" OR "M&A" OR "Business Development" Vernier OR Geneva OR Switzerland'
+    scan_query: '"Givaudan" {ROLES}'
     enabled: false
-    notes: 'DISABLED: Geneva is ~2:45h — outside 1.5h radius.'
   - name: Sonova
     careers_url: https://jobs.sonova.com
     provider: successfactors
     scan_method: websearch
-    scan_query: '"Sonova" "Corporate Development" OR "M&A" OR "Strategy" OR "Business Development" Stäfa OR Zürich site:jobs.ch OR site:sonova.com'
+    scan_query: '"Sonova" {ROLES} site:jobs.ch OR site:sonova.com'
     enabled: true
-    notes: Stäfa ZH. Active acquirer.
   - name: Straumann
     careers_url: https://careers.smartrecruiters.com/StraumannGroup1
     scan_method: websearch
-    scan_query: '"Straumann" "Corporate Development" OR "M&A" OR "Strategy" OR "Business Development" Manager Basel OR Switzerland'
+    scan_query: '"Straumann" {ROLES} Manager Basel OR Switzerland'
     enabled: true
-    notes: Basel. Dental implants. Aggressive M&A strategy.
   - name: SIG Group
     careers_url: https://jobs.sig.biz
     provider: successfactors
     scan_method: websearch
-    scan_query: '"SIG Group" "Strategy" OR "Corporate Development" OR "M&A" OR "Business Development" Schaffhausen OR Switzerland'
+    scan_query: '"SIG Group" {ROLES} Schaffhausen OR Switzerland'
     enabled: true
-    notes: Schaffhausen. Packaging. Active M&A.
   - name: Dufry / Avolta
     careers_url: https://www.avolta.net/careers
     scan_method: websearch
-    scan_query: '"Dufry" OR "Avolta" "Strategy" OR "Corporate Development" OR "M&A" OR "Business Development" Basel OR Zürich'
+    scan_query: '"Dufry" OR "Avolta" {ROLES} Basel OR Zürich'
     enabled: true
-    notes: Basel. Travel retail. Active in partnerships + M&A.
   - name: Lonza
     careers_url: https://www.lonza.com/careers
     api: https://lonza.wd3.myworkdayjobs.com/wday/cxs/lonza/lonza_careers/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Lonza" "Corporate Development" OR "M&A" OR "Business Development" OR "Strategy" Manager Basel OR Switzerland'
+    scan_query: '"Lonza" {ROLES} Manager Basel OR Switzerland'
     enabled: true
-    notes: Basel. Pharma CDMO. Active acquirer.
   - name: Georg Fischer (GF)
     careers_url: https://www.georgfischer.com/en/career.html
     api: https://georgfischer.wd103.myworkdayjobs.com/wday/cxs/georgfischer/GeorgFischer_Careers/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Georg Fischer" OR "GF AG" "Corporate Development" OR "M&A" OR "Business Development" OR "Strategy" OR "Head of" Schaffhausen OR Switzerland site:jobs.ch OR site:georgfischer.com'
+    scan_query: '"Georg Fischer" OR "GF AG" {ROLES} Schaffhausen OR Switzerland site:jobs.ch OR site:georgfischer.com'
     enabled: true
-    notes: Schaffhausen (~45 min). Three industrial divisions. Serial acquirer.
   - name: Sulzer
     careers_url: https://sulzer.wd502.myworkdayjobs.com/SulzerJobs
     api: https://sulzer.wd502.myworkdayjobs.com/wday/cxs/sulzer/SulzerJobs/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Sulzer" "Corporate Development" OR "M&A" OR "Business Development" OR "Strategy" OR "Commercial" Manager Winterthur OR Zürich site:jobs.ch OR site:sulzer.com'
+    scan_query: '"Sulzer" {ROLES} Manager Winterthur OR Zürich site:jobs.ch OR site:sulzer.com'
     enabled: true
-    notes: Winterthur (~25 min). Industrial services/pumps. Active M&A strategy.
   - name: Barry Callebaut
     careers_url: https://www.barry-callebaut.com/en/group/careers
     scan_method: websearch
-    scan_query: '"Barry Callebaut" "Corporate Development" OR "M&A" OR "Business Development" OR "Strategy" OR "Commercial" Manager Zürich OR Switzerland site:jobs.ch OR site:barry-callebaut.com'
+    scan_query: '"Barry Callebaut" {ROLES} Manager Zürich OR Switzerland site:jobs.ch OR site:barry-callebaut.com'
     enabled: true
-    notes: Zürich. World's largest B2B cocoa/chocolate manufacturer. Active acquirer.
   - name: Kuehne+Nagel
     careers_url: https://jobs.kuehne-nagel.com
     provider: phenom
     scan_method: websearch
-    scan_query: '"Kuehne+Nagel" OR "Kühne+Nagel" "Corporate Development" OR "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Chief of Staff" Manager Schindellegi OR Zürich OR Switzerland site:jobs.ch OR site:kuehne-nagel.com'
+    scan_query: '"Kuehne+Nagel" OR "Kühne+Nagel" {ROLES} Manager site:jobs.ch OR site:kuehne-nagel.com'
     enabled: true
-    notes: Schindellegi SZ (~40 min). Global logistics giant. In-house M&A and corp dev.
   - name: Adecco Group
     careers_url: https://careers.adeccogroup.com
     provider: radancy
     scan_method: websearch
-    scan_query: '"Adecco Group" "Corporate Development" OR "M&A" OR "Strategy" OR "Business Development" OR "Commercial" Zürich site:jobs.ch OR site:adeccogroup.com'
+    scan_query: '"Adecco Group" {ROLES} Zürich site:jobs.ch OR site:adeccogroup.com'
     enabled: true
-    notes: Zürich. Global staffing/HR group. Very active acquirer (LHH, Spring, Modis, etc.).
   - name: Swiss Life
     careers_url: https://www.swisslife.com/en/career.html
     api: https://swisslife.wd3.myworkdayjobs.com/wday/cxs/swisslife/Swiss_Life_International_Division_Career_Site/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Swiss Life" "Corporate Development" OR "M&A" OR "Strategy" OR "Business Development" OR "Transformation" Manager Zürich site:jobs.ch OR site:swisslife.com'
+    scan_query: '"Swiss Life" {ROLES} Manager Zürich site:jobs.ch OR site:swisslife.com'
     enabled: true
-    notes: Zürich. CHF 250B+ AUM insurance group. Strategy and Corp Dev roles.
   - name: Julius Baer
     careers_url: https://juliusbaer.wd3.myworkdayjobs.com/External
     api: https://juliusbaer.wd3.myworkdayjobs.com/wday/cxs/juliusbaer/External/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Julius Baer" OR "Julius Bär" "Corporate Development" OR "Strategy" OR "Business Development" OR "M&A" OR "Transformation" Manager Zürich site:jobs.ch OR site:juliusbaer.com'
+    scan_query: '"Julius Baer" OR "Julius Bär" {ROLES} Manager Zürich site:jobs.ch OR site:juliusbaer.com'
     enabled: true
-    notes: Zürich. Wealth management. Growth-by-acquisition strategy.
   - name: Partners Group
     careers_url: https://jobs.partnersgroup.com
     provider: successfactors
     scan_method: websearch
-    scan_query: '"Partners Group" "Value Creation" OR "Portfolio" OR "Operations" OR "Business Development" Manager OR Associate Baar OR Zug OR Zürich'
+    scan_query: '"Partners Group" {ROLES}'
     enabled: true
-    notes: Baar ZG. CHF 150B AUM. Value creation / portfolio ops roles.
   - name: EQT Zurich
     careers_url: https://eqtgroup.com/careers
     api: https://boards-api.greenhouse.io/v1/boards/eqtpartners/jobs
     api_provider: greenhouse
     scan_method: websearch
-    scan_query: '"EQT" "Value Creation" OR "Portfolio" OR "Operations" OR "Business Development" Manager Associate Zürich OR Zug site:jobs.ch OR site:eqtgroup.com'
+    scan_query: '"EQT" {ROLES} Manager Zürich OR Zug site:jobs.ch OR site:eqtgroup.com'
     enabled: true
-    notes: Zürich. Pan-European PE. Portfolio ops and value creation.
   - name: Swisscom Ventures
     careers_url: https://www.swisscom.ch/en/about/career.html
     api: https://swisscom.wd103.myworkdayjobs.com/wday/cxs/swisscom/SwisscomExternalCareers/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Swisscom" "Ventures" OR "Business Development" OR "Strategy" OR "Commercial" Manager Bern OR Zürich site:jobs.ch'
+    scan_query: '"Swisscom" {ROLES} Manager Bern OR Zürich site:jobs.ch'
     enabled: true
-    notes: Bern/Zürich. Corporate VC.
   - name: Temenos
     careers_url: https://www.temenos.com/careers/
     api: https://temenos.wd103.myworkdayjobs.com/wday/cxs/temenos/Temenoscareers/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Temenos" "Corporate Development" OR "M&A" OR "Strategy" OR "Business Development" OR "Commercial" Zürich'
+    scan_query: '"Temenos" {ROLES} Zürich'
     enabled: true
-    notes: HQ Geneva (too far). Query narrowed to Zürich only.
   - name: Capvis
     careers_url: https://www.capvis.com/careers/
     scan_method: websearch
-    scan_query: '"Capvis" "Value Creation" OR "Portfolio" OR "Operations" OR "Business Development" OR "M&A" Associate OR Manager Zürich site:jobs.ch OR site:capvis.com OR site:linkedin.com/jobs'
+    scan_query: '"Capvis" {ROLES} Zürich site:jobs.ch OR site:capvis.com OR site:linkedin.com/jobs'
     enabled: true
-    notes: Zürich. Swiss mid-market PE (~CHF 2B AUM). Portfolio operations and value creation roles.
   - name: LGT Capital Partners
     careers_url: https://lgtcp.wd502.myworkdayjobs.com/lgtcpcurrentvacancies
     api: https://lgtcp.wd502.myworkdayjobs.com/wday/cxs/lgtcp/lgtcpcurrentvacancies/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"LGT Capital Partners" OR "LGT" "Value Creation" OR "Portfolio" OR "Operations" OR "Business Development" OR "Strategy" Associate OR Manager Pfäffikon OR Zürich site:jobs.ch OR site:lgtcp.com'
+    scan_query: '"LGT Capital Partners" OR "LGT" {ROLES} site:jobs.ch OR site:lgtcp.com'
     enabled: true
-    notes: Pfäffikon SZ (~30 min). CHF 100B+ AUM. Alternative investments, portfolio ops and direct lending.
   - name: Swissport International
     careers_url: https://www.swissport.com/en/careers
     scan_method: websearch
-    scan_query: '"Swissport" "Business Development" OR "Commercial" OR "Strategy" OR "Head of" OR "Key Account" OR "Operations" OR "Chief of Staff" Zürich OR Kloten site:jobs.ch OR site:swissport.com'
+    scan_query: '"Swissport" {ROLES} site:jobs.ch OR site:swissport.com'
     enabled: true
-    notes: Kloten (Zürich Airport). Global aviation services (#1 worldwide). Commercial and ops roles.
   - name: Gategroup
     careers_url: https://www.gategroup.com/careers
     api: https://gategroup.wd3.myworkdayjobs.com/wday/cxs/gategroup/GateGroup_External_Careers/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Gategroup" OR "Gate Group" "Business Development" OR "Commercial" OR "Strategy" OR "Head of" OR "Operations" OR "Key Account" Zürich site:jobs.ch OR site:gategroup.com'
+    scan_query: '"Gategroup" OR "Gate Group" {ROLES} Zürich site:jobs.ch OR site:gategroup.com'
     enabled: true
-    notes: Zürich HQ. Global airline catering & hospitality services. Commercial and strategy roles.
   - name: Edelweiss Air
     careers_url: https://career.lufthansagroup.com/en/jobs
     scan_method: websearch
-    scan_query: '"Edelweiss Air" OR "Edelweiss" "Business Development" OR "Commercial" OR "Strategy" OR "Operations" OR "Revenue" Zürich OR Kloten site:jobs.ch OR site:edelweissair.com'
+    scan_query: '"Edelweiss Air" OR "Edelweiss" {ROLES} site:jobs.ch OR site:edelweissair.com'
     enabled: true
-    notes: 'Kloten. Swiss leisure carrier (Lufthansa Group). Commercial and revenue roles. NOTE: careers.lufthansagroup.com returns ECONNREFUSED — relies on scan_query only.'
   - name: Bühler Group
     careers_url: https://jobs.buhlergroup.com/
     scan_method: websearch
-    scan_query: '"Bühler" OR "Buehler" "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Head of" OR "Operations" Uzwil OR Switzerland site:jobs.ch OR site:buhlergroup.com'
+    scan_query: '"Bühler" OR "Buehler" {ROLES} site:jobs.ch OR site:buhlergroup.com'
     enabled: true
-    notes: Uzwil SG (~50 min). Global food processing & grain milling equipment. Active acquirer, strong BD function.
   - name: Oerlikon
     careers_url: https://careers.oerlikon.com/
     provider: successfactors
     scan_method: websearch
-    scan_query: '"Oerlikon" "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Head of" OR "M&A" OR "Operations" Pfäffikon OR Zürich OR Switzerland site:jobs.ch OR site:oerlikon.com'
+    scan_query: '"Oerlikon" {ROLES} site:jobs.ch OR site:oerlikon.com'
     enabled: true
-    notes: 'Pfäffikon SZ (~40 min). Surface solutions & spintronic tech. In-house M&A and corp dev. NOTE: careers.oerlikon.com is fully JS-rendered, blocks all non-browser scrapers — relies on scan_query only.'
   - name: Komax Group
     careers_url: https://www.komaxgroup.com/en/careers
     scan_method: websearch
-    scan_query: '"Komax" "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Head of Sales" OR "Operations" Dierikon OR Luzern OR Switzerland site:jobs.ch OR site:komaxgroup.com'
+    scan_query: '"Komax" {ROLES} site:jobs.ch OR site:komaxgroup.com'
     enabled: true
-    notes: Dierikon LU (~45 min). Wire processing automation. Global commercial and BD roles.
   - name: Bucher Industries
     careers_url: https://www.bucherindustries.com/en/career/vacancies
     scan_method: websearch
-    scan_query: '"Bucher Industries" OR "Bucher Municipal" "Business Development" OR "Strategy" OR "Commercial" OR "M&A" OR "Head of" Niederweningen OR Zürich OR Switzerland site:jobs.ch OR site:bucherindustries.com'
+    scan_query: '"Bucher Industries" OR "Bucher Municipal" {ROLES} site:jobs.ch OR site:bucherindustries.com'
     enabled: true
-    notes: Niederweningen ZH (~35 min). Diversified industrial group (hydraulics, municipal vehicles). Serial acquirer.
   - name: Rieter
     careers_url: https://www.rieter.com/en/rieter/about-rieter/careers/
     scan_method: websearch
-    scan_query: '"Rieter" "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Head of" OR "Operations" Winterthur OR Switzerland site:jobs.ch OR site:rieter.com'
+    scan_query: '"Rieter" {ROLES} Winterthur OR Switzerland site:jobs.ch OR site:rieter.com'
     enabled: true
-    notes: Winterthur (~25 min). Textile machinery. Global commercial and strategy roles.
   - name: Landis+Gyr
     careers_url: https://www.landisgyr.com/careers/
     scan_method: websearch
-    scan_query: '"Landis+Gyr" OR "Landis Gyr" "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Head of" OR "Operations" Zug OR Switzerland site:jobs.ch OR site:landisgyr.com'
+    scan_query: '"Landis+Gyr" OR "Landis Gyr" {ROLES} Zug OR Switzerland site:jobs.ch OR site:landisgyr.com'
     enabled: true
-    notes: Zug (~25 min). Smart energy metering. Global commercial and BD roles.
   - name: Axpo
     careers_url: https://www.axpo.com/ch/en/about-us/career.html
     scan_method: websearch
-    scan_query: '"Axpo" "Business Development" OR "Strategy" OR "Commercial" OR "Head of" OR "Partnerships" OR "Operations" OR "M&A" Baden OR Zürich OR Switzerland site:jobs.ch OR site:axpo.com'
+    scan_query: '"Axpo" {ROLES} site:jobs.ch OR site:axpo.com'
     enabled: true
-    notes: Baden (~30 min). Switzerland's largest energy company. Active in M&A and international expansion.
   - name: Hitachi Energy
     careers_url: https://www.hitachienergy.com/careers
     scan_method: websearch
-    scan_query: '"Hitachi Energy" "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Head of" OR "Operations" Zürich OR Baden OR Switzerland site:jobs.ch OR site:hitachienergy.com'
+    scan_query: '"Hitachi Energy" {ROLES} site:jobs.ch OR site:hitachienergy.com'
     enabled: true
-    notes: Zürich / Baden. Power grid and energy transition tech. Global commercial and strategy roles.
   - name: Medela
     careers_url: https://medela.wd103.myworkdayjobs.com/Medela_Careers
     api: https://medela.wd103.myworkdayjobs.com/wday/cxs/medela/Medela_Careers/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Medela" "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Head of" OR "Operations" Baar OR Zug OR Switzerland site:jobs.ch OR site:medela.com'
+    scan_query: '"Medela" {ROLES} site:jobs.ch OR site:medela.com'
     enabled: true
-    notes: Baar ZG (~30 min). Medical devices (breastfeeding, clinical vacuum). Global commercial roles.
   - name: Alcon
     careers_url: https://www.alcon.com/careers
     api: https://alcon.wd5.myworkdayjobs.com/wday/cxs/alcon/careers_alcon/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Alcon" "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Head of" OR "M&A" Zug OR Fribourg OR Switzerland site:jobs.ch OR site:alcon.com'
+    scan_query: '"Alcon" {ROLES} site:jobs.ch OR site:alcon.com'
     enabled: true
-    notes: Zug HQ. Eye care devices & surgical. Global commercial and corp dev roles.
   - name: Tecan
     careers_url: https://careers.tecan.com
     provider: successfactors
     scan_method: websearch
-    scan_query: '"Tecan" "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Head of" OR "Operations" Männedorf OR Zürich OR Switzerland site:jobs.ch OR site:tecan.com'
+    scan_query: '"Tecan" {ROLES} site:jobs.ch OR site:tecan.com'
     enabled: true
-    notes: Männedorf ZH (~25 min). Lab automation & liquid handling instruments. Global KAM and commercial roles.
   - name: UBS
     careers_url: https://www.ubs.com/global/en/careers.html
     scan_method: websearch
-    scan_query: '"UBS" "Corporate Development" OR "M&A" OR "Strategy" OR "Business Development" OR "Chief of Staff" OR "Transformation" Manager OR Director Zürich site:jobs.ch OR site:ubs.com'
+    scan_query: '"UBS" {ROLES} Manager OR Director Zürich site:jobs.ch OR site:ubs.com'
     enabled: true
-    notes: Zürich. World's largest wealth manager. Corp dev, strategy and transformation roles.
   - name: Vontobel
     careers_url: https://vontobel.wd3.myworkdayjobs.com/Vontobel_External_Career
     api: https://vontobel.wd3.myworkdayjobs.com/wday/cxs/vontobel/Vontobel_External_Career/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Vontobel" "Corporate Development" OR "Strategy" OR "Business Development" OR "M&A" OR "Transformation" OR "Chief of Staff" Manager OR Director Zürich site:jobs.ch OR site:vontobel.com'
+    scan_query: '"Vontobel" {ROLES} Manager OR Director Zürich site:jobs.ch OR site:vontobel.com'
     enabled: true
-    notes: Zürich. Swiss private bank & asset manager. Strategy and transformation roles.
   - name: Zürcher Kantonalbank (ZKB)
     careers_url: https://www.zkb.ch/de/ueber-uns/jobs-und-karriere.html
     scan_method: websearch
-    scan_query: '"ZKB" OR "Zürcher Kantonalbank" "Strategy" OR "Transformation" OR "Business Development" OR "Chief of Staff" OR "Programme Manager" OR "Corporate Development" Zürich site:jobs.ch OR site:zkb.ch'
+    scan_query: '"ZKB" OR "Zürcher Kantonalbank" {ROLES} Zürich site:jobs.ch OR site:zkb.ch'
     enabled: true
-    notes: Zürich. Largest cantonal bank (CHF 200B+ assets). Strategy and transformation roles.
   - name: Baloise Group
     careers_url: https://careers.baloise.com/en_US/careers/SearchJobs
     scan_method: websearch
-    scan_query: '"Baloise" "Corporate Development" OR "Strategy" OR "Business Development" OR "M&A" OR "Transformation" OR "Chief of Staff" Manager OR Director Basel OR Zürich site:jobs.ch OR site:baloise.com'
+    scan_query: '"Baloise" {ROLES} Manager OR Director Basel OR Zürich site:jobs.ch OR site:baloise.com'
     enabled: true
-    notes: Basel (~55 min). Swiss insurance and banking group. Active acquirer.
   - name: BMC Switzerland
     careers_url: https://bmc-switzerland.com/pages/careers
     scan_method: websearch
-    scan_query: '"BMC Switzerland" OR "BMC Bikes" "Business Development" OR "Key Account" OR "Sales" OR "Commercial" OR "Strategy" OR "Operations" Grenchen OR Switzerland site:jobs.ch OR site:bmc-switzerland.com'
+    scan_query: '"BMC Switzerland" OR "BMC Bikes" {ROLES} site:jobs.ch OR site:bmc-switzerland.com'
     enabled: true
-    notes: Grenchen SO (~1h). Premium road/MTB bikes. Commercial and key account roles.
   - name: Odlo International
     careers_url: https://career.odlo.com/job-offers.html
     scan_method: websearch
-    scan_query: '"Odlo" "Business Development" OR "Key Account" OR "Sales" OR "Commercial" OR "Strategy" OR "Operations" Hünenberg OR Zug OR Switzerland site:jobs.ch OR site:odlo.com'
+    scan_query: '"Odlo" {ROLES} site:jobs.ch OR site:odlo.com'
     enabled: true
-    notes: Hünenberg ZG (~35 min). Performance sportswear. Commercial and wholesale BD roles.
   - name: Asics Europe
     careers_url: https://careers.smartrecruiters.com/ASICS
     scan_method: websearch
-    scan_query: '"Asics" "Business Development" OR "Key Account" OR "Sales" OR "Commercial" OR "Strategy" OR "Operations" Baar OR Zug OR Switzerland site:jobs.ch OR site:asics.com'
+    scan_query: '"Asics" {ROLES} site:jobs.ch OR site:asics.com'
     enabled: true
-    notes: Baar ZG (~30 min). EMEA HQ for Japanese sports brand. Commercial and key account roles.
   - name: IWC Schaffhausen
     careers_url: https://www.iwc.com/en/company/careers/job-offers.html
     scan_method: websearch
-    scan_query: '"IWC" OR "IWC Schaffhausen" "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Head of" OR "Operations" Schaffhausen OR Switzerland site:jobs.ch OR site:iwc.com'
+    scan_query: '"IWC" OR "IWC Schaffhausen" {ROLES} Schaffhausen OR Switzerland site:jobs.ch OR site:iwc.com'
     enabled: true
-    notes: Schaffhausen (~45 min). Richemont luxury watchmaker. Commercial and strategy roles.
   - name: Swatch Group
     careers_url: https://www.swatchgroup.com/en/job-finder
     scan_method: websearch
-    scan_query: '"Swatch Group" "Corporate Development" OR "M&A" OR "Strategy" OR "Business Development" OR "Commercial" OR "Head of" Manager OR Director Biel OR Bienne OR Switzerland site:jobs.ch OR site:swatchgroup.com'
+    scan_query: '"Swatch Group" {ROLES} Manager OR Director site:jobs.ch OR site:swatchgroup.com'
     enabled: true
-    notes: Biel/Bienne (~1h 10min). World's largest watchmaking group. Corp dev and commercial roles.
   - name: CEVA Logistics
     careers_url: https://www.cevalogistics.com/en/careers/
     scan_method: websearch
-    scan_query: '"CEVA Logistics" "Business Development" OR "Strategy" OR "Commercial" OR "Key Account" OR "Head of" OR "Operations" Baar OR Zug OR Switzerland site:jobs.ch OR site:cevalogistics.com'
+    scan_query: '"CEVA Logistics" {ROLES} site:jobs.ch OR site:cevalogistics.com'
     enabled: true
-    notes: 'Baar ZG (~30 min). Global logistics (CMA CGM subsidiary). Commercial and ops roles. NOTE: WAF/Cloudflare blocks all scraping — relies on scan_query only.'
   - name: Kistler Group
     careers_url: https://www.kistler.com/en/company/career/
     scan_method: websearch
-    scan_query: '"Kistler" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Head of" Winterthur OR Zürich OR Switzerland site:jobs.ch OR site:kistler.com'
+    scan_query: '"Kistler" {ROLES} Winterthur OR Zürich OR Switzerland site:jobs.ch OR site:kistler.com'
     enabled: true
   - name: Mettler-Toledo
     careers_url: https://jobs.mt.com/en
     provider: radancy
     scan_method: websearch
-    scan_query: '"Mettler-Toledo" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Corporate Development" OR "Operations" OR "Head of" Greifensee OR Zürich OR Switzerland site:jobs.ch OR site:mt.com'
+    scan_query: '"Mettler-Toledo" {ROLES} site:jobs.ch OR site:mt.com'
     enabled: true
-    notes: Greifensee ZH (~25 min). Global precision instruments leader. Large Swiss industrial, active corporate dev.
   - name: Endress+Hauser
     careers_url: https://careers.endress.com
     provider: successfactors
     scan_method: websearch
-    scan_query: '"Endress+Hauser" OR "Endress Hauser" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Corporate Development" OR "Operations" Basel OR Reinach OR Switzerland site:jobs.ch OR site:endress.com'
+    scan_query: '"Endress+Hauser" OR "Endress Hauser" {ROLES} site:jobs.ch OR site:endress.com'
     enabled: true
-    notes: Reinach BL (~1h). Process measurement instruments. Mid-market Swiss industrial, global KAM roles.
   - name: Sensirion
     careers_url: https://jobs.sensirion.com/job-vacancies
     scan_method: websearch
-    scan_query: '"Sensirion" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Head of" Stäfa OR Zürich OR Switzerland site:jobs.ch OR site:sensirion.com'
+    scan_query: '"Sensirion" {ROLES} site:jobs.ch OR site:sensirion.com'
     enabled: true
-    notes: Stäfa ZH (~30 min). MEMS sensor tech (CMOSens). High-tech precision manufacturing, fast-growing.
   - name: Inficon
     careers_url: https://careers.smartrecruiters.com/INFICON2
     scan_method: websearch
-    scan_query: '"Inficon" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Head of" "Bad Ragaz" OR Switzerland site:jobs.ch OR site:inficon.com'
+    scan_query: '"Inficon" {ROLES} site:jobs.ch OR site:inficon.com'
     enabled: true
-    notes: Bad Ragaz SG (~1h 10min). Vacuum and process control instruments. High-precision manufacturing.
   - name: Hexagon (Swiss operations)
     careers_url: https://careers.hexagon.com
     scan_method: websearch
-    scan_query: '"Hexagon" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Head of" Switzerland "measurement" OR "metrology" OR "manufacturing" Manager OR Director site:jobs.ch OR site:hexagon.com'
+    scan_query: '"Hexagon" {ROLES} Switzerland Manager OR Director site:jobs.ch OR site:hexagon.com'
     enabled: true
-    notes: Swedish, Swiss ops in Zürich/Renens VD. Measurement and manufacturing software. Metrology angle relevant.
   - name: Schindler Group
     careers_page: https://career5.successfactors.eu/careers?company=Schindler
     scan_method: websearch
-    scan_query: '"Schindler" "Business Development" OR "Key Account" OR "Corporate Development" OR "M&A" OR "Strategy" OR "Head of" OR "Chief of Staff" OR "Operations" Lucerne OR Ebikon OR Switzerland site:jobs.ch OR site:schindler.com'
+    scan_query: '"Schindler" {ROLES} site:jobs.ch OR site:schindler.com'
     enabled: true
-    notes: Ebikon LU (~55 min). Elevators/escalators. Major Swiss industrial with active corporate dev. Global KAM roles.
   - name: Belimo
     careers_url: https://www.belimo.com/ch/en_GB/about-belimo/career.html
     scan_method: websearch
-    scan_query: '"Belimo" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Head of" Hinwil OR Zürich OR Switzerland site:jobs.ch OR site:belimo.com'
+    scan_query: '"Belimo" {ROLES} site:jobs.ch OR site:belimo.com'
     enabled: true
-    notes: Hinwil ZH (~35 min). HVAC actuators and sensors. Precision Swiss manufacturer, global KAM.
   - name: Feintool
     careers_url: https://www.feintool.com/en/company/career/
     scan_method: websearch
-    scan_query: '"Feintool" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Head of" Lyss OR Switzerland site:jobs.ch OR site:feintool.com'
+    scan_query: '"Feintool" {ROLES} site:jobs.ch OR site:feintool.com'
     enabled: true
-    notes: Lyss BE (~1h 10min). Precision forming / fineblanking. Precision manufacturing, automotive/industrial sector.
   - name: Stadler Rail
     careers_url: https://www.stadlerrail.com/en/careers/
     scan_method: websearch
-    scan_query: '"Stadler Rail" OR "Stadler" "Business Development" OR "Key Account" OR "Corporate Development" OR "Strategy" OR "Commercial" OR "Operations" Bussnang OR Winterthur OR Switzerland site:jobs.ch OR site:stadlerrail.com'
+    scan_query: '"Stadler Rail" OR "Stadler" {ROLES} site:jobs.ch OR site:stadlerrail.com'
     enabled: true
-    notes: Bussnang TG (~50 min). Rail vehicle manufacturer. Swiss industrial, global sales. KAM and corp dev.
   - name: Interroll
     careers_url: https://www.interroll.com/company/careers/
     scan_method: websearch
-    scan_query: '"Interroll" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Head of" Switzerland site:jobs.ch OR site:interroll.com'
+    scan_query: '"Interroll" {ROLES} Switzerland site:jobs.ch OR site:interroll.com'
     enabled: true
-    notes: Sant'Antonino TI (HQ) + Zürich offices. Intralogistics systems. Industrial KAM and ops roles.
   - name: Kardex Group
     careers_url: https://kardex.wd103.myworkdayjobs.com/Kardex
     api: https://kardex.wd103.myworkdayjobs.com/wday/cxs/kardex/Kardex/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Kardex" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Head of" Bellach OR Zürich OR Switzerland site:jobs.ch OR site:kardex.com'
+    scan_query: '"Kardex" {ROLES} site:jobs.ch OR site:kardex.com'
     enabled: true
-    notes: Bellach SO (~1h). Automated storage systems. Swiss mid-market industrial.
   - name: Dätwyler Group
     careers_url: https://www.datwyler.com/en/career/
     scan_method: websearch
-    scan_query: '"Dätwyler" OR "Datwyler" "Business Development" OR "Key Account" OR "Commercial" OR "Corporate Development" OR "Strategy" OR "Operations" Altdorf OR Switzerland site:jobs.ch OR site:datwyler.com'
+    scan_query: '"Dätwyler" OR "Datwyler" {ROLES} site:jobs.ch OR site:datwyler.com'
     enabled: true
-    notes: Altdorf UR (~1h). Sealing solutions and cables. Swiss industrial holding, active acquirer.
   - name: DKSH
     careers_url: https://jobs.dksh.com
     provider: successfactors
     scan_method: websearch
-    scan_query: '"DKSH" "Business Development" OR "Key Account" OR "Commercial" OR "Head of" OR "Strategy" OR "Operations" Zürich OR Switzerland site:jobs.ch OR site:dksh.com'
+    scan_query: '"DKSH" {ROLES} Zürich OR Switzerland site:jobs.ch OR site:dksh.com'
     enabled: true
-    notes: Zürich (HQ). Market expansion services — essentially large-scale KAM for Asia/DACH. Very relevant to account management profile.
   - name: Franke Group
     careers_url: https://www.franke.com/global/en/corporate/career.html
     scan_method: websearch
-    scan_query: '"Franke" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Corporate Development" OR "Operations" OR "Head of" Aarburg OR Switzerland site:jobs.ch OR site:franke.com'
+    scan_query: '"Franke" {ROLES} site:jobs.ch OR site:franke.com'
     enabled: true
-    notes: Aarburg AG (~1h 10min). Kitchen systems and coffee equipment. Swiss family-owned industrial.
   - name: SFS Group
     careers_url: https://www.sfsgroup.com/en/career/
     scan_method: websearch
-    scan_query: '"SFS Group" OR "SFS" "Business Development" OR "Key Account" OR "Commercial" OR "Corporate Development" OR "Strategy" OR "Operations" Heerbrugg OR Switzerland site:jobs.ch OR site:sfsgroup.com'
+    scan_query: '"SFS Group" OR "SFS" {ROLES} site:jobs.ch OR site:sfsgroup.com'
     enabled: true
-    notes: Heerbrugg SG (~1h 30min). Precision fasteners and assemblies. Precision manufacturing with global KAM.
   - name: Sika
     careers_url: https://careers.smartrecruiters.com/SikaAG
     scan_method: websearch
-    scan_query: '"Sika" "Business Development" OR "Corporate Development" OR "M&A" OR "Strategy" OR "Commercial" OR "Key Account" OR "Head of" Baar OR Zürich OR Switzerland site:jobs.ch OR site:sika.com'
+    scan_query: '"Sika" {ROLES} site:jobs.ch OR site:sika.com'
     enabled: true
-    notes: Baar ZG (~30 min). Global specialty chemicals & construction. Large Swiss industrial, active M&A and corp dev.
   - name: dormakaba
     careers_url: https://www.dormakaba.com/en-en/jobs
     scan_method: websearch
-    scan_query: '"dormakaba" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Head of" Rümlang OR Zürich OR Switzerland site:jobs.ch OR site:dormakaba.com'
+    scan_query: '"dormakaba" {ROLES} site:jobs.ch OR site:dormakaba.com'
     enabled: true
-    notes: Rümlang ZH (~25 min). Access control & security solutions. Swiss-German industrial, global KAM.
   - name: u-blox
     careers_url: https://www.u-blox.com/en/working-u-blox
     scan_method: websearch
-    scan_query: '"u-blox" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Head of" Thalwil OR Zürich OR Switzerland site:jobs.ch OR site:u-blox.com'
+    scan_query: '"u-blox" {ROLES} site:jobs.ch OR site:u-blox.com'
     enabled: true
-    notes: Thalwil ZH (~20 min). GPS/wireless modules & semiconductors. High-tech Swiss, global KAM and BD roles.
   - name: Bystronic
     careers_url: https://www.bystronic.com/en/company/career/
     scan_method: websearch
-    scan_query: '"Bystronic" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Head of" Niederönz OR Switzerland site:jobs.ch OR site:bystronic.com'
+    scan_query: '"Bystronic" {ROLES} site:jobs.ch OR site:bystronic.com'
     enabled: true
-    notes: Niederönz BE (~1h 15min). Laser cutting and bending tech. Swiss precision manufacturing.
   - name: Richemont
     careers_url: https://richemont.wd3.myworkdayjobs.com/broadbean_external
     api: https://richemont.wd3.myworkdayjobs.com/wday/cxs/richemont/broadbean_external/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Richemont" "Corporate Development" OR "M&A" OR "Strategy" OR "Business Development" OR "Key Account" OR "Commercial" OR "Chief of Staff" OR "Operations" Geneva OR Zürich OR Switzerland site:jobs.ch OR site:richemont.com'
+    scan_query: '"Richemont" {ROLES} Geneva OR Zürich OR Switzerland site:jobs.ch OR site:richemont.com'
     enabled: true
-    notes: Geneva (HQ). Luxury group (Cartier, IWC, JLC, Vacheron). Corp dev and commercial roles. IWC already tracked separately — shared Workday tenant covers all Richemont brands.
   - name: Audemars Piguet
     careers_url: https://careers.smartrecruiters.com/audemarspiguet
     scan_method: websearch
-    scan_query: '"Audemars Piguet" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Head of" "Le Brassus" OR "Geneva" OR Switzerland site:jobs.ch OR site:audemarspiguet.com'
+    scan_query: '"Audemars Piguet" {ROLES} site:jobs.ch OR site:audemarspiguet.com'
     enabled: true
-    notes: Le Brassus VD (~2h). Ultra-luxury independent watchmaker. Strategy and commercial roles, limited frequency.
   - name: Breitling
     careers_url: https://www.breitling.com/ch-en/career/
     scan_method: websearch
-    scan_query: '"Breitling" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Head of" Grenchen OR Switzerland site:jobs.ch OR site:breitling.com'
+    scan_query: '"Breitling" {ROLES} site:jobs.ch OR site:breitling.com'
     enabled: true
-    notes: Grenchen SO (~1h 10min). Aviation watches (CVC Capital portfolio). Aviation passion + watchmaking background.
   - name: Patek Philippe
     careers_url: https://www.patek.com/en/company/careers
     scan_method: websearch
-    scan_query: '"Patek Philippe" "Business Development" OR "Key Account" OR "Commercial" OR "Strategy" OR "Operations" OR "Corporate Development" Geneva OR Switzerland site:jobs.ch OR site:patek.com'
+    scan_query: '"Patek Philippe" {ROLES} Geneva OR Switzerland site:jobs.ch OR site:patek.com'
     enabled: true
-    notes: Geneva (~3h). Ultra-luxury independent watchmaker. Low hiring frequency, high prestige.
   - name: Rothschild & Co (Zürich)
     careers_url: https://rothschildandco.wd3.myworkdayjobs.com/Rothschildandco_Lateral
     api: https://rothschildandco.wd3.myworkdayjobs.com/wday/cxs/rothschildandco/Rothschildandco_Lateral/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Rothschild" "Associate" OR "Manager" OR "Director" OR "Analyst" Zürich Switzerland "M&A" OR "advisory" OR "transaction" OR "corporate finance" site:jobs.ch OR site:rothschildandco.com'
+    scan_query: '"Rothschild" {ROLES} Zürich Switzerland site:jobs.ch OR site:rothschildandco.com'
     enabled: true
   - name: Lazard (Zürich)
     careers_url: https://www.lazard.com/careers/
     api: https://icbpjb.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/LazardProfessionalCareers
     provider: oraclecloud
     scan_method: websearch
-    scan_query: '"Lazard" "Associate" OR "Manager" OR "Vice President" OR "Director" Zürich Switzerland "M&A" OR "advisory" OR "restructuring" OR "transaction" site:jobs.ch OR site:lazard.com'
+    scan_query: '"Lazard" {ROLES} Zürich Switzerland site:jobs.ch OR site:lazard.com'
     enabled: true
-    notes: Zürich. Global M&A / restructuring advisory. Senior Associate exit option.
   - name: DC Advisory (Zürich)
     careers_url: https://www.dcadvisory.com/careers/
     scan_method: websearch
-    scan_query: '"DC Advisory" "Associate" OR "Manager" OR "Director" Zürich Switzerland "M&A" OR "advisory" OR "mid-market" site:jobs.ch OR site:dcadvisory.com'
+    scan_query: '"DC Advisory" {ROLES} Zürich Switzerland site:jobs.ch OR site:dcadvisory.com'
     enabled: true
   - name: Alantra (Zürich)
     careers_url: https://alantra.wd3.myworkdayjobs.com/Alantra
     api: https://alantra.wd3.myworkdayjobs.com/wday/cxs/alantra/Alantra/jobs
     api_provider: workday
     scan_method: websearch
-    scan_query: '"Alantra" "Associate" OR "Manager" OR "Director" Zürich Switzerland "M&A" OR "corporate finance" OR "transaction" site:jobs.ch OR site:alantra.com'
+    scan_query: '"Alantra" {ROLES} Zürich Switzerland site:jobs.ch OR site:alantra.com'
     enabled: true
   - name: Zurmont Madison
     careers_url: https://www.zurmont-madison.com/en/team/
     scan_method: websearch
-    scan_query: '"Zurmont Madison" "Associate" OR "Manager" OR "Investment" OR "Portfolio" OR "Operations" Zürich Switzerland site:jobs.ch OR site:zurmont-madison.com'
+    scan_query: '"Zurmont Madison" {ROLES} Zürich Switzerland site:jobs.ch OR site:zurmont-madison.com'
     enabled: true
-    notes: Zürich. Swiss-focused lower mid-market PE. In-house deal and portfolio roles.
   - name: Investindustrial
     careers_url: https://www.investindustrial.com/team/
     scan_method: websearch
-    scan_query: '"Investindustrial" "Associate" OR "Manager" OR "Investment" OR "Portfolio" OR "Operations" Zürich OR Geneva OR Switzerland site:jobs.ch OR site:investindustrial.com'
+    scan_query: '"Investindustrial" {ROLES} Zürich OR Geneva OR Switzerland site:jobs.ch OR site:investindustrial.com'
     enabled: true
-    notes: Swiss office (Zürich/Geneva). Southern European PE with Swiss presence. Industrial and luxury focus.
   - name: Capzanine (Swiss operations)
     careers_url: https://www.capzanine.com/en/about/join-us/
     scan_method: websearch
-    scan_query: '"Capzanine" "Associate" OR "Manager" OR "Investment" OR "Portfolio" Zürich OR Switzerland site:jobs.ch OR site:capzanine.com'
+    scan_query: '"Capzanine" {ROLES} Zürich OR Switzerland site:jobs.ch OR site:capzanine.com'
     enabled: true
-    notes: French PE with Swiss co-investments. Less frequent hiring, worth monitoring.

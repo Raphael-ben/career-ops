@@ -200,7 +200,7 @@ Apply the classifier rules below to produce a classification object. This gates 
 `classifications` is a list (1-3 tags) from this fixed market-geography set (person-agnostic):
 `strategy`, `consulting`, `M&A`, `luxury`, `manufacturing`, `industrial`, `tech`, `aviation`, `finance`, `operations`, `general`.
 
-Pick the smallest set that captures the role. A "Strategy Manager at LVMH" is `["strategy", "luxury"]`; an "M&A Senior Associate at a Big 4" is `["consulting", "M&A"]`; a "Plant Operations Director at a luxury watchmaker" is `["operations", "luxury", "manufacturing"]`.
+Pick the smallest set that captures the role. A "Strategy Manager at a fashion group" is `["strategy", "luxury"]`; a "Post-Merger Integration Lead at a bank" is `["M&A", "finance"]`; a "Plant Operations Director at a turbine maker" is `["operations", "industrial", "manufacturing"]`.
 
 ### Language detection
 

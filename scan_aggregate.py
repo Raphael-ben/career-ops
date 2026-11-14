@@ -452,7 +452,17 @@ def run_tavily(profile_cfg, portals_cfg, start=None, deadline=None, state=None):
     return jobs
 
 
-def local_llm_verdict(row, cfg):
+def triage_prompt(row, profile):
+    """One-word relevance prompt; roles come from the user's own profile.yml (target_roles, triage.preferences)."""
+    roles = ", ".join((profile.get("target_roles") or {}).get("primary") or []) or "the candidate's target roles"
+    prefs = str((profile.get("triage") or {}).get("preferences") or "").strip()
+    return (f"Job title: \"{row.get('title', '')}\" at company \"{row.get('company', '')}\". "
+            f"Is this plausibly relevant to one of these target roles: {roles}? "
+            + (f"Candidate preferences:\n{prefs}\n" if prefs else "")
+            + "Answer with exactly one word: yes or no.")
+
+
+def local_llm_verdict(row, cfg, profile=None):
     """Ask a local LLM (e.g. Ollama) whether a borderline row is worth keeping.
 
     POSTs {model, prompt, stream:false} to cfg['endpoint'], 10s timeout.
@@ -462,12 +472,7 @@ def local_llm_verdict(row, cfg):
     """
     endpoint = cfg.get("endpoint", "")
     model = cfg.get("model", "")
-    prompt = (
-        f"Job title: \"{row.get('title', '')}\" at company \"{row.get('company', '')}\". "
-        "Is this plausibly relevant to a Senior Manager/Lead-level strategy, M&A, "
-        "business development, applied AI, operations, or transformation role? "
-        "Answer with exactly one word: yes or no."
-    )
+    prompt = triage_prompt(row, profile or {})
     try:
         req = urllib.request.Request(
             endpoint,
@@ -655,7 +660,7 @@ def is_dupe(row, static_corpus, accepted_this_run, threshold):
     Title and company are scored separately (both via token_set_ratio) and the
     minimum of the two must clear the threshold — token_set_ratio on the plain
     concatenation "{title} {company}" lets a long shared title (e.g. "Senior
-    Business Development Manager") swamp a short, completely different company
+    Product Marketing Manager") swamp a short, completely different company
     name, scoring >90 for postings at two unrelated companies. Requiring both
     fields to independently match avoids that false-positive class.
     """
@@ -922,6 +927,13 @@ def selftest():
     """In-memory fuzzy-dedup assertions — no network, no real files touched."""
     import tempfile
 
+    # triage prompt: roles come from the profile, never a hardcoded list
+    _tp = triage_prompt({"title": "X"}, {"target_roles": {"primary": ["Fixture Role A", "Fixture Role B"]},
+                                         "triage": {"preferences": "fixture pref"}})
+    assert "Fixture Role A, Fixture Role B" in _tp and "fixture pref" in _tp
+    assert "Senior Manager/Lead" not in _tp and "Senior Manager/Lead-level" not in _tp
+    assert "target roles" in triage_prompt({}, {})
+
     # location: German "…Schweiz" pseudonym regions must be blockable even
     # though they substring-match the CH allow token (Märkische Schweiz
     # borderline incident 2026-09-16) — block is checked before allow.
@@ -933,9 +945,9 @@ def selftest():
     # tavily no-location demotion: a title-positive Tavily row with no
     # location and no CH signal anywhere must NOT pass outright (Coca-Cola
     # HBC Nigeria incident 2026-09-16) — it goes to borderline for triage.
-    assert not has_ch_signal("Marketing Execution Lead, Key Accounts",
+    assert not has_ch_signal("Marketing Execution Lead, Retail Accounts",
                              "https://www.aggregatorjobs.com/view/12345")
-    assert has_ch_signal("Key Account Manager Zürich", "https://x.com/1")
+    assert has_ch_signal("Sales Manager Zürich", "https://x.com/1")
     assert has_ch_signal("Sales Lead", "https://www.jobs.ch/en/vacancies/detail/abc/")
 
     # exact URL dup dropped (upstream short-circuit — simulated here)
@@ -943,30 +955,30 @@ def selftest():
     assert "https://example.com/job/1" in seen
 
     # fuzzy dup: same role/company, noisy formatting → dropped
-    base_title = normalize("Senior Business Development Manager")
+    base_title = normalize("Senior Product Marketing Manager")
     base_company = normalize("Acme")
     corpus = [(base_title, base_company)]
-    row_noisy = {"title": "Sr. Business Development Manager (m/w/d) 80-100%",
+    row_noisy = {"title": "Sr. Product Marketing Manager (m/w/d) 80-100%",
                  "company": "Acme", "url": "https://example.com/job/2"}
     assert is_dupe(row_noisy, corpus, [], 90), "fuzzy dup not detected"
 
     # same title, different company → kept (title-only concatenation would
     # false-positive here since the long shared title swamps a short company)
-    row_diff_co = {"title": "Senior Business Development Manager",
+    row_diff_co = {"title": "Senior Product Marketing Manager",
                     "company": "Other Co", "url": "https://example.com/job/3"}
     assert not is_dupe(row_diff_co, corpus, [], 90), "different company wrongly flagged"
 
     # missing company on either side → no fuzzy verdict possible, keep (2026-10-09:
     # 199/199 fuzzy drops in one scan had no company to compare and only 10 were
-    # the same title — "Business Development Manager" at South Pole was dropped
-    # against a nameless historic "business development manager")
-    row_no_co = {"title": "Business Development Manager", "company": "?",
+    # the same title — "Product Marketing Manager" at South Pole was dropped
+    # against a nameless historic "product marketing manager")
+    row_no_co = {"title": "Product Marketing Manager", "company": "?",
                  "url": "https://example.com/job/4"}
-    assert not is_dupe(row_no_co, [(normalize("Business Development Manager"), "")], [], 90), \
+    assert not is_dupe(row_no_co, [(normalize("Product Marketing Manager"), "")], [], 90), \
         "nameless title-only match wrongly flagged"
-    row_co = {"title": "Business Development Manager", "company": "South Pole",
+    row_co = {"title": "Product Marketing Manager", "company": "South Pole",
               "url": "https://example.com/job/5"}
-    assert not is_dupe(row_co, [(normalize("Business Development Manager"), "")], [], 90), \
+    assert not is_dupe(row_co, [(normalize("Product Marketing Manager"), "")], [], 90), \
         "match against nameless history row wrongly flagged"
 
     # applications.md fixture: an Applied row's (role, company) dedupes a fuzzy match
@@ -974,7 +986,7 @@ def selftest():
         "# Applications Tracker\n\n"
         "| # | Date | Company | Role | Score | Status | PDF | Report | Notes |\n"
         "|---|------|---------|------|-------|--------|-----|--------|-------|\n"
-        "| 1 | 2026-01-01 | Acme | Senior Business Development Manager | A/5 | Applied | ✅ | - | note |\n"
+        "| 1 | 2026-01-01 | Acme | Senior Product Marketing Manager | A/5 | Applied | ✅ | - | note |\n"
         "| 2 | 2026-01-02 | Beta | Some Skipped Role | B/5 | SKIP | ✅ | - | note |\n"
     )
     with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as fh:
@@ -982,9 +994,9 @@ def selftest():
         fixture_path = Path(fh.name)
     try:
         pairs = load_applications(fixture_path)
-        assert pairs == [("Senior Business Development Manager", "Acme")], pairs
+        assert pairs == [("Senior Product Marketing Manager", "Acme")], pairs
         app_corpus = [(normalize(r), normalize(c)) for r, c in pairs]
-        row_applied = {"title": "Sr. Business Development Manager (m/w/d)",
+        row_applied = {"title": "Sr. Product Marketing Manager (m/w/d)",
                        "company": "Acme", "url": "https://example.com/job/4"}
         assert is_dupe(row_applied, app_corpus, [], 90), "applied role not dropped"
     finally:
@@ -1406,7 +1418,7 @@ def main():
     if llm_enabled:
         kept = []
         for j in borderline:
-            if local_llm_verdict(j, local_llm_cfg):
+            if local_llm_verdict(j, local_llm_cfg, profile):
                 kept.append(j)
             else:
                 llm_dropped += 1

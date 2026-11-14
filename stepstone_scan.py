@@ -45,7 +45,7 @@ import scan_http
 DOMAIN = "https://www.stepstone.de"
 
 MOCK_JOB = {
-    "title": "Business Development Manager",
+    "title": "Product Marketing Manager",
     "company": "",
     "url": "https://www.stepstone.de/stellenangebote--Example--12345-inline.html",
     "source": "stepstone",
@@ -67,7 +67,7 @@ def load_terms(config_path="config/profile.yml"):
 
 
 def slugify(term: str) -> str:
-    """'Business Development Manager Switzerland' -> 'business-development-manager'.
+    """'Product Marketing Manager Switzerland' -> 'product-marketing-manager'.
     Strips the Swiss location suffix our search_terms always carry (the
     /in-schweiz URL segment already scopes the search to Switzerland)."""
     t = term.strip().lower()

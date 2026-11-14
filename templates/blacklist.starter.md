@@ -15,7 +15,7 @@ even when the client is anonymized.
 | Jobgether | 2026-07-21 | agency | Job-board aggregator republishing other listings |
 | Inflow Partnership | 2026-07-21 | agency | Recruitment intermediary |
 | Talent Manager | 2026-07-21 | agency | Recruitment intermediary |
-| Dr. Maier + Partner Executive Search | 2026-07-21 | agency | DE-focused mandates, outside commute radius |
+| Dr. Maier + Partner Executive Search | 2026-07-21 | agency | Recruitment intermediary |
 | Ethos | 2026-07-21 | agency | Hourly expert-network gigs, not employment |
 | Hays | 2026-07-21 | agency | Contract staffing |
 | Michael Page | 2026-07-21 | agency | Contract staffing |

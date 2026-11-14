@@ -13,7 +13,7 @@ moment a keyword/pageSize query string is attached; scan_http's tier-2
 escalation (curl_cffi Chrome impersonation) would be the way past that, but
 curl_cffi isn't installed in this venv, so that path is currently unusable —
 documented ceiling, not faked.
-The workaround: /jobs/{slug} category pages (e.g. /jobs/business-development)
+The workaround: /jobs/{slug} category pages (e.g. /jobs/product-marketing)
 render server-side and embed the full first page of results as inline JSON in
 <script id="dataTransfer">function transferredData(){ return {...} }</script>
 — window.ssdl.searchObj.jobs, ~15 rows, no separate XHR needed. The URL slug
@@ -55,7 +55,7 @@ import scan_http
 DOMAIN = "https://www.efinancialcareers.ch"
 
 MOCK_JOB = {
-    "title": "Business Development Manager",
+    "title": "Product Marketing Manager",
     "company": "",
     "url": "https://www.efinancialcareers.ch/jobs-Switzerland-Zurich-Example.id12345",
     "source": "efc",
@@ -77,7 +77,7 @@ def load_terms(config_path="config/profile.yml"):
 
 
 def slugify(term: str) -> str:
-    """'Business Development Manager Switzerland' -> 'business-development-manager'.
+    """'Product Marketing Manager Switzerland' -> 'product-marketing-manager'.
     Strips the Swiss location suffix our search_terms always carry — EFC's
     /jobs/{slug} pages are keyword-only (global scope), so the suffix would
     otherwise become part of the search keyword and return nothing."""

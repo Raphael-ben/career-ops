@@ -49,7 +49,7 @@ import scan_http
 DOMAIN = "https://www.zueri.jobs"
 
 MOCK_JOB = {
-    "title": "Business Development Manager",
+    "title": "Product Marketing Manager",
     "company": "",
     "url": "https://www.zueri.jobs/jobs/123456-example",
     "source": "zuerijobs",
@@ -74,8 +74,8 @@ def clean_query(term: str) -> str:
     """Strip the trailing Swiss location suffix our search_terms always carry
     ('... Switzerland' / '... Zürich') — the board is Zürich-only already, and
     keeping the literal word breaks keyword matching against job titles
-    (verified: 'Business Development' finds 11 hits, 'Business Development
-    Switzerland' finds 0)."""
+    (verified: a bare title keyword finds hits, the same keyword + ' Switzerland'
+    finds 0)."""
     t = term.strip()
     for suffix in ("switzerland", "schweiz", "zürich", "zurich"):
         if t.lower().endswith(suffix):

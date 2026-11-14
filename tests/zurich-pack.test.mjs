@@ -41,3 +41,15 @@ test('bad --blacklist exits 2 and writes no pack', () => {
   const r = spawnSync('node', [join(ROOT, 'tools/make-zurich-pack.mjs'), '--portals', join(ROOT, 'templates/portals.zurich.yml'), '--blacklist', '/nonexistent', '--out-dir', dir], { encoding: 'utf8' });
   assert.equal(r.status, 2); assert.ok(!existsSync(join(dir, 'portals.zurich.yml')));
 });
+// The owner's job targeting must not ship: roles are a {ROLES} placeholder that onboarding fills in.
+const ROLE_TERMS = ['M&' + 'A', 'Corporate ' + 'Development', 'Business ' + 'Development', 'Key ' + 'Account',
+  'Strat' + 'egy', 'Chief of ' + 'Staff', 'Head of ' + 'Sales', 'avia' + 'tion', 'lux' + 'ury'];
+test('pack queries carry no owner role terms, every query has {ROLES}', () => {
+  const y = yaml.load(readFileSync(join(ROOT, 'templates/portals.zurich.yml'), 'utf8'));
+  const qs = [...y.search_queries.map((q) => q.query), ...y.tracked_companies.map((c) => c.scan_query).filter(Boolean)];
+  for (const q of qs) assert.ok(q.includes('{ROLES}'), q);
+  const txt = readFileSync(join(ROOT, 'templates/portals.zurich.yml'), 'utf8').toLowerCase();
+  for (const t of ROLE_TERMS) assert.ok(!txt.includes(t.toLowerCase()), t);
+  assert.ok(y.search_queries.length < 60, `${y.search_queries.length} queries (was 80)`);
+  assert.equal(new Set(y.search_queries.map((q) => q.query)).size, y.search_queries.length);
+});

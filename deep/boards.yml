@@ -2,42 +2,11 @@
 # Recovered 2026-11-07 from the 2026-11-06 scan session's scratch scripts
 # (harvest.py / harvest_ats.py / harvest_wd2.py), de-duplicated.
 #
-# queries: sent to the LinkedIn guest search API and the jobs.ch public API.
-#   Empty list -> fall back to profile.yml jobspy.search_terms (country words stripped).
-queries:
-  - strategy manager
-  - head of strategy
-  - corporate strategy
-  - corporate development
-  - M&A
-  - chief of staff
-  - business operations
-  - strategy and operations
-  - transformation manager
-  - operational excellence
-  - PMO
-  - program manager
-  - technical account manager
-  - key account manager
-  - strategic account manager
-  - customer success manager
-  - business development manager
-  - head of business development
-  - commercial excellence
-  - pricing manager
-  - sales operations
-  - revenue operations
-  - strategic partnerships
-  - venture
-  - Strategie
-  - Unternehmensentwicklung
-  - Geschäftsentwicklung
-  - Leiter Business Development
-  - Stabsstelle
-  - Transformation
-  - Vertriebsingenieur
-  - Business Excellence
-  - Programmleiter
+# Search terms are NOT kept here: run_deep.py builds the LinkedIn / jobs.ch queries and the
+# Workday keywords from YOUR config/profile.yml at runtime:
+#   scan.deep_queries / scan.deep_workday_keywords  (optional explicit lists), else
+#   target_roles.primary + target_roles.archetypes[].name.
+# No roles in the profile -> the deep layer prints one warning and is skipped.
 
 linkedin:
   location: "Zürich, Switzerland"
@@ -50,9 +19,6 @@ jobsch:
 
 # Workday CXS tenants: "tenant|wdN|site". Searched with the tenant's own
 # Switzerland location facet when it has one, else filtered by location text.
-workday_keywords: [strategy, corporate development, business development, key account,
-                   transformation, chief of staff, commercial excellence, pricing,
-                   portfolio, venture, business operations, customer success, M&A]
 workday:
   - abb|wd3|external_career_page
   - alcon|wd5|careers_alcon

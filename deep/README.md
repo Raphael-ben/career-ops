@@ -31,9 +31,10 @@ every other source: recency gate, `portals.yml` title/location filters,
 `## Scan <date> (script layer)` block and in `scan-history.tsv` (canonical
 column layout).
 
-**Inputs:** `deep/boards.yml` (queries, Workday tenants, SR/GH/Lever/Ashby
-slugs, display aliases), `config/profile.yml` (`scan.deep_deadline_seconds`;
-`jobspy.search_terms` are used when `boards.yml` has no `queries`),
+**Inputs:** `deep/boards.yml` (Workday tenants, SR/GH/Lever/Ashby slugs,
+display aliases; no search terms), `config/profile.yml` (`scan.deep_deadline_seconds`;
+search terms = `scan.deep_queries` / `scan.deep_workday_keywords` if set, else
+`target_roles.primary` + `target_roles.archetypes[].name`; none -> one warning, layer skipped),
 `portals.yml` filters, `data/scan-history.tsv`.
 
 **Outputs:** `data/cache/deep-<date>.json` (raw harvest), then whatever

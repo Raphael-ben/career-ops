@@ -19,7 +19,7 @@ Every step checks the overall deadline between requests, and every request
 has its own timeout <= the time left, so the wall time is bounded by
 deadline + one request timeout (<= 15 s). Never run it in the background.
 
-Config: deep/boards.yml. Selftest (fixtures only, no network): --selftest.
+Config: deep/boards.yml (boards) + config/profile.yml (search terms, see role_terms). Selftest (fixtures only, no network): --selftest.
 """
 import os as _os, sys as _sys
 _HERE = _os.path.dirname(_os.path.abspath(__file__))
@@ -394,9 +394,16 @@ def harvest_ats(cfg, cutoff, today, budget, log):
 
 
 # ── orchestration ─────────────────────────────────────────────────────────
-def default_queries(profile):
-    terms = ((profile.get("jobspy") or {}).get("search_terms") or [])
-    return [re.sub(r"\s+(switzerland|schweiz|suisse)$", "", t, flags=re.I) for t in terms]
+def role_terms(profile):
+    """(queries, workday_keywords) from the user's own profile.yml; nothing role-specific ships in boards.yml.
+    scan.deep_queries / scan.deep_workday_keywords win; else target_roles.primary + archetypes[].name."""
+    tr = profile.get("target_roles") or {}
+    names = list(tr.get("primary") or []) + [a.get("name") for a in (tr.get("archetypes") or [])
+                                             if isinstance(a, dict)]
+    derived = list(dict.fromkeys(str(t).strip() for t in names if t and str(t).strip()))
+    sc = profile.get("scan") or {}
+    queries = sc.get("deep_queries") or derived
+    return queries, sc.get("deep_workday_keywords") or queries
 
 
 def main():
@@ -424,7 +431,10 @@ def main():
     budget = Budget(deadline)
     today = datetime.date.fromisoformat(args.date)
     cutoff = (today - datetime.timedelta(days=args.days)).isoformat()
-    queries = cfg.get("queries") or default_queries(profile)
+    queries, cfg["workday_keywords"] = role_terms(profile)
+    if not queries:
+        print("deep: WARNING no target_roles in config/profile.yml; deep layer skipped")
+        sys.exit(0)
     steps = set((args.only or "linkedin,jobsch,ats").split(","))
     seen, _ = sa.load_history()
 
@@ -474,16 +484,17 @@ def main():
 
 # ── selftest ──────────────────────────────────────────────────────────────
 def selftest():
+    cfg_boards = yaml.safe_load((HERE / "boards.yml").read_text()) or {}
     li_html = (
         '<li><div class="base-card"><a class="base-card__full-link" '
-        'href="https://ch.linkedin.com/jobs/view/head-of-strategy-at-acme-4479557664?refId=x">'
-        '<h3 class="base-search-card__title">Head of Strategy &amp; M&amp;A</h3>'
+        'href="https://ch.linkedin.com/jobs/view/head-of-research-at-acme-4479557664?refId=x">'
+        '<h3 class="base-search-card__title">Head of Research &amp; R&amp;D</h3>'
         '<h4 class="base-search-card__subtitle"><a>Acme AG</a></h4>'
         '<span class="job-search-card__location">Zurich, Zurich, Switzerland</span>'
         '<time class="job-search-card__listdate" datetime="2026-11-05">2 days ago</time></div></li>'
         '<li><div>no job link here</div></li>')
     r = parse_li_cards(li_html)
-    assert r == [{"title": "Head of Strategy & M&A", "company": "Acme AG",
+    assert r == [{"title": "Head of Research & R&D", "company": "Acme AG",
                   "location": "Zurich, Zurich, Switzerland", "date_posted": "2026-11-05",
                   "url": "https://www.linkedin.com/jobs/view/4479557664",
                   "source": "linkedin-guest"}], r
@@ -551,9 +562,13 @@ def selftest():
     assert b.left() == 10 and b.timeout() == 10
     now[0] = 290
     assert b.left() == 0                             # only the inject reserve left
-    assert default_queries({"jobspy": {"search_terms": ["Head of Strategy Switzerland",
-                                                         "Leiter Strategie Schweiz"]}}) == \
-        ["Head of Strategy", "Leiter Strategie"]
+    fx = {"target_roles": {"primary": ["Fixture Role A", "Fixture Role B"],
+                           "archetypes": [{"name": "Fixture Archetype", "fit": "primary"}, {"fit": "x"}]}}
+    assert role_terms(fx) == (["Fixture Role A", "Fixture Role B", "Fixture Archetype"],) * 2
+    assert role_terms({**fx, "scan": {"deep_queries": ["q1"], "deep_workday_keywords": ["k1"]}}) == (["q1"], ["k1"])
+    assert role_terms({}) == ([], [])
+    assert role_terms({"target_roles": {"primary": None}}) == ([], [])
+    assert "queries" not in cfg_boards and "workday_keywords" not in cfg_boards   # roles never ship
     print("run_deep selftest: OK")
 
 

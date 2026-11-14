@@ -28,7 +28,7 @@ from pathlib import Path
 from urllib.parse import quote_plus
 
 MOCK_JOB = {
-    "title": "Business Development Manager",
+    "title": "Product Marketing Manager",
     "company": "",
     "url": "https://www.jobs.ch/en/vacancies/detail/12345678-0000-0000-0000-000000000000/",
     "source": "jobsch",
