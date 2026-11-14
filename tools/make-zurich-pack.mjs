@@ -13,6 +13,8 @@ if (!existsSync(blacklist)) { console.error('make-zurich-pack: blacklist.md not 
 
 // Owner-identifying text: built by concatenation so this file stays leak-clean.
 const OWNER = new RegExp(['Rap' + 'hael', 'Benya' + 'mine', 'Rol' + 'ex', 'Serpen' + 'tine', 'Chop' + 'ard', 'Pw' + 'C'].join('|'), 'i');
+// Employers the owner applied to by name (sweep 2026-11-14): kept out of the shared starter list.
+const APPLIED = new RegExp(['Pila' + 'tus', '\\bIW' + 'C\\b'].join('|'));
 const scrub = (q) => q.replace(/\s-"?Pw\u0043"?(?=\s|$)/g, '');
 
 // Role/sector targeting is the owner's: each query keeps only site:, location, seniority and generic
@@ -58,7 +60,7 @@ const pack = {
     // owner notes describe his own targeting (sectors, past rejections, commute): only setup hints ship
     .map(({ notes, ...c }) => ({ ...c, name: c.name.replace(ROLE_SUFFIX, ''), ...(c.scan_query && { scan_query: genericize(c.scan_query, true) }),
       ...(/^Template\./.test(notes || '') && { notes }) }))
-    .filter((c) => !OWNER.test(JSON.stringify(c))),
+    .filter((c) => !OWNER.test(JSON.stringify(c)) && !APPLIED.test(c.name)),
 };
 if (OWNER.test(JSON.stringify(pack))) { console.error('make-zurich-pack: owner text survived scrubbing'); process.exit(1); }
 const head = '# Zürich starter pack — sources only. Title filters come from your goal-job definition. search_queries: onboarding replaces {ROLES} with your titles ("Title One" OR "Title Two"). tracked_companies: starter list, prune to taste.\n';

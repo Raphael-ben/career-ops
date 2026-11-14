@@ -388,11 +388,6 @@ tracked_companies:
     scan_method: websearch
     scan_query: '"SR Technics" {ROLES} Zürich site:jobs.ch OR site:srtechnics.com'
     enabled: true
-  - name: Pilatus Aircraft
-    careers_url: https://www.pilatus-aircraft.com/en/corporate/career
-    scan_method: websearch
-    scan_query: '"Pilatus Aircraft" {ROLES} site:jobs.ch OR site:pilatus-aircraft.com'
-    enabled: true
   - name: RUAG
     careers_url: https://www.ruag.com/en/career
     scan_method: websearch
@@ -730,11 +725,6 @@ tracked_companies:
     careers_url: https://careers.smartrecruiters.com/ASICS
     scan_method: websearch
     scan_query: '"Asics" {ROLES} site:jobs.ch OR site:asics.com'
-    enabled: true
-  - name: IWC Schaffhausen
-    careers_url: https://www.iwc.com/en/company/careers/job-offers.html
-    scan_method: websearch
-    scan_query: '"IWC" OR "IWC Schaffhausen" {ROLES} Schaffhausen OR Switzerland site:jobs.ch OR site:iwc.com'
     enabled: true
   - name: Swatch Group
     careers_url: https://www.swatchgroup.com/en/job-finder

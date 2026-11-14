@@ -272,7 +272,7 @@
     },
     "extras": [
       { "item": "Open-source maintainer", "condition": "always" },
-      { "item": "Aviation -- PPL(A)", "condition": "industry in conditional_mentions[oss_maintainer].surface_only_when" },
+      { "item": "Sailing -- skipper licence", "condition": "industry in conditional_mentions[oss_maintainer].surface_only_when" },
       { "item": "Trail running", "condition": "space_fill: include to bring the block to >=2 items" },
       { "item": "Chess club", "condition": "space_fill: alongside Trail running if space allows" }
     ],
