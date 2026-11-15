@@ -24,7 +24,7 @@ Print exactly this, then ask "Ready? It takes 30–45 minutes.":
 This sets up your own job-hunt system. It runs on this Mac only.
 1. It scans job boards weekly and keeps only roles that match YOUR definition of a good job.
 2. It writes a tailored one-page CV and cover letter per role, from facts you give it, never invented.
-3. It tracks every application (Notion, a markdown file, or a local dashboard).
+3. It tracks every application (Notion, a markdown file, AppFlowy, or a local dashboard).
 Your data stays in gitignored files on this machine. Nothing is shared with the person who gave you this.
 ```
 
@@ -135,7 +135,7 @@ Answer sheet: `language.output: <code>` and `language.warned: true` (always set 
 
 ## Phase 6 — Tracker
 
-Ask which tracker: `tracker.type` ∈ `notion` | `markdown` | `dashboard`.
+Ask which tracker: `tracker.type` ∈ `notion` | `markdown` | `appflowy` | `dashboard`.
 
 - **notion** — needs the Notion connector enabled in claude.ai and a JOB OP-style applications database. Ask for the database URL. `applications_db_id` = the 32-hex id in the URL path (strip dashes and `?v=`). Get `data_source_id` with one `notion-fetch` of that database (the `collection://` id). Test with one `notion-search` scoped to it; it must return without error. Tell them: marking a role Applied then requires a Notion entry (the Applied gate, `.claude/hooks/notion-gate.mjs`, blocks the session end otherwise). Answer sheet: `tracker.notion.applications_db_id`, `tracker.notion.data_source_id`.
 - **markdown** — `data/applications.md` is the tracker. Print:
@@ -144,6 +144,7 @@ Ask which tracker: `tracker.type` ∈ `notion` | `markdown` | `dashboard`.
   2. Open applications.md: it is your tracker table, updated by the system.
   3. Optional: install the Dataview plugin to filter by status.
   ```
+- **appflowy** — local, open-source Notion alternative, no API: a CSV template plus an export script. Point them to `templates/appflowy-job-op.md` (install, import, field types), copy `templates/appflowy-job-op.csv` to `{DATA_DIR}/appflowy-job-op.csv` for the import, and tell them `node tools/appflowy-export.mjs` regenerates a CSV from the tracker. No live sync. Answer sheet: `tracker.type: appflowy`.
 - **dashboard** — tell them this builds the local web dashboard once, takes a few minutes and needs network. Run `npm --prefix web ci && npm run ui`; when it prints the URL, confirm it loads, stop it (Ctrl-C), and print the launch line: `cd career-ops && npm run ui` → http://localhost:3000 (loopback only, no login). It reads the same `data/applications.md`; the Applied gate treats it like markdown.
 
 ## Phase 7 — Playback, then write

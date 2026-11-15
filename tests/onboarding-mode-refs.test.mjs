@@ -14,7 +14,7 @@ test('onboarding.md references only scripts that exist and all nine phases', () 
   for (let p = 0; p <= 9; p++) assert.match(md, new RegExp(`^## Phase ${p}\\b`, 'm'));
   assert.ok(md.includes('scan.scrapers')); assert.ok(md.includes('language.warned'));
   assert.ok(md.includes('onboard-write.mjs --answers')); assert.ok(md.includes('npm run ui'));
-  assert.match(md, /tracker\.type.*notion.*markdown.*dashboard/);
+  assert.match(md, /tracker\.type.*notion.*markdown.*appflowy.*dashboard/);
   const owner = new RegExp(['Pw' + 'C', 'Ro' + 'lex', 'Rap' + 'hael', 'Serp' + 'entine', 'Cho' + 'pard'].join('|'));
   assert.ok(!owner.test(md));
 });

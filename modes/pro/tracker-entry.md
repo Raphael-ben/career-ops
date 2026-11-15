@@ -11,6 +11,7 @@ Resolve `{DATA_DIR}` and `{PYTHON}` from `modes/_profile.md` (lines `DATA_DIR: .
 Read `config/profile.yml` `tracker:` block. Branch on `tracker.type`:
 
 - **`markdown`** or **`dashboard`** → the entry is the `data/applications.md` row only (set to Applied by `apply.md` Step 2 via `set-status.mjs`). Do Steps 1–3, then the "applications.md row" section below. No Notion, no `tracker-links.tsv`.
+- **`appflowy`** → like `markdown` (the `applications.md` row via `set-status.mjs`; the Stop hook only blocks for literal `notion`), then the "AppFlowy paste block" section below. Never claim anything was written to AppFlowy.
 - **`notion`** → follow Steps 1–5 (Notion flow). Use `tracker.notion.applications_db_id` as the database id and `tracker.notion.data_source_id` as the data source wherever an id is needed. Never hardcode ids in this mode.
 - **`none`** (or the `tracker:` block / `tracker.type` is absent) → same as `markdown`: skip the Notion flow, do Steps 1–3, then the "applications.md row" section below. Done.
 - **`obsidian`** → print `Obsidian tracker not implemented — see docs/TRACKERS.md` and fall back to the `none` flow.
@@ -67,7 +68,7 @@ Leave Zipcode blank **only** if the city itself cannot be determined from the JD
 
 ---
 
-### applications.md row (`markdown` / `dashboard` / `none` / obsidian fallback)
+### applications.md row (`markdown` / `dashboard` / `appflowy` / `none` / obsidian fallback)
 
 The row normally exists already and is `Applied` (`apply.md` Step 2 ran `node set-status.mjs <#> Applied`). Never hand-edit the table and never append a second row for the same opening. Record the extra fields as a note on that row:
 
@@ -76,6 +77,15 @@ node set-status.mjs <tracker#> Applied --note "{City}, {Country} {zip} · ATS {p
 ```
 
 If no row exists (apply started outside the pipeline), add it through a tracker-additions TSV + `node merge-tracker.mjs` (see AGENTS.md "TSV Format for Tracker Additions"), then run the command above. Then stop — Steps 4–5 apply only to the Notion flow.
+
+### AppFlowy paste block (`appflowy` only)
+
+After the row is set to Applied, run `node tools/appflowy-export.mjs` (regenerates `data/appflowy/job-op.csv`). Then print, for the user to paste into their AppFlowy grid (`templates/appflowy-job-op.md`):
+
+1. The new row as ONE CSV line in the template's column order (header: first line of `templates/appflowy-job-op.csv`), quoted where needed.
+2. The property values as a list: Name (company only), Position, Status (Applied), Application date, URL, Location, Zipcode, ATS Platform (Step 3), Match Score, Expected Salary + Salary Currency (only if the JD disclosed one, verbatim), CV path, Cover Letter path (local relative paths to the PDFs).
+
+Say plainly it was NOT written to AppFlowy. Then stop.
 
 ---
 
