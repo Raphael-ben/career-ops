@@ -113,9 +113,12 @@ Script layer (JobSpy/jobs.ch/jobup/Stepstone
                         — borderline:        B for triage
 ─────────────────────────────────────────
 Total new in pipeline:                  N+M
+Updates: {the updates: line printed by scan_aggregate.py, verbatim}
 
 → Run /jobhunter pipeline to evaluate new offers.
 ```
+
+If a component is outdated, tell the user to run the shown command before the next session.
 
 List every new entry from this run (pass AND borderline), grouped by source, one line each:
 

@@ -214,8 +214,11 @@ and job ads are sent to Claude, unredacted), Tavily search queries, Notion entri
 Notion), and requests to the job boards. Personal-detail redaction applies only to the optional
 third-party LLM runners (OpenRouter / OpenAI / Gemini), not to Claude, Tavily or Notion.
 
-Updates: run `bash tools/update.sh` in the repo root once a month, or when the session-start message
-says your system is over 30 days old. Never run update-system.mjs apply directly.
+Updates: run `bash tools/update.sh` in the repo root once a month (it updates everything), or one part
+only with `bash tools/update.sh career-ops`, `template` or `humanizer`. Every scan checks for newer
+versions without using Claude, and the next session tells you what to update and the exact command;
+`/jobhunter update` runs the same check on demand. Python/npm packages reinstall via `bash setup.sh`.
+Never run update-system.mjs apply directly.
 ```
 
 Then offer the first real scan (`/jobhunter scan`).

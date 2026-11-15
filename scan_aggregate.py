@@ -1347,6 +1347,21 @@ def main():
               ("  (dry-run: nothing written)" if args.reap_dry_run else ""))
         return
 
+    # Token-free update check (parent repo tools/check-updates.mjs) runs beside the scan and
+    # writes data/update-status.json; it never changes this scan's exit code.
+    upd = None
+    if not args.inject:
+        try:
+            import shutil
+            mjs = HERE.parent / "tools" / "check-updates.mjs"
+            # launchd's PATH lacks Homebrew, so look there too
+            node = shutil.which("node", path=_os.environ.get("PATH", "") + ":/opt/homebrew/bin:/usr/local/bin")
+            if node and mjs.exists():
+                upd = subprocess.Popen([node, str(mjs), "--quiet"],
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            upd = None
+
     # REAPER — runs at the start of every scan too, so pipeline.md stays
     # bounded without a separate step anyone has to remember to run.
     reap_stats = reap_pipeline(pipeline_max_age, today=today, dry_run=args.dry_run)
@@ -1487,6 +1502,15 @@ def main():
 
     if args.stamp and raw > 0 and not args.dry_run:
         Path(args.stamp).touch()
+    if upd is not None:
+        try:
+            upd.wait(timeout=15)
+            print(json.loads((HERE / "data" / "update-status.json").read_text())["summary"])
+        except subprocess.TimeoutExpired:
+            upd.kill()
+            print("updates: check timed out")
+        except Exception:
+            pass
     print(f"funnel: raw={raw} kept={len(passed) + len(borderline)} "
           f"elapsed={int(time.monotonic() - t0)}s "
           f"deadline_hit={'yes' if state['deadline_hit'] else 'no'}")
